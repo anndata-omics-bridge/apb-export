@@ -1,0 +1,11 @@
+# This file is managed by Copier. Do not edit it manually.
+_src_path: .
+author_email: wew@fgcz.ethz.ch
+author_name: Witold Wolski
+copyright_year: '2026'
+description: One step from vendor output to msmu-ready MuData through APB2
+distribution_name: apb-msmu
+license_spdx: MIT
+package_name: apb_msmu
+project_name: APB msmu
+python_min: '3.13'

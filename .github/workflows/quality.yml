@@ -1,0 +1,52 @@
+name: Quality
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apb-msmu
+    steps:
+      - name: Check out APB msmu
+        uses: actions/checkout@v6
+        with:
+          path: apb-msmu
+
+      - name: Check out compatible APB2
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb2
+          ref: 96a1f954cf851d99940716478ee05af25677feb8
+          path: apb2
+
+      - name: Check out compatible APB Catalog
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb-catalog
+          ref: a6532e41c4db6dd696d96d3dee593483c4443ccd
+          path: apb-catalog
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          version: "0.9.8"
+          enable-cache: true
+
+      - name: Synchronize environment
+        run: uv sync --frozen --group dev --group parity
+
+      - name: Run quality gates
+        run: make check
