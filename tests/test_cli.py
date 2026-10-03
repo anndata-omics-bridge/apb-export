@@ -8,7 +8,7 @@ import mudata as md
 import pytest
 from apb_catalog.resolver import UnresolvedField
 
-from apb_msmu import cli
+from apb_msmu.api import MsmuExporter
 from apb_msmu.cli import app, main
 from conftest import DiannInput
 
@@ -21,7 +21,9 @@ def test_writes_msmu_file(diann: DiannInput, tmp_path: Path) -> None:
     target = tmp_path / "nested" / "out.h5mu"
 
     assert _run(str(diann.report), str(target), "--params", str(diann.log)) == 0
-    assert md.read_h5mu(target)["psm"].n_vars == diann.cells
+    psm = md.read_h5mu(target)["psm"]
+    assert psm.n_vars == diann.cells
+    assert psm.uns["identification_file"] == str(diann.report), "the command names its source"
 
 
 def test_refuses_overwrite_wrong_suffix_and_bad_input(diann: DiannInput, tmp_path: Path) -> None:
@@ -46,12 +48,12 @@ def test_main_exits_with_the_status(
 def test_an_unreviewed_rule_is_reported_not_guessed(
     diann: DiannInput, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def _unreviewed(*_args: object, **_kwargs: object) -> md.MuData:
+    def _unreviewed(_self: MsmuExporter, _parsed: object, /) -> md.MuData:
         error = UnresolvedField.__new__(UnresolvedField)
         LookupError.__init__(error, "confidence on ion (kind=q_value) is unknown")
         raise error
 
-    monkeypatch.setattr(cli, "convert", _unreviewed)
+    monkeypatch.setattr(MsmuExporter, "export", _unreviewed)
     target = tmp_path / "out.h5mu"
 
     assert _run(str(diann.report), str(target), "--params", str(diann.log)) == 1

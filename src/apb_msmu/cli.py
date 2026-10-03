@@ -1,4 +1,7 @@
-"""``apb-msmu``: vendor output in, msmu-ready ``.h5mu`` out."""
+"""``apb-msmu``: vendor output in, msmu-ready ``.h5mu`` out.
+
+APB2 converts the vendor files; :class:`~apb_msmu.api.MsmuExporter` builds msmu's MuData.
+"""
 
 from __future__ import annotations
 
@@ -6,16 +9,35 @@ import sys
 from pathlib import Path
 from typing import Annotated
 
+from apb2.api import ParsedLevels, ParseRuleCompiler
 from apb_catalog.resolver import UnresolvedField
 from cyclopts import App, Parameter
 from loguru import logger
 
-from apb_msmu.api import convert
+from apb_msmu.api import MsmuExporter
+from apb_msmu.confidence import LEVEL
 
 app = App(
     name="apb-msmu",
     help="Convert vendor output into the MuData msmu's readers build, in one step.",
 )
+
+
+def _parse(
+    data: Path, params: Path | None, /, *, software: str | None, strict: bool
+) -> ParsedLevels:
+    """Read the vendor files into APB2's ion level."""
+    return (
+        ParseRuleCompiler(
+            data,
+            params,
+            requested_levels=(LEVEL,),
+            checks="strict" if strict else "standard",
+            software=software,
+        )
+        .compile()
+        .parse()
+    )
 
 
 @app.default
@@ -43,7 +65,8 @@ def run(
         logger.error(f"refusing to overwrite {output}")
         return 1
     try:
-        mdata = convert(data, params, software=software, abundance=abundance, strict=strict)
+        parsed = _parse(data, params, software=software, strict=strict)
+        mdata = MsmuExporter(abundance=abundance).export(parsed)
     except (OSError, ValueError) as error:
         logger.error(str(error))
         return 1
@@ -55,9 +78,11 @@ def run(
             "catalogues against this APB2 revision"
         )
         return 1
+    psm = mdata["psm"]
+    # An APB2 result does not record its source files; this command read them.
+    psm.uns["identification_file"] = str(data)
     output.parent.mkdir(parents=True, exist_ok=True)
     mdata.write_h5mu(output)
-    psm = mdata["psm"]
     apb = psm.uns["apb"]
     logger.info(
         f"wrote {output}: psm {psm.n_obs} runs x {psm.n_vars} features; "

@@ -11,9 +11,10 @@ import mudata as md
 import numpy as np
 import pandas as pd
 import pytest
+from apb2.api import ParseRuleCompiler
 from scipy import sparse
 
-from apb_msmu.api import convert
+from apb_msmu.api import MsmuExporter
 from conftest import DiannInput
 
 mm = pytest.importorskip("msmu")
@@ -41,7 +42,8 @@ def test_same_features_and_values_as_read_diann(
     diann: DiannInput, tmp_path: Path, level: str
 ) -> None:
     export = tmp_path / "export.h5mu"
-    exported = convert(diann.report, diann.log, abundance="Precursor_Quantity")
+    parsed = ParseRuleCompiler(diann.report, diann.log, requested_levels=("ion",)).compile().parse()
+    exported = MsmuExporter(abundance="Precursor_Quantity").export(parsed)
     exported.write_h5mu(export)
     reference = _pipeline(mm.read_diann(str(diann.report)))[level]
     ours = _pipeline(mm.read_h5mu(export))[level]

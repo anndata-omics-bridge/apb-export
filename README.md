@@ -15,6 +15,22 @@ mdata = mm.pp.apply_filter(mdata, modality="psm", on="var")
 mdata = mm.pp.to_peptide(mdata, calculate_q=False)
 ```
 
+From Python, APB2 converts and `MsmuExporter` exports, the shape of the other APB tools:
+
+```python
+from pathlib import Path
+
+from apb2.api import ParseRuleCompiler
+from apb_msmu.api import MsmuExporter
+
+parsed = ParseRuleCompiler(
+    Path("report.tsv"), Path("report.log.txt"), requested_levels=("ion",)
+).compile().parse()
+MsmuExporter().export(parsed).write_h5mu("result.h5mu")
+```
+
+An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`.
+
 ## What it writes
 
 msmu's own layout, as `msmu.read_diann` writes it:

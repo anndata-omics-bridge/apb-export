@@ -19,13 +19,15 @@ The closest `AGENTS.md` wins. Explicit user instructions override this file.
 
 One step, vendor output to msmu's MuData. Modules compose downward only:
 
-- `cli`: the one command; refuses overwrite, reports unreviewed catalogue answers
-- `api`: `convert` (APB2 conversion of the ion level) and `to_msmu` (an APB2 result in memory)
+- `cli`: the one command; APB2's `ParseRuleCompiler` reads the vendor files, then `MsmuExporter` exports; refuses overwrite, reports unreviewed catalogue answers
+- `api`: `MsmuExporter(abundance=...).export(parsed, /)`, the family's shape: configuration bound once, one verb on `ParsedLevels`
 - `container`: AnnData/MuData assembly; the only module that imports them
 - `psm`: Polars only; unpivots APB2's wide ion level into msmu's one-row-per-cell psm table
 - `confidence`: q-value and PEP layers by meaning through apb-catalog
 
 Rules for this package:
+
+- **APB2 owns conversion and persistence.** Never define a `convert`, reader or writer here; use `ParseRuleCompiler`, `read_parsed_levels` and `write_parsed_levels`.
 
 - **Meanings come from apb-catalog, never vendor column names.** A vendor without a catalogued field gets no column (q-value) or NaN (PEP); an unreviewed rule is an error, not a guess.
 - **Match msmu's readers, not our preferences.** Layout, column names and order, q-value precedence and protein canonicalisation follow `msmu.read_diann`; the parity tests hold this.
