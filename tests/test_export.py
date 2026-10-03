@@ -150,8 +150,10 @@ def test_written_file_reads_back(diann: DiannInput, tmp_path: Path) -> None:
 
 def test_refusals_name_the_problem(diann: DiannInput) -> None:
     parsed = _parsed(diann)
-    with pytest.raises(ValueError, match="no abundance layer 'nope'"):
+    with pytest.raises(ValueError, match="level has no layer 'nope'"):
         MsmuExporter(abundance="nope").export(parsed)
+    with pytest.raises(ValueError, match="'Q_Value' does not carry the abundance role"):
+        MsmuExporter(abundance="Q_Value").export(parsed)
 
     without_ion = replace(parsed, levels={})
     with pytest.raises(ValueError, match="needs APB2's ion level"):

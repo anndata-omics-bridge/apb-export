@@ -12,11 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import polars as pl
-from apb2.parserV2.parse_quant.data.parsed import (
-    CategoricalLayerSemantics,
-    FinalLayerTable,
-    ParsedLevel,
-)
+from apb2.api import FinalLayerTable, ParsedLevel
 
 from apb_msmu.confidence import Confidence
 
@@ -64,19 +60,17 @@ def _runs(level: ParsedLevel) -> tuple[str, ...]:
     return tuple(str(run) for run in level.obs.frame[keys[0]].to_list())
 
 
-def _cells(layer: FinalLayerTable, name: str) -> pl.DataFrame:
-    """Unpivot one layer to (precursor, obs, value), the observation as its integer index."""
-    if layer.var_key_columns != (PRECURSOR,):
-        raise ValueError(f"layer {layer.layer_name!r} is not keyed by {PRECURSOR}")
-    cells = layer.values.unpivot(index=PRECURSOR, variable_name=_OBS, value_name=name)
-    cells = cells.with_columns(pl.col(_OBS).str.strip_prefix("obs_").cast(pl.Int64))
-    semantics = layer.semantics
-    if isinstance(semantics, CategoricalLayerSemantics):
-        labels = {code: label for label, code in semantics.categories}
-        cells = cells.with_columns(
-            pl.col(name).replace_strict(labels, default=None, return_dtype=pl.Utf8)
-        )
-    return cells
+def _cells(layer: FinalLayerTable, name: str, precursors: pl.Series) -> pl.DataFrame:
+    """Unpivot one layer to (precursor, obs, value), the observation as its integer index.
+
+    Layer rows align with the ion level's var rows and columns with its runs, by position.
+    """
+    values = layer.decoded_values()
+    values = values.rename({column: str(index) for index, column in enumerate(values.columns)})
+    cells = values.with_columns(precursors).unpivot(
+        index=PRECURSOR, variable_name=_OBS, value_name=name
+    )
+    return cells.with_columns(pl.col(_OBS).cast(pl.Int64))
 
 
 def _is_contaminant(entry: pl.Expr) -> pl.Expr:
@@ -104,23 +98,26 @@ def _protein_columns(column: str) -> list[pl.Expr]:
     ]
 
 
-def _confidence_columns(cells: pl.DataFrame, confidence: Confidence) -> pl.DataFrame:
+def _confidence_columns(
+    cells: pl.DataFrame, confidence: Confidence, precursors: pl.Series
+) -> pl.DataFrame:
     for name, layer in (("q_value", confidence.q_value), ("PEP", confidence.pep)):
         if layer is None:
             # msmu's to_peptide aggregates PEP unconditionally; NaN says "not reported".
             if name == "PEP":
                 cells = cells.with_columns(pl.lit(float("nan"), pl.Float32).alias(name))
             continue
-        values = _cells(layer, name).with_columns(pl.col(name).cast(pl.Float32))
+        values = _cells(layer, name, precursors).with_columns(pl.col(name).cast(pl.Float32))
         cells = cells.join(values, on=[PRECURSOR, _OBS], how="left")
     return cells
 
 
 def _search_result(level: ParsedLevel, cells: pl.DataFrame) -> pl.DataFrame:
     """Every feature column and every layer's value at the exported cells."""
+    precursors = level.var.frame.get_column(PRECURSOR)
     result = cells.select(PRECURSOR, _OBS).join(level.var.frame, on=PRECURSOR, how="left")
     for name, layer in level.layers.items():
-        result = result.join(_cells(layer, name), on=[PRECURSOR, _OBS], how="left")
+        result = result.join(_cells(layer, name, precursors), on=[PRECURSOR, _OBS], how="left")
     return result.drop(_OBS)
 
 
@@ -139,14 +136,15 @@ def psm_rows(level: ParsedLevel, *, abundance: str, confidence: Confidence) -> P
     missing = [c for c in (PRECURSOR, PEPTIDOFORM, PEPTIDE) if c not in level.var.frame.columns]
     if missing:
         raise ValueError(f"ion level lacks the ProForma columns {missing}")
-    if abundance not in level.layers:
-        raise ValueError(f"no abundance layer {abundance!r}; layers are {sorted(level.layers)}")
-    accessions = level.uns.get("column_roles", {})
-    if not isinstance(accessions, dict) or ACCESSIONS_ROLE not in accessions:
+    if level.var.key_columns != (PRECURSOR,):
+        raise ValueError(f"ion level is keyed by {level.var.key_columns}, not ({PRECURSOR},)")
+    level.abundance_layers((abundance,))
+    if ACCESSIONS_ROLE not in level.var.roles:
         raise ValueError(f"ion level declares no {ACCESSIONS_ROLE!r} column role")
-    accession_column = str(accessions[ACCESSIONS_ROLE])
+    accession_column = level.var.roles[ACCESSIONS_ROLE]
+    precursors = level.var.frame.get_column(PRECURSOR)
 
-    cells = _cells(level.layers[abundance], _VALUE).filter(
+    cells = _cells(level.layers[abundance], _VALUE, precursors).filter(
         pl.col(_VALUE).is_finite() & (pl.col(_VALUE) != 0)
     )
     cells = cells.join(
@@ -154,7 +152,7 @@ def psm_rows(level: ParsedLevel, *, abundance: str, confidence: Confidence) -> P
         on=PRECURSOR,
         how="left",
     ).sort(_OBS, PRECURSOR, maintain_order=True)
-    cells = _confidence_columns(cells, confidence)
+    cells = _confidence_columns(cells, confidence, precursors)
     run_frame = pl.DataFrame(
         {_OBS: range(len(runs)), "filename": runs}, schema={_OBS: pl.Int64, "filename": pl.Utf8}
     )

@@ -15,8 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import polars as pl
-from apb2.api import ParsedLevels
-from apb2.parserV2.parse_quant.data.parsed import FinalLayerTable
+from apb2.api import FinalLayerTable, ParsedLevels
 from apb_catalog.catalog import Catalog
 
 LEVEL = "ion"
@@ -49,7 +48,7 @@ def _has_values(layer: FinalLayerTable) -> bool:
     msmu reads DIA-NN's library q-value only when its column sums to nonzero, because DIA-NN
     writes the column without match-between-runs and leaves it empty.
     """
-    values = layer.values.drop(list(layer.var_key_columns))
+    values = layer.quantitative_values()
     total = values.select(pl.sum_horizontal(pl.all().fill_nan(0).fill_null(0)).sum()).item()
     return bool(total)
 
