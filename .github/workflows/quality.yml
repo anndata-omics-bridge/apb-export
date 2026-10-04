@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: anndata-omics-bridge/apb2
-          ref: b258b4b470dfd3b3f4f5596bd65d10b528e0958a
+          ref: f73c2d5535899c20e27339657f449c715219dd58
           path: apb2
 
       - name: Check out compatible APB Catalog

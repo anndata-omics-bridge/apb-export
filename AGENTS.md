@@ -42,7 +42,7 @@ Rules for this package:
   blanket exclusions, file-wide ignores, or unqualified `# type: ignore`.
 - Ruff is the sole formatter and linter. Do not add Black, isort, Flake8, mypy,
   or another overlapping formatter/type checker.
-- Keep `__init__.py` empty and import from defining modules inside this package. Other anndata_bridge packages import this one only from `apb_msmu.api`, and it imports them only from theirs.
+- Keep `__init__.py` empty and import from defining modules inside this package. Other anndata_bridge packages import this one only from `apb_msmu.api`, and it imports them only from theirs. The CLI imports this package only from `apb_msmu.api` too.
 - Use Google-style docstrings for public APIs and the configured 100-character
   line length.
 

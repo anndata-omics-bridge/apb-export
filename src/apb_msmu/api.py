@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import json
 from importlib.metadata import version
+from typing import ClassVar
 
 import mudata as md
-from apb2.api import ParsedLevels
+from apb2.api import ParsedLevels, QuantificationLevel
 
 from apb_msmu.confidence import LEVEL, Confidence, resolve_confidence
 from apb_msmu.container import build_mudata
@@ -63,6 +64,9 @@ class MsmuExporter:
     """Bind the abundance choice for exports to msmu's MuData."""
 
     __slots__ = ("_abundance",)
+
+    level: ClassVar[QuantificationLevel] = LEVEL
+    """The quantification level ``export`` reads; the CLI converts only this level."""
 
     def __init__(self, abundance: str | None = None) -> None:
         """Choose the layer that becomes msmu's ``X``; APB2's primary layer when ``None``."""

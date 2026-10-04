@@ -15,7 +15,6 @@ from cyclopts import App, Parameter
 from loguru import logger
 
 from apb_msmu.api import MsmuExporter
-from apb_msmu.confidence import LEVEL
 
 app = App(
     name="apb-msmu",
@@ -31,7 +30,7 @@ def _parse(
         ParseRuleCompiler(
             data,
             params,
-            requested_levels=(LEVEL,),
+            requested_levels=(MsmuExporter.level,),
             checks="strict" if strict else "standard",
             software=software,
         )
