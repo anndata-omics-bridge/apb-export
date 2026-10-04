@@ -64,11 +64,11 @@ class MsmuExporter:
 
     __slots__ = ("_abundance",)
 
-    def __init__(self, *, abundance: str | None = None) -> None:
+    def __init__(self, abundance: str | None = None) -> None:
         """Choose the layer that becomes msmu's ``X``; APB2's primary layer when ``None``."""
         self._abundance = abundance
 
-    def export(self, parsed: ParsedLevels, /) -> md.MuData:
+    def export(self, parsed: ParsedLevels) -> md.MuData:
         """Build msmu's MuData from an APB2 result's ion level.
 
         Args:

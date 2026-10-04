@@ -24,14 +24,14 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: anndata-omics-bridge/apb2
-          ref: f6131af4b71562546b19af389060930ca4eec32c
+          ref: b258b4b470dfd3b3f4f5596bd65d10b528e0958a
           path: apb2
 
       - name: Check out compatible APB Catalog
         uses: actions/checkout@v6
         with:
           repository: anndata-omics-bridge/apb-catalog
-          ref: c5e344c81522cd867523ef343e4d75d76019665e
+          ref: 491f2c1959594e127642a0066d1cab70c0781b5c
           path: apb-catalog
 
       - name: Set up Python
