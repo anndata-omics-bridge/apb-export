@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 import polars as pl
 from apb2.api import FinalLayerTable, ParsedLevels
-from apb_catalog.catalog import Catalog
+from apb_catalog.api import Catalog
 
 LEVEL = "ion"
 CONCEPT = "confidence"

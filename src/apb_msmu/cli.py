@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Annotated
 
 from apb2.api import ParsedLevels, ParseRuleCompiler
-from apb_catalog.resolver import UnresolvedField
+from apb_catalog.api import UnresolvedField
 from cyclopts import App, Parameter
 from loguru import logger
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import mudata as md
 import pytest
-from apb_catalog.resolver import UnresolvedField
+from apb_catalog.api import UnresolvedField
 
 from apb_msmu.api import MsmuExporter
 from apb_msmu.cli import app, main
