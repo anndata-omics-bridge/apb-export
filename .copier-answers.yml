@@ -4,8 +4,8 @@ author_email: wew@fgcz.ethz.ch
 author_name: Witold Wolski
 copyright_year: '2026'
 description: One step from vendor output to msmu-ready MuData through APB2
-distribution_name: apb-msmu
+distribution_name: apb-export
 license_spdx: MIT
-package_name: apb_msmu
-project_name: APB msmu
+package_name: apb_export
+project_name: APB Export
 python_min: '3.13'

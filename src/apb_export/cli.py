@@ -1,6 +1,6 @@
-"""``apb-msmu``: vendor output in, msmu-ready ``.h5mu`` out.
+"""``apb-export``: vendor output in, msmu-ready ``.h5mu`` out.
 
-APB2 converts the vendor files; :class:`~apb_msmu.api.MsmuExporter` builds msmu's MuData.
+APB2 converts the vendor files; :class:`~apb_export.api.MsmuExporter` builds msmu's MuData.
 """
 
 from __future__ import annotations
@@ -14,10 +14,13 @@ from apb_catalog.api import UnresolvedField
 from cyclopts import App, Parameter
 from loguru import logger
 
-from apb_msmu.api import MsmuExporter
+from apb_export.api import MsmuExporter
+
+# The APB layers behind msmu's X and its two confidence columns, logged after each export.
+_REPORTED = ("layers.abundance", "var.q_value", "var.PEP")
 
 app = App(
-    name="apb-msmu",
+    name="apb-export",
     help="Convert vendor output into the MuData msmu's readers build, in one step.",
 )
 
@@ -82,10 +85,11 @@ def run(
     psm.uns["identification_file"] = str(data)
     output.parent.mkdir(parents=True, exist_ok=True)
     mdata.write_h5mu(output)
-    apb = psm.uns["apb"]
+    sources = psm.uns["apb"]["sources"]
+    chosen = {key: sources.get(key, {}).get("name") for key in _REPORTED}
     logger.info(
         f"wrote {output}: psm {psm.n_obs} runs x {psm.n_vars} features; "
-        f"X={apb['abundance_layer']} q_value={apb['q_value_layer']} PEP={apb['pep_layer']}"
+        + " ".join(f"{key.split('.', 1)[1]}={name}" for key, name in chosen.items())
     )
     return 0
 

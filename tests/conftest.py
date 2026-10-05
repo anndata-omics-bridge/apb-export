@@ -53,7 +53,7 @@ def observed(run: int, precursor: int) -> bool:
     return (run + precursor) % 5 != 4
 
 
-def write_diann(folder: Path, /, *, library_q: float = 0.0) -> DiannInput:
+def write_diann(folder: Path, /, *, library_q: float = 0.0, global_q: float = 0.002) -> DiannInput:
     """Write a DIA-NN 1.8.1 report and log; ``library_q`` > 0 mimics match-between-runs."""
     rows = ["\t".join(COLUMNS)]
     cells = 0
@@ -77,7 +77,7 @@ def write_diann(folder: Path, /, *, library_q: float = 0.0) -> DiannInput:
                 1000.0 * scale,
                 900.0 * scale,
                 0.001 * (index + 1),
-                0.002 * (index + 1),
+                global_q * (index + 1),
                 library_q * (index + 1),
                 0.01 * (index + 1),
                 10.0 + index,

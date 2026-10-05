@@ -3,23 +3,19 @@
 from __future__ import annotations
 
 import ast
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-PACKAGE = "apb_msmu"
+PACKAGE = "apb_export"
 FOLDERS = ("src", "tests", "scripts")
+# Siblings are the anndata_bridge packages this project declares as path sources.
+PYPROJECT = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 SIBLINGS = frozenset(
-    {
-        "apb2",
-        "apb_aggregate",
-        "apb_catalog",
-        "apb_fasta",
-        "apb_msmu",
-        "apb_proteobench",
-        "protein_fasta",
-        "prozor",
-    }
-) - {PACKAGE}
+    name.replace("-", "_")
+    for name, source in PYPROJECT["tool"]["uv"]["sources"].items()
+    if "path" in source
+)
 
 
 def _sibling_modules(path: Path) -> list[str]:

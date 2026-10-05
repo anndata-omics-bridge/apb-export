@@ -1,4 +1,4 @@
-# APB msmu — agent rules
+# APB Export — agent rules
 
 The closest `AGENTS.md` wins. Explicit user instructions override this file.
 
@@ -17,18 +17,22 @@ The closest `AGENTS.md` wins. Explicit user instructions override this file.
 
 ## Architecture
 
-One step, vendor output to msmu's MuData. Modules compose downward only:
+Export rules declare what each target reads; one engine applies them. msmu is the only target so far. Modules compose downward only:
 
 - `cli`: the one command; APB2's `ParseRuleCompiler` reads the vendor files, then `MsmuExporter` exports; refuses overwrite, reports unreviewed catalogue answers
-- `api`: `MsmuExporter(abundance=...).export(parsed, /)`, the family's shape: configuration bound once, one verb on `ParsedLevels`
-- `container`: AnnData/MuData assembly; the only module that imports them
-- `psm`: Polars only; unpivots APB2's wide ion level into msmu's one-row-per-cell psm table
-- `confidence`: q-value and PEP layers by meaning through apb-catalog
+- `api`: `MsmuExporter(abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; it applies the packaged msmu rule
+- `engine`: `CompiledExport`, one effective rule checked once; binds every entry's sources before building
+- `rows`: Polars only; selects long rows and aligns sources to them
+- `computed`: the conversions a computed entry's `how` names
+- `sources`: APB references resolved against one level, catalogue lookups through apb-catalog
+- `container`: AnnData/MuData assembly; the only module that builds them
+- `export_rules`: schema models, loader and the packaged `documents/<target>/<version>/rules.json`; `make schema` rewrites `documents/_schema`
 
 Rules for this package:
 
 - **APB2 owns conversion and persistence.** Never define a `convert`, reader or writer here; use `ParseRuleCompiler`, `read_parsed_levels` and `write_parsed_levels`.
 
+- **Export rules read apb2's rule schema in reverse.** Keep apb2's key names; an entry's `name` is the target field and its `source` an APB reference every vendor shares.
 - **Meanings come from apb-catalog, never vendor column names.** A vendor without a catalogued field gets no column (q-value) or NaN (PEP); an unreviewed rule is an error, not a guess.
 - **Match msmu's readers, not our preferences.** Layout, column names and order, q-value precedence and protein canonicalisation follow `msmu.read_diann`; the parity tests hold this.
 - **No real vendor data** in tests, docs or examples; tests synthesise vendor files.
@@ -42,7 +46,7 @@ Rules for this package:
   blanket exclusions, file-wide ignores, or unqualified `# type: ignore`.
 - Ruff is the sole formatter and linter. Do not add Black, isort, Flake8, mypy,
   or another overlapping formatter/type checker.
-- Keep `__init__.py` empty and import from defining modules inside this package. Other anndata_bridge packages import this one only from `apb_msmu.api`, and it imports them only from theirs. The CLI imports this package only from `apb_msmu.api` too.
+- Keep `__init__.py` empty and import from defining modules inside this package. Other anndata_bridge packages import this one only from `apb_export.api`, and it imports them only from theirs. The CLI imports this package only from `apb_export.api` too.
 - Use Google-style docstrings for public APIs and the configured 100-character
   line length.
 

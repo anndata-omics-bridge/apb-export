@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from dataclasses import replace
 from pathlib import Path
 
@@ -14,9 +13,7 @@ import pytest
 from apb2.api import ParsedLevels, ParseRuleCompiler
 from scipy import sparse
 
-from apb_msmu.api import MsmuExporter
-from apb_msmu.confidence import Confidence, resolve_confidence
-from apb_msmu.psm import psm_rows
+from apb_export.api import MsmuExporter
 from conftest import RUNS, DiannInput, write_diann
 
 MSMU_DIANN_COLUMNS = [
@@ -80,39 +77,15 @@ def test_quantities_and_confidence_come_from_the_report(diann: DiannInput) -> No
     assert _matrix(psm)[run, row] == pytest.approx(6000.0)
     assert var.iloc[row]["q_value"] == pytest.approx(0.006), "Global.Q.Value, not Q.Value"
     assert var.iloc[row]["PEP"] == pytest.approx(0.03)
-    assert psm.uns["apb"]["q_value_kind"] == "global_q_value"
+    assert psm.uns["apb"]["sources"]["var.q_value"]["kind"] == "global_q_value"
 
 
 def test_library_q_value_wins_when_match_between_runs_filled_it(tmp_path: Path) -> None:
     diann = write_diann(tmp_path, library_q=0.0005)
     psm = MsmuExporter().export(_parsed(diann))["psm"]
 
-    assert psm.uns["apb"]["q_value_kind"] == "library_q_value"
+    assert psm.uns["apb"]["sources"]["var.q_value"]["kind"] == "library_q_value"
     assert _var(psm).loc["run_A1.PEPTIDEK/2", "q_value"] == pytest.approx(0.0005)
-
-
-def test_per_run_q_value_when_nothing_better_is_reported(diann: DiannInput) -> None:
-    parsed = _parsed(diann)
-    confidence = resolve_confidence(parsed)
-    run_only = replace(
-        confidence, q_value=parsed.levels["ion"].layers["Q_Value"], q_value_kind="q_value"
-    )
-    rows = psm_rows(parsed.levels["ion"], abundance="Precursor_Quantity", confidence=run_only)
-
-    assert rows.var.filter(rows.var["feature_id"] == "run_A1.PEPTIDEK/2")["q_value"].item() == (
-        pytest.approx(0.001)
-    )
-
-
-def test_unreported_pep_is_nan_and_unreported_q_value_absent(diann: DiannInput) -> None:
-    parsed = _parsed(diann)
-    nothing = Confidence(q_value=None, q_value_kind=None, pep=None)
-    rows = psm_rows(parsed.levels["ion"], abundance="Precursor_Quantity", confidence=nothing)
-
-    assert "q_value" not in rows.var.columns, "msmu's filter must not see an invented q-value"
-    assert all(math.isnan(value) for value in rows.var["PEP"].to_list()), (
-        "msmu's to_peptide needs the PEP column; NaN says not reported"
-    )
 
 
 def test_protein_groups_are_written_as_msmu_writes_them(diann: DiannInput) -> None:
@@ -143,9 +116,16 @@ def test_written_file_reads_back(diann: DiannInput, tmp_path: Path) -> None:
     mdata.write_h5mu(target)
     back = md.read_h5mu(target)
 
-    assert back["psm"].shape == mdata["psm"].shape
-    assert back["psm"].uns["apb"]["package"] == "apb-msmu"
-    assert back["psm"].uns["search_engine"] == "dia-nn"
+    psm = back["psm"]
+    assert psm.shape == mdata["psm"].shape
+    assert psm.uns["apb"]["package"] == "apb-export"
+    assert psm.uns["apb"]["export_rule"] == "msmu/v0_4/rules.json"
+    assert psm.uns["search_engine"] == "dia-nn"
+    assert list(psm.obs.columns) == [], "runs are the index only"
+    assert "feature_id" not in _var(psm).columns, "feature ids are the index only"
+    assert _matrix(psm).dtype == np.float32
+    assert _var(psm)["PEP"].dtype == np.float32
+    assert _var(psm)["q_value"].dtype == np.float32
 
 
 def test_refusals_name_the_problem(diann: DiannInput) -> None:

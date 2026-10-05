@@ -1,4 +1,4 @@
-"""msmu's own DIA-NN reader and an apb-msmu export give the same msmu results.
+"""msmu's own DIA-NN reader and an APB export give the same msmu results.
 
 Runs only with the ``parity`` dependency group, which installs msmu.
 """
@@ -14,7 +14,7 @@ import pytest
 from apb2.api import ParseRuleCompiler
 from scipy import sparse
 
-from apb_msmu.api import MsmuExporter
+from apb_export.api import MsmuExporter
 from conftest import DiannInput
 
 mm = pytest.importorskip("msmu")

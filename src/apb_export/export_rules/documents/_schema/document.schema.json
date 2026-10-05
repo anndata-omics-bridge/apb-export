@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "Output": {
+      "additionalProperties": false,
+      "description": "What one table writes, like apb2's ``input``.\n\n``wide`` keeps APB2's samples-by-features matrices; ``long`` writes one row per measured\ncell. ``.h5ad`` holds one level; ``.h5mu`` one modality per level.",
+      "properties": {
+        "shape": {
+          "enum": [
+            "long",
+            "wide"
+          ],
+          "title": "Shape",
+          "type": "string"
+        },
+        "extensions": {
+          "items": {
+            "enum": [
+              ".h5mu",
+              ".h5ad"
+            ],
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Extensions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "shape",
+        "extensions"
+      ],
+      "title": "Output",
+      "type": "object"
+    },
+    "SchemaVersion": {
+      "const": "0.1",
+      "type": "string"
+    },
+    "Table": {
+      "additionalProperties": false,
+      "description": "One output and the levels it reads; each level's block overrides ``base``.",
+      "properties": {
+        "output": {
+          "$ref": "#/$defs/Output"
+        },
+        "base": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Base",
+          "type": "object"
+        },
+        "levels": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "minProperties": 1,
+          "title": "Levels",
+          "type": "object"
+        }
+      },
+      "required": [
+        "output",
+        "levels"
+      ],
+      "title": "Table",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One target's export rule file.",
+  "properties": {
+    "schema_version": {
+      "$ref": "#/$defs/SchemaVersion"
+    },
+    "file_version": {
+      "minLength": 1,
+      "title": "File Version",
+      "type": "string"
+    },
+    "target_name": {
+      "minLength": 1,
+      "title": "Target Name",
+      "type": "string"
+    },
+    "target_version_pattern": {
+      "description": "Target releases the rule was checked against; recorded only.",
+      "minLength": 1,
+      "title": "Target Version Pattern",
+      "type": "string"
+    },
+    "tables": {
+      "items": {
+        "$ref": "#/$defs/Table"
+      },
+      "minItems": 1,
+      "title": "Tables",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "file_version",
+    "target_name",
+    "target_version_pattern",
+    "tables"
+  ],
+  "title": "ExportRuleDocument",
+  "type": "object"
+}

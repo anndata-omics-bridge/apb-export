@@ -8,8 +8,8 @@ import mudata as md
 import pytest
 from apb_catalog.api import UnresolvedField
 
-from apb_msmu.api import MsmuExporter
-from apb_msmu.cli import app, main
+from apb_export.api import MsmuExporter
+from apb_export.cli import app, main
 from conftest import DiannInput
 
 
@@ -39,7 +39,7 @@ def test_refuses_overwrite_wrong_suffix_and_bad_input(diann: DiannInput, tmp_pat
 def test_main_exits_with_the_status(
     diann: DiannInput, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("sys.argv", ["apb-msmu", str(diann.report), str(tmp_path / "x.h5ad")])
+    monkeypatch.setattr("sys.argv", ["apb-export", str(diann.report), str(tmp_path / "x.h5ad")])
     with pytest.raises(SystemExit) as stopped:
         main()
     assert stopped.value.code == 1

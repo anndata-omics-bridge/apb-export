@@ -3,9 +3,9 @@ requires = ["uv_build>=0.9.26,<0.10.0"]
 build-backend = "uv_build"
 
 [project]
-name = "apb-msmu"
+name = "apb-export"
 version = "0.1.0"
-description = "One step from vendor output to msmu-ready MuData through APB2"
+description = "APB2 results exported in the formats downstream tools read, msmu first"
 readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT"
@@ -23,11 +23,12 @@ dependencies = [
     "numpy>=2,<3",
     "pandas>=2.2,<4",
     "polars>=1.43,<2",
+    "pydantic>=2.10,<3",
     "scipy>=1.15,<2",
 ]
 
 [project.scripts]
-apb-msmu = "apb_msmu.cli:main"
+apb-export = "apb_export.cli:main"
 
 [dependency-groups]
 dev = [
@@ -100,7 +101,7 @@ xfail_strict = true
 
 [tool.coverage.run]
 branch = true
-source = ["apb_msmu"]
+source = ["apb_export"]
 
 [tool.coverage.report]
 fail_under = 80
@@ -108,7 +109,7 @@ show_missing = true
 skip_covered = true
 
 [tool.deptry]
-known_first_party = ["apb_msmu"]
+known_first_party = ["apb_export"]
 
 [tool.uv.sources]
 apb2 = { path = "../apb2", editable = true }

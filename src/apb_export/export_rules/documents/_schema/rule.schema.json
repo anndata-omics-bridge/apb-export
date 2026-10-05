@@ -1,0 +1,1127 @@
+{
+  "$defs": {
+    "AccessionSyntax": {
+      "additionalProperties": false,
+      "description": "How a target writes protein-group members, like apb2's ``sequence_syntax``.",
+      "properties": {
+        "separator": {
+          "minLength": 1,
+          "title": "Separator",
+          "type": "string"
+        },
+        "contaminant_markers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Contaminant Markers",
+          "type": "array"
+        },
+        "contaminant_prefix": {
+          "default": "",
+          "title": "Contaminant Prefix",
+          "type": "string"
+        }
+      },
+      "required": [
+        "separator"
+      ],
+      "title": "AccessionSyntax",
+      "type": "object"
+    },
+    "Accessions": {
+      "additionalProperties": false,
+      "description": "Protein-group members rewritten by a named ``accession_syntax``.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "accessions",
+          "title": "How",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "syntax": {
+          "minLength": 1,
+          "title": "Syntax",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "inputs",
+        "syntax"
+      ],
+      "title": "Accessions",
+      "type": "object"
+    },
+    "AllValues": {
+      "additionalProperties": false,
+      "description": "Everything the APB level carries that the rule does not name.\n\nIn ``varm``: every var column and layer value at the written rows, the level's key first.\nIn ``columns.obs``: every obs annotation column, under its own name.",
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "how": {
+          "const": "all_values",
+          "title": "How",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "how"
+      ],
+      "title": "AllValues",
+      "type": "object"
+    },
+    "AnnotationMap": {
+      "additionalProperties": false,
+      "description": "Every obs annotation column mapped to its own name; ``uns`` only.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "annotation_map",
+          "title": "How",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "how"
+      ],
+      "title": "AnnotationMap",
+      "type": "object"
+    },
+    "Axis": {
+      "additionalProperties": false,
+      "description": "The entries that become the target's observation and variable index.",
+      "properties": {
+        "obs_keys": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Obs Keys",
+          "type": "array"
+        },
+        "var_keys": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Var Keys",
+          "type": "array"
+        }
+      },
+      "required": [
+        "obs_keys",
+        "var_keys"
+      ],
+      "title": "Axis",
+      "type": "object"
+    },
+    "AxisSource": {
+      "additionalProperties": false,
+      "description": "The level's observation or variable key column; a composite key is refused.",
+      "properties": {
+        "axis": {
+          "enum": [
+            "obs_keys",
+            "var_keys"
+          ],
+          "title": "Axis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "axis"
+      ],
+      "title": "AxisSource",
+      "type": "object"
+    },
+    "CatalogueSource": {
+      "additionalProperties": false,
+      "description": "A field found by meaning through apb-catalog.",
+      "properties": {
+        "catalogue": {
+          "minLength": 1,
+          "title": "Catalogue",
+          "type": "string"
+        },
+        "concept": {
+          "minLength": 1,
+          "title": "Concept",
+          "type": "string"
+        },
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "location": {
+          "default": "layers",
+          "enum": [
+            "layers",
+            "var"
+          ],
+          "title": "Location",
+          "type": "string"
+        },
+        "accept": {
+          "default": "present",
+          "description": "nonzero rejects a layer holding no finite nonzero value, such as DIA-NN's library q-value without match-between-runs.",
+          "enum": [
+            "present",
+            "nonzero"
+          ],
+          "title": "Accept",
+          "type": "string"
+        }
+      },
+      "required": [
+        "catalogue",
+        "concept",
+        "kind"
+      ],
+      "title": "CatalogueSource",
+      "type": "object"
+    },
+    "ColumnEntry": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourcedEntry"
+        },
+        {
+          "$ref": "#/$defs/ComputedEntry"
+        }
+      ]
+    },
+    "ColumnType": {
+      "enum": [
+        "string",
+        "integer",
+        "number",
+        "boolean"
+      ],
+      "type": "string"
+    },
+    "Columns": {
+      "additionalProperties": false,
+      "description": "The target's observation and variable columns, and var-aligned tables.",
+      "properties": {
+        "obs": {
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ColumnEntry"
+              },
+              {
+                "$ref": "#/$defs/AllValues"
+              }
+            ]
+          },
+          "title": "Obs",
+          "type": "array"
+        },
+        "var": {
+          "items": {
+            "$ref": "#/$defs/ColumnEntry"
+          },
+          "minItems": 1,
+          "title": "Var",
+          "type": "array"
+        },
+        "varm": {
+          "items": {
+            "$ref": "#/$defs/AllValues"
+          },
+          "title": "Varm",
+          "type": "array"
+        }
+      },
+      "required": [
+        "var"
+      ],
+      "title": "Columns",
+      "type": "object"
+    },
+    "ComputedEntry": {
+      "discriminator": {
+        "mapping": {
+          "accessions": "#/$defs/Accessions",
+          "annotation_map": "#/$defs/AnnotationMap",
+          "constant": "#/$defs/Constant",
+          "contaminant": "#/$defs/Contaminant",
+          "join_nonempty": "#/$defs/JoinNonempty",
+          "lowercase": "#/$defs/Lowercase",
+          "proforma_charge": "#/$defs/ProformaCharge",
+          "sequence_length": "#/$defs/SequenceLength"
+        },
+        "propertyName": "how"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Constant"
+        },
+        {
+          "$ref": "#/$defs/JoinNonempty"
+        },
+        {
+          "$ref": "#/$defs/ProformaCharge"
+        },
+        {
+          "$ref": "#/$defs/SequenceLength"
+        },
+        {
+          "$ref": "#/$defs/Accessions"
+        },
+        {
+          "$ref": "#/$defs/Contaminant"
+        },
+        {
+          "$ref": "#/$defs/Lowercase"
+        },
+        {
+          "$ref": "#/$defs/AnnotationMap"
+        }
+      ]
+    },
+    "Constant": {
+      "additionalProperties": false,
+      "description": "The same value everywhere.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "constant",
+          "title": "How",
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/JsonValue",
+          "description": "Any JSON in uns; a scalar in columns."
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "value"
+      ],
+      "title": "Constant",
+      "type": "object"
+    },
+    "Contaminant": {
+      "additionalProperties": false,
+      "description": "Whether any protein-group member carries a contaminant marker of the syntax.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "contaminant",
+          "title": "How",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "syntax": {
+          "minLength": 1,
+          "title": "Syntax",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "inputs",
+        "syntax"
+      ],
+      "title": "Contaminant",
+      "type": "object"
+    },
+    "FloatWidth": {
+      "enum": [
+        32,
+        64
+      ],
+      "type": "integer"
+    },
+    "JoinNonempty": {
+      "additionalProperties": false,
+      "description": "Non-empty input values joined with a separator, as apb2's ``join_nonempty``.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "join_nonempty",
+          "title": "How",
+          "type": "string"
+        },
+        "inputs": {
+          "description": "APB references, not entries.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "minItems": 2,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "separator": {
+          "minLength": 1,
+          "title": "Separator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "inputs",
+        "separator"
+      ],
+      "title": "JoinNonempty",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "LayerEntry": {
+      "additionalProperties": false,
+      "description": "A target matrix read from one APB layer.",
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source",
+          "description": "An APB layer: the primary layer or a catalogued one."
+        },
+        "width": {
+          "$ref": "#/$defs/FloatWidth",
+          "default": 64
+        },
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "missing_values": {
+          "description": "APB values treated as absent; apb2 lists vendor values here.",
+          "items": {
+            "type": "number"
+          },
+          "title": "Missing Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "source"
+      ],
+      "title": "LayerEntry",
+      "type": "object"
+    },
+    "Lowercase": {
+      "additionalProperties": false,
+      "description": "The input text in lower case.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "lowercase",
+          "title": "How",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "inputs"
+      ],
+      "title": "Lowercase",
+      "type": "object"
+    },
+    "MeasurementSource": {
+      "additionalProperties": false,
+      "description": "The level's primary layer, or the abundance layer the caller picks.",
+      "properties": {
+        "measurements": {
+          "const": "primary_layer",
+          "title": "Measurements",
+          "type": "string"
+        }
+      },
+      "required": [
+        "measurements"
+      ],
+      "title": "MeasurementSource",
+      "type": "object"
+    },
+    "Measurements": {
+      "additionalProperties": false,
+      "description": "The target's matrices; the primary layer becomes X.",
+      "properties": {
+        "primary_layer": {
+          "title": "Primary Layer",
+          "type": "string"
+        },
+        "layers": {
+          "items": {
+            "$ref": "#/$defs/LayerEntry"
+          },
+          "minItems": 1,
+          "title": "Layers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "primary_layer",
+        "layers"
+      ],
+      "title": "Measurements",
+      "type": "object"
+    },
+    "ProformaCharge": {
+      "additionalProperties": false,
+      "description": "The charge of a ProForma ion, ``SEQ/2`` giving 2.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "proforma_charge",
+          "title": "How",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "inputs"
+      ],
+      "title": "ProformaCharge",
+      "type": "object"
+    },
+    "ProformaColumn": {
+      "enum": [
+        "ProForma_peptide",
+        "ProForma_peptidoform",
+        "ProForma_ion",
+        "ProForma_fragment"
+      ],
+      "type": "string"
+    },
+    "Reference": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProformaColumn"
+        },
+        {
+          "$ref": "#/$defs/RoleSource"
+        },
+        {
+          "$ref": "#/$defs/AxisSource"
+        },
+        {
+          "$ref": "#/$defs/MeasurementSource"
+        },
+        {
+          "$ref": "#/$defs/RuleSource"
+        },
+        {
+          "$ref": "#/$defs/CatalogueSource"
+        }
+      ]
+    },
+    "RoleSource": {
+      "additionalProperties": false,
+      "description": "The var column carrying an apb2 role.",
+      "properties": {
+        "role": {
+          "enum": [
+            "fasta_accessions",
+            "protein_assignment"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role"
+      ],
+      "title": "RoleSource",
+      "type": "object"
+    },
+    "RuleSource": {
+      "additionalProperties": false,
+      "description": "A top-level field of the apb2 rule stored with the level, such as ``software_name``.",
+      "properties": {
+        "rule": {
+          "minLength": 1,
+          "title": "Rule",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule"
+      ],
+      "title": "RuleSource",
+      "type": "object"
+    },
+    "Scalar": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "SequenceLength": {
+      "additionalProperties": false,
+      "description": "The number of characters of a sequence.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "sequence_length",
+          "title": "How",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "inputs"
+      ],
+      "title": "SequenceLength",
+      "type": "object"
+    },
+    "Source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Reference"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "type": "array"
+        }
+      ]
+    },
+    "SourcedEntry": {
+      "additionalProperties": false,
+      "description": "A target field read from one APB source.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "source": {
+          "$ref": "#/$defs/Source",
+          "description": "The APB field; apb2's rules name a vendor column here."
+        }
+      },
+      "required": [
+        "name",
+        "source"
+      ],
+      "title": "SourcedEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One level's export, base and level merged: apb2's effective rule, reversed.",
+  "properties": {
+    "modality": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The MuData modality it fills.",
+      "title": "Modality"
+    },
+    "required": {
+      "default": true,
+      "description": "When false, a result without it is fine.",
+      "title": "Required",
+      "type": "boolean"
+    },
+    "axis": {
+      "$ref": "#/$defs/Axis"
+    },
+    "measurements": {
+      "$ref": "#/$defs/Measurements"
+    },
+    "columns": {
+      "$ref": "#/$defs/Columns"
+    },
+    "uns": {
+      "items": {
+        "$ref": "#/$defs/ColumnEntry"
+      },
+      "title": "Uns",
+      "type": "array"
+    },
+    "accession_syntax": {
+      "additionalProperties": {
+        "$ref": "#/$defs/AccessionSyntax"
+      },
+      "title": "Accession Syntax",
+      "type": "object"
+    }
+  },
+  "required": [
+    "axis",
+    "measurements",
+    "columns"
+  ],
+  "title": "LevelRule",
+  "type": "object"
+}

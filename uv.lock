@@ -43,7 +43,7 @@ wheels = [
 
 [[package]]
 name = "apb-catalog"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "../apb-catalog" }
 dependencies = [
     { name = "apb2" },
@@ -75,7 +75,7 @@ docs = [
 ]
 
 [[package]]
-name = "apb-msmu"
+name = "apb-export"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -88,6 +88,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pandas" },
     { name = "polars" },
+    { name = "pydantic" },
     { name = "scipy" },
 ]
 
@@ -117,6 +118,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2,<3" },
     { name = "pandas", specifier = ">=2.2,<4" },
     { name = "polars", specifier = ">=1.43,<2" },
+    { name = "pydantic", specifier = ">=2.10,<3" },
     { name = "scipy", specifier = ">=1.15,<2" },
 ]
 
@@ -135,7 +137,7 @@ parity = [{ name = "msmu", specifier = ">=0.4,<0.5" }]
 
 [[package]]
 name = "apb2"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "../apb2" }
 dependencies = [
     { name = "anndata" },

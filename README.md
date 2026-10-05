@@ -1,9 +1,11 @@
-# APB msmu
+# APB Export
+
+APB2 results exported in the formats downstream tools read; msmu is the first target, more follow through export rules.
 
 One command from vendor output to the MuData [msmu](https://github.com/bertis-informatics/msmu) builds itself: APB2 reads the vendor files, apb-catalog names their confidence fields, and msmu takes the result with `msmu.read_h5mu` and runs unchanged.
 
 ```bash
-apb-msmu report.tsv result.h5mu --params report.log.txt
+apb-export report.tsv result.h5mu --params report.log.txt
 ```
 
 ```python
@@ -21,7 +23,7 @@ From Python, APB2 converts and `MsmuExporter` exports, the shape of the other AP
 from pathlib import Path
 
 from apb2.api import ParseRuleCompiler
-from apb_msmu.api import MsmuExporter
+from apb_export.api import MsmuExporter
 
 parsed = ParseRuleCompiler(
     Path("report.tsv"), Path("report.log.txt"), requested_levels=("ion",)
@@ -40,9 +42,13 @@ msmu's own layout, as `msmu.read_diann` writes it:
 - `X`: block-diagonal sparse float32, the chosen abundance layer (`--abundance`, APB2's primary layer by default)
 - `var`: `proteins`, `peptide`, `stripped_peptide`, `filename`, `charge`, `peptide_length`, `decoy`, `contaminant`, `PEP`, and `q_value` where reported
 - `varm["search_result"]`: every APB2 feature column and every layer value at that cell
-- `uns`: msmu's reader settings, plus `uns["apb"]` with the rule, parse plan, chosen layers and versions
+- `uns`: msmu's reader settings, plus `uns["apb"]` with the export rule, each field's APB source, the parse plan and versions
 
 `peptide` is ProForma for every vendor (`AC[UNIMOD:4]K`), not each vendor's own notation. msmu's modification parser reads it, and `to_ptm` takes the tag as written, for example `"[UNIMOD:21]"`.
+
+## Export rules
+
+The layout above is declared in [msmu's export rule](src/apb_export/export_rules/documents/msmu/v0_4/rules.json), not coded. Rules follow APB2's rule schema read in reverse: an entry's `name` is the target's field, its `source` an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning. One engine checks every source before it builds anything; the published [JSON Schemas](src/apb_export/export_rules/documents/_schema) describe the documents.
 
 ## Confidence, by meaning
 
@@ -72,7 +78,7 @@ The development release expects APB2 and apb-catalog checked out beside this rep
 anndata_bridge/
 ├── apb2/
 ├── apb-catalog/
-└── apb-msmu/
+└── apb-export/
 ```
 
 ```bash

@@ -1,0 +1,138 @@
+{
+  "schema_version": "0.1",
+  "file_version": "1",
+  "target_name": "msmu",
+  "target_version_pattern": "^0\\.4\\.",
+  "tables": [
+    {
+      "output": {"shape": "long", "extensions": [".h5mu"]},
+      "base": {
+        "accession_syntax": {
+          "msmu": {
+            "separator": ";",
+            "contaminant_markers": ["contam_", "Cont_", "CON__"],
+            "contaminant_prefix": "Cont_"
+          }
+        }
+      },
+      "levels": {
+        "ion": {
+          "modality": "psm",
+          "axis": {"obs_keys": ["filename"], "var_keys": ["feature_id"]},
+          "measurements": {
+            "primary_layer": "abundance",
+            "layers": [
+              {
+                "name": "abundance",
+                "source": {"measurements": "primary_layer"},
+                "width": 32,
+                "missing_values": [0]
+              }
+            ]
+          },
+          "columns": {
+            "obs": [
+              {"name": "filename", "source": {"axis": "obs_keys"}, "index_only": true}
+            ],
+            "var": [
+              {
+                "name": "feature_id",
+                "how": "join_nonempty",
+                "inputs": [{"axis": "obs_keys"}, "ProForma_ion"],
+                "separator": ".",
+                "index_only": true
+              },
+              {
+                "name": "proteins",
+                "how": "accessions",
+                "inputs": [{"role": "fasta_accessions"}],
+                "syntax": "msmu"
+              },
+              {"name": "peptide", "source": "ProForma_peptidoform"},
+              {"name": "stripped_peptide", "source": "ProForma_peptide"},
+              {"name": "filename", "source": {"axis": "obs_keys"}},
+              {
+                "name": "charge",
+                "how": "proforma_charge",
+                "inputs": ["ProForma_ion"],
+                "type": "integer"
+              },
+              {
+                "name": "peptide_length",
+                "how": "sequence_length",
+                "inputs": ["ProForma_peptide"],
+                "type": "integer"
+              },
+              {"name": "decoy", "how": "constant", "value": 0, "type": "integer"},
+              {
+                "name": "contaminant",
+                "how": "contaminant",
+                "inputs": [{"role": "fasta_accessions"}],
+                "syntax": "msmu",
+                "type": "integer"
+              },
+              {
+                "name": "PEP",
+                "source": {
+                  "catalogue": "identification_confidence",
+                  "concept": "confidence",
+                  "kind": "pep"
+                },
+                "type": "number",
+                "width": 32,
+                "required": false,
+                "fill_value": "NaN"
+              },
+              {
+                "name": "q_value",
+                "source": [
+                  {
+                    "catalogue": "proteobench_entrapment",
+                    "concept": "confidence",
+                    "kind": "library_q_value",
+                    "accept": "nonzero"
+                  },
+                  {
+                    "catalogue": "proteobench_entrapment",
+                    "concept": "confidence",
+                    "kind": "global_q_value"
+                  },
+                  {
+                    "catalogue": "identification_confidence",
+                    "concept": "confidence",
+                    "kind": "q_value"
+                  }
+                ],
+                "type": "number",
+                "width": 32,
+                "required": false
+              }
+            ],
+            "varm": [{"name": "search_result", "how": "all_values"}]
+          },
+          "uns": [
+            {"name": "level", "how": "constant", "value": "precursor"},
+            {
+              "name": "search_engine",
+              "how": "lowercase",
+              "inputs": [{"rule": "software_name"}],
+              "required": false,
+              "fill_value": "unknown"
+            },
+            {
+              "name": "quantification",
+              "how": "lowercase",
+              "inputs": [{"rule": "software_name"}],
+              "required": false,
+              "fill_value": "unknown"
+            },
+            {"name": "label", "how": "constant", "value": "label_free"},
+            {"name": "acquisition", "how": "constant", "value": null},
+            {"name": "identification_file", "how": "constant", "value": null},
+            {"name": "quantification_file", "how": "constant", "value": null}
+          ]
+        }
+      }
+    }
+  ]
+}
