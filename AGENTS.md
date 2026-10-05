@@ -6,7 +6,7 @@ The closest `AGENTS.md` wins. Explicit user instructions override this file.
 
 | Task | Command |
 | --- | --- |
-| Synchronize | `uv sync --frozen --group dev` |
+| Synchronize | `uv sync --group dev` |
 | Format | `.venv/bin/ruff format src tests && .venv/bin/ruff check --fix src tests` |
 | Lint | `.venv/bin/ruff check src tests` |
 | Typecheck | `.venv/bin/pyright` |
@@ -17,12 +17,12 @@ The closest `AGENTS.md` wins. Explicit user instructions override this file.
 
 ## Architecture
 
-Export rules declare what each target reads; one engine applies them. msmu is the only target so far. Modules compose downward only:
+Export rules declare what each target reads; one engine applies them. Packaged targets: msmu, prolfqua, ProteoPy and AlphaPeptTools; the command and `api.py` expose msmu until the target-generic API is approved. Modules compose downward only:
 
 - `cli`: the one command; APB2's `ParseRuleCompiler` reads the vendor files, then `MsmuExporter` exports; refuses overwrite, reports unreviewed catalogue answers
 - `api`: `MsmuExporter(abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; it applies the packaged msmu rule
-- `engine`: `CompiledExport`, one effective rule checked once; binds every entry's sources before building
-- `rows`: Polars only; selects long rows and aligns sources to them
+- `engine`: `CompiledExport`, one target's level rules checked once; binds every entry's sources before building one AnnData per level, combined into a MuData for `.h5mu`
+- `rows`: Polars only; selects long rows and aligns sources to cell, feature, observation and `uns` rows
 - `computed`: the conversions a computed entry's `how` names
 - `sources`: APB references resolved against one level, catalogue lookups through apb-catalog
 - `container`: AnnData/MuData assembly; the only module that builds them
@@ -57,7 +57,7 @@ Rules for this package:
 - Declare every imported runtime dependency directly in `[project.dependencies]`.
 - Put tests, linting, typing, building, and documentation tools in dependency
   groups; optional user-facing capabilities belong in extras.
-- Update `pyproject.toml` and `uv.lock` together and run `make check`.
+- Update `pyproject.toml` and run `make check`; the repository commits no `uv.lock`.
 
 ### SHOULD
 

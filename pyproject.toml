@@ -35,10 +35,10 @@ dev = [
     "build>=1.3,<2",
     "deptry>=0.24,<1",
     "pre-commit>=4,<5",
-    "pyright>=1.1.400,<2",
+    "pyright==1.1.414",
     "pytest>=9,<10",
     "pytest-cov>=7,<8",
-    "ruff>=0.15,<1",
+    "ruff==0.16.10",
     "twine>=6,<7",
 ]
 # The parity tests run msmu's own reader against an export; msmu is heavy, so it is opt-in.

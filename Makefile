@@ -8,7 +8,7 @@ help:  ## Show developer commands
 		| awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 sync:  ## Synchronize the locked development environment
-	uv sync --frozen --group dev
+	uv sync --group dev
 
 format:  ## Format and autofix source and tests
 	$(VENV_BIN)/ruff format src tests
@@ -37,7 +37,6 @@ schema:  ## Rewrite the export-rule JSON Schemas from the models
 	$(VENV_BIN)/python -m apb_export.export_rules.schema_artifact
 
 check:  ## Run every merge-blocking quality gate
-	uv lock --check
 	$(MAKE) format-check lint typecheck deps test build
 
 clean:  ## Remove generated build and quality artifacts
