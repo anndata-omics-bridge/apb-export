@@ -57,6 +57,12 @@ class CatalogueSource(ModelBase):
     concept: str = Field(min_length=1)
     kind: str = Field(min_length=1)
     location: Literal["layers", "var"] = "layers"
+    level: Literal["protein"] | None = Field(
+        default=None,
+        description="Read the field from this level through each variable's protein_assignment, "
+        "as a layer: a cell takes its protein group's value in its run; a var column's value "
+        "repeats in every run. A group the level lacks reads as missing.",
+    )
     accept: Literal["present", "nonzero"] = Field(
         default="present",
         description="nonzero rejects a layer holding no finite nonzero value, such as "

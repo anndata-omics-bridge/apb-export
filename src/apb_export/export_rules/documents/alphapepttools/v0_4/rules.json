@@ -1,0 +1,78 @@
+{
+  "schema_version": "0.1",
+  "file_version": "1",
+  "target_name": "AlphaPeptTools",
+  "target_version_pattern": "^0\\.4\\.",
+  "tables": [
+    {
+      "output": {"shape": "wide", "extensions": [".h5mu"]},
+      "base": {
+        "measurements": {
+          "primary_layer": "intensity",
+          "layers": [{"name": "intensity", "source": {"measurements": "primary_layer"}}]
+        }
+      },
+      "levels": {
+        "ion": {
+          "modality": "precursors",
+          "axis": {"obs_keys": ["raw_name"], "var_keys": ["precursor_id"]},
+          "columns": {
+            "obs": [
+              {"name": "raw_name", "source": {"axis": "obs_keys"}, "index_only": true},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [
+              {
+                "name": "precursor_id",
+                "source": "ProForma_ion",
+                "index_only": true,
+                "named_index": true
+              },
+              {"name": "sequence", "source": "ProForma_peptide"},
+              {"name": "proteins", "source": {"role": "protein_assignment"}}
+            ]
+          }
+        },
+        "peptide": {
+          "modality": "peptides",
+          "required": false,
+          "axis": {"obs_keys": ["raw_name"], "var_keys": ["sequence"]},
+          "columns": {
+            "obs": [
+              {"name": "raw_name", "source": {"axis": "obs_keys"}, "index_only": true},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [
+              {
+                "name": "sequence",
+                "source": "ProForma_peptide",
+                "index_only": true,
+                "named_index": true
+              },
+              {"name": "proteins", "source": {"role": "protein_assignment"}, "required": false}
+            ]
+          }
+        },
+        "protein": {
+          "modality": "proteins",
+          "required": false,
+          "axis": {"obs_keys": ["raw_name"], "var_keys": ["proteins"]},
+          "columns": {
+            "obs": [
+              {"name": "raw_name", "source": {"axis": "obs_keys"}, "index_only": true},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [
+              {
+                "name": "proteins",
+                "source": {"role": "protein_assignment"},
+                "index_only": true,
+                "named_index": true
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

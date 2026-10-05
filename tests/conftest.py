@@ -25,6 +25,9 @@ COLUMNS = (
     "PEP",
     "RT",
     "PG.MaxLFQ",
+    "PG.Q.Value",
+    "Lib.PG.Q.Value",
+    "Global.PG.Q.Value",
 )
 RUNS = ("run_A1", "run_A2", "run_B1", "run_B2")
 # Modified sequence and protein group. Covers a fixed modification, a contaminant, a
@@ -82,6 +85,9 @@ def write_diann(folder: Path, /, *, library_q: float = 0.0, global_q: float = 0.
                 0.01 * (index + 1),
                 10.0 + index,
                 500.0 * (index + 1),
+                0.0001 * (index + 1) * (run_index + 1),
+                library_q * (index + 1) / 2,
+                global_q * (index + 1) / 2,
             )
             rows.append("\t".join(str(value) for value in values))
     report = folder / "report.tsv"

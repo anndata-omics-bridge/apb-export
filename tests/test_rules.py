@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from apb_export.engine import CompiledExport
 from apb_export.export_rules.loader import effective_rules, packaged_documents, packaged_rules
 from apb_export.export_rules.schema import ExportRuleDocument
 from apb_export.export_rules.schema_artifact import SCHEMA_DIRECTORY, json_schemas
@@ -36,12 +37,34 @@ def test_the_published_artifacts_are_the_schemas_the_models_declare() -> None:
         assert committed == schema, "rerun python -m apb_export.export_rules.schema_artifact"
 
 
-def test_the_packaged_msmu_rule_validates() -> None:
-    assert packaged_documents() == ("msmu/v0_4/rules.json",)
-    (rule,) = packaged_rules("msmu")
+def test_every_packaged_rule_validates_and_compiles() -> None:
+    assert packaged_documents() == (
+        "alphapepttools/v0_4/rules.json",
+        "msmu/v0_4/rules.json",
+        "prolfqua/v2_11/rules.json",
+        "proteopy/v0_1/rules.json",
+    )
+    extensions = {
+        name.split("/", 1)[0]: CompiledExport(packaged_rules(name.split("/", 1)[0])).extension
+        for name in packaged_documents()
+    }
 
-    assert (rule.target_name, rule.level, rule.rule.modality) == ("msmu", "ion", "psm")
-    assert "msmu" in rule.rule.accession_syntax, "base blocks reach the level"
+    assert extensions == {
+        "alphapepttools": ".h5mu",
+        "msmu": ".h5mu",
+        "prolfqua": ".h5ad",
+        "proteopy": ".h5ad",
+    }
+
+
+def test_base_blocks_reach_every_level() -> None:
+    (msmu,) = packaged_rules("msmu")
+    precursors, peptides, proteins = packaged_rules("alphapepttools")
+
+    assert "msmu" in msmu.rule.accession_syntax
+    assert {rule.rule.measurements.primary_layer for rule in (precursors, peptides, proteins)} == {
+        "intensity"
+    }
 
 
 def test_an_unknown_target_is_refused() -> None:
@@ -81,6 +104,28 @@ def _repeated_name(document: dict[str, Any]) -> None:
     _ion(document)["columns"]["var"].append(_var(document, "peptide"))
 
 
+def _map_in_columns(document: dict[str, Any]) -> None:
+    _ion(document)["columns"]["var"].append({"name": "factors", "how": "annotation_map"})
+
+
+def _mapping_constant_in_columns(document: dict[str, Any]) -> None:
+    _ion(document)["columns"]["var"].append({"name": "x", "how": "constant", "value": {"a": 1}})
+
+
+def _named_column(document: dict[str, Any]) -> None:
+    _var(document, "peptide")["named_index"] = True
+
+
+def _two_tables(document: dict[str, Any]) -> None:
+    document["tables"].append(json.loads(json.dumps(document["tables"][0])))
+
+
+def _h5ad_with_two_levels(document: dict[str, Any]) -> None:
+    table = document["tables"][0]
+    table["output"]["extensions"] = [".h5ad"]
+    table["levels"]["protein"] = json.loads(json.dumps(_ion(document)))
+
+
 @pytest.mark.parametrize(
     ("change", "message"),
     [
@@ -92,6 +137,11 @@ def _repeated_name(document: dict[str, Any]) -> None:
         (_index_only_column, "'peptide' is index_only but no axis key"),
         (_no_modality, "writes .h5mu but names no modality"),
         (_repeated_name, "columns.var entry names must be unique"),
+        (_map_in_columns, "'factors' can only be written to uns"),
+        (_mapping_constant_in_columns, "'x' can only be written to uns"),
+        (_named_column, "'peptide' is named_index but no axis key"),
+        (_two_tables, "an export rule writes one table, not 2"),
+        (_h5ad_with_two_levels, ".h5ad holds one level"),
     ],
 )
 def test_inconsistent_declarations_are_refused(change: Change, message: str) -> None:

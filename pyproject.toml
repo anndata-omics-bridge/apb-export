@@ -41,10 +41,6 @@ dev = [
     "ruff==0.16.10",
     "twine>=6,<7",
 ]
-# The parity tests run msmu's own reader against an export; msmu is heavy, so it is opt-in.
-parity = [
-    "msmu>=0.4,<0.5",
-]
 
 [tool.ruff]
 line-length = 100
@@ -110,6 +106,8 @@ skip_covered = true
 
 [tool.deptry]
 known_first_party = ["apb_export"]
+# consumers/ runs in the consumer image, where the tools it imports are installed.
+extend_exclude = ["consumers"]
 
 [tool.uv.sources]
 apb2 = { path = "../apb2", editable = true }

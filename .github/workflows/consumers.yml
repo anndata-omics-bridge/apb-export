@@ -1,0 +1,101 @@
+name: Consumers
+
+# Each target's tool reads apb-export's synthetic exports. apb-export never installs these
+# tools: msmu, ProteoPy and AlphaPeptTools live in consumers/Dockerfile, rebuilt only when its
+# layers change; prolfquapp runs in its own published image.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/apb_export/**"
+      - "consumers/**"
+      - ".github/workflows/consumers.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apb-export
+    steps:
+      - name: Check out APB Export
+        uses: actions/checkout@v6
+        with:
+          path: apb-export
+
+      - name: Check out APB2
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb2
+          path: apb2
+
+      - name: Check out APB Catalog
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb-catalog
+          path: apb-catalog
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          version: "0.9.8"
+          enable-cache: true
+
+      - name: Synchronize environment
+        run: uv sync --frozen --group dev
+
+      - name: Export the synthetic examples
+        run: uv run --frozen python consumers/export_examples.py "$RUNNER_TEMP/examples"
+
+      - name: Keep the examples for the readers
+        uses: actions/upload-artifact@v4
+        with:
+          name: examples
+          path: ${{ runner.temp }}/examples
+
+  read:
+    needs: export
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out APB Export
+        uses: actions/checkout@v6
+
+      - name: Fetch the examples
+        uses: actions/download-artifact@v4
+        with:
+          name: examples
+          path: examples
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the consumer image
+        uses: docker/build-push-action@v6
+        with:
+          context: consumers
+          load: true
+          tags: apb-export-consumers
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: msmu
+        run: docker run --rm -v "$PWD/examples:/examples" apb-export-consumers python /checks/check_msmu.py /examples
+
+      - name: ProteoPy
+        run: docker run --rm -v "$PWD/examples:/examples" apb-export-consumers python /checks/check_proteopy.py /examples
+
+      - name: AlphaPeptTools
+        run: docker run --rm -v "$PWD/examples:/examples" apb-export-consumers python /checks/check_alphapepttools.py /examples
+
+      - name: prolfquapp, in its own image
+        run: >-
+          docker run --rm -v "$PWD/examples:/examples" -v "$PWD/consumers:/checks"
+          --entrypoint Rscript ghcr.io/prolfqua/prolfquapp:latest /checks/check_prolfqua.R /examples

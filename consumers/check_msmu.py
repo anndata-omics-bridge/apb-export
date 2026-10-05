@@ -1,23 +1,17 @@
-"""msmu's own DIA-NN reader and an APB export give the same msmu results.
+"""msmu reads apb-export's file and gets what its own DIA-NN reader gets from the report.
 
-Runs only with the ``parity`` dependency group, which installs msmu.
+Inside the consumer image: ``python check_msmu.py EXAMPLES``.
 """
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
+import msmu as mm
 import mudata as md
 import numpy as np
-import pandas as pd
-import pytest
-from apb2.api import ParseRuleCompiler
 from scipy import sparse
-
-from apb_export.api import MsmuExporter
-from conftest import DiannInput
-
-mm = pytest.importorskip("msmu")
 
 
 def _pipeline(mdata: md.MuData) -> md.MuData:
@@ -37,27 +31,24 @@ def _dense(matrix: object) -> np.ndarray:
     return np.asarray(matrix, dtype=float)
 
 
-@pytest.mark.parametrize("level", ["peptide", "protein"])
-def test_same_features_and_values_as_read_diann(
-    diann: DiannInput, tmp_path: Path, level: str
-) -> None:
-    export = tmp_path / "export.h5mu"
-    parsed = ParseRuleCompiler(diann.report, diann.log, requested_levels=("ion",)).compile().parse()
-    exported = MsmuExporter(abundance="Precursor_Quantity").export(parsed)
-    exported.write_h5mu(export)
-    reference = _pipeline(mm.read_diann(str(diann.report)))[level]
-    ours = _pipeline(mm.read_h5mu(export))[level]
+def check(folder: Path, level: str) -> None:
+    """Same samples, features and values at one level of msmu's pipeline."""
+    export = folder / "msmu.h5mu"
+    reference = _pipeline(mm.read_diann(str(folder / "report.tsv")))[level]
+    ours = _pipeline(mm.read_h5mu(str(export)))[level]
     if level == "peptide":
-        # The export writes every vendor's peptides in ProForma; msmu's reader keeps DIA-NN's
-        # notation. Same peptides, so compare under one notation.
-        psm = exported["psm"]
+        # The export writes peptides in ProForma; msmu's reader keeps DIA-NN's notation.
+        psm = md.read_h5mu(export)["psm"]
         source = psm.varm["search_result"]
-        assert isinstance(psm.var, pd.DataFrame)
-        assert isinstance(source, pd.DataFrame)
         notation = dict(zip(psm.var["peptide"], source["Modified_Sequence"], strict=True))
         ours.var_names = [notation[name] for name in ours.var_names]
-
-    assert set(ours.obs_names) == set(reference.obs_names)
-    assert set(ours.var_names) == set(reference.var_names)
+    assert set(ours.obs_names) == set(reference.obs_names), f"{level}: samples differ"
+    assert set(ours.var_names) == set(reference.var_names), f"{level}: features differ"
     aligned = ours[reference.obs_names, reference.var_names]
     np.testing.assert_array_equal(_dense(aligned.X), _dense(reference.X))
+    print(f"msmu {level}: {reference.n_vars} features, identical to read_diann")
+
+
+if __name__ == "__main__":
+    for name in ("peptide", "protein"):
+        check(Path(sys.argv[1]), name)

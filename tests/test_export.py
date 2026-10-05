@@ -13,7 +13,7 @@ import pytest
 from apb2.api import ParsedLevels, ParseRuleCompiler
 from scipy import sparse
 
-from apb_export.api import MsmuExporter
+from apb_export.api import Exporter
 from conftest import RUNS, DiannInput, write_diann
 
 MSMU_DIANN_COLUMNS = [
@@ -55,7 +55,7 @@ def _matrix(psm: object) -> sparse.csr_matrix:
 
 
 def test_one_feature_per_observed_cell(diann: DiannInput) -> None:
-    psm = MsmuExporter(abundance="Precursor_Quantity").export(_parsed(diann))["psm"]
+    psm = Exporter("msmu", abundance="Precursor_Quantity").export(_parsed(diann))["psm"]
 
     assert list(psm.obs_names) == sorted(RUNS)
     assert psm.n_vars == diann.cells
@@ -68,7 +68,7 @@ def test_one_feature_per_observed_cell(diann: DiannInput) -> None:
 
 
 def test_quantities_and_confidence_come_from_the_report(diann: DiannInput) -> None:
-    psm = MsmuExporter(abundance="Precursor_Quantity").export(_parsed(diann))["psm"]
+    psm = Exporter("msmu", abundance="Precursor_Quantity").export(_parsed(diann))["psm"]
     var = _var(psm)
     row = var.index.get_loc("run_A2.YEASTPEPK/2")
     run = list(psm.obs_names).index("run_A2")
@@ -82,14 +82,14 @@ def test_quantities_and_confidence_come_from_the_report(diann: DiannInput) -> No
 
 def test_library_q_value_wins_when_match_between_runs_filled_it(tmp_path: Path) -> None:
     diann = write_diann(tmp_path, library_q=0.0005)
-    psm = MsmuExporter().export(_parsed(diann))["psm"]
+    psm = Exporter("msmu").export(_parsed(diann))["psm"]
 
     assert psm.uns["apb"]["sources"]["var.q_value"]["kind"] == "library_q_value"
     assert _var(psm).loc["run_A1.PEPTIDEK/2", "q_value"] == pytest.approx(0.0005)
 
 
 def test_protein_groups_are_written_as_msmu_writes_them(diann: DiannInput) -> None:
-    var = _var(MsmuExporter().export(_parsed(diann))["psm"])
+    var = _var(Exporter("msmu").export(_parsed(diann))["psm"])
 
     assert var.loc["run_A1.AAC[UNIMOD:4]LLK/2", "proteins"] == "P2"
     assert var.loc["run_A1.CONTPEPK/2", "proteins"] == "Cont_P4"
@@ -101,7 +101,7 @@ def test_protein_groups_are_written_as_msmu_writes_them(diann: DiannInput) -> No
 
 
 def test_every_source_value_is_kept_in_search_result(diann: DiannInput) -> None:
-    psm = MsmuExporter().export(_parsed(diann))["psm"]
+    psm = Exporter("msmu").export(_parsed(diann))["psm"]
     source = _search_result(psm)
 
     assert list(source.index) == list(psm.var_names)
@@ -111,7 +111,8 @@ def test_every_source_value_is_kept_in_search_result(diann: DiannInput) -> None:
 
 
 def test_written_file_reads_back(diann: DiannInput, tmp_path: Path) -> None:
-    mdata = MsmuExporter().export(_parsed(diann))
+    mdata = Exporter("msmu").export(_parsed(diann))
+    assert isinstance(mdata, md.MuData)
     target = tmp_path / "out.h5mu"
     mdata.write_h5mu(target)
     back = md.read_h5mu(target)
@@ -131,15 +132,15 @@ def test_written_file_reads_back(diann: DiannInput, tmp_path: Path) -> None:
 def test_refusals_name_the_problem(diann: DiannInput) -> None:
     parsed = _parsed(diann)
     with pytest.raises(ValueError, match="level has no layer 'nope'"):
-        MsmuExporter(abundance="nope").export(parsed)
+        Exporter("msmu", abundance="nope").export(parsed)
     with pytest.raises(ValueError, match="'Q_Value' does not carry the abundance role"):
-        MsmuExporter(abundance="Q_Value").export(parsed)
+        Exporter("msmu", abundance="Q_Value").export(parsed)
 
     without_ion = replace(parsed, levels={})
     with pytest.raises(ValueError, match="needs APB2's ion level"):
-        MsmuExporter().export(without_ion)
+        Exporter("msmu").export(without_ion)
 
     level = parsed.levels["ion"]
     plexed = replace(level, obs=replace(level.obs, key_columns=("Run", "Channel")))
     with pytest.raises(ValueError, match="one observation per run"):
-        MsmuExporter().export(replace(parsed, levels={"ion": plexed}))
+        Exporter("msmu").export(replace(parsed, levels={"ion": plexed}))

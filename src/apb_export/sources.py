@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
+import numpy as np
 import polars as pl
 from apb2.api import FinalLayerTable, ParsedLevels
 from apb_catalog.api import Catalog
@@ -169,11 +170,17 @@ class LevelSources:
             return None
         return ScalarValue(_scalar(value), {"location": "rule", "name": reference.rule})
 
-    def _catalogue(self, reference: CatalogueSource) -> LayerValues | VarValues | None:
-        catalog = self._catalogues.get(reference.catalogue)
+    def _catalog(self, name: str) -> Catalog:
+        catalog = self._catalogues.get(name)
         if catalog is None:
-            catalog = Catalog(self._parsed, reference.catalogue)
-            self._catalogues[reference.catalogue] = catalog
+            catalog = Catalog(self._parsed, name)
+            self._catalogues[name] = catalog
+        return catalog
+
+    def _catalogue(self, reference: CatalogueSource) -> LayerValues | VarValues | None:
+        if reference.level is not None:
+            return self._through_protein_group(reference, reference.level)
+        catalog = self._catalog(reference.catalogue)
         found: Provenance = {"catalogue": reference.catalogue, "kind": reference.kind}
         if reference.location == "var":
             column = catalog.var(self._name, concept=reference.concept, kind=reference.kind)
@@ -185,3 +192,66 @@ class LevelSources:
             return None
         provenance = {"location": "layers", "name": layer.layer_name, **found}
         return LayerValues(layer.decoded_values(), provenance)
+
+    def _through_protein_group(self, reference: CatalogueSource, level: str) -> LayerValues | None:
+        """A catalogued field of ``level``, seen from this level's cells through protein groups.
+
+        Each variable takes the row of its ``protein_assignment`` value; each observation the
+        column of the same run. A var column has one value per group, repeated in every run.
+        """
+        assignment = self._level.var.roles.get("protein_assignment")
+        if level not in self._parsed.levels or assignment is None:
+            return None
+        coarse = self._parsed.levels[level]
+        catalog = self._catalog(reference.catalogue)
+        if reference.location == "var":
+            column = catalog.var(level, concept=reference.concept, kind=reference.kind)
+            if column is None:
+                return None
+            per_group = column.cast(pl.Float64).to_numpy()[:, np.newaxis]
+            table = np.repeat(per_group, coarse.obs.frame.height, axis=1)
+            name = column.name
+        else:
+            layer = catalog.layer(level, concept=reference.concept, kind=reference.kind)
+            if layer is None or (reference.accept == "nonzero" and not _has_values(layer)):
+                return None
+            table = layer.decoded_values().select(pl.all().cast(pl.Float64)).to_numpy()
+            name = layer.layer_name
+        rows = _positions(
+            self._level.var.frame.get_column(assignment),
+            coarse.var.frame.get_column(_key(coarse.var.key_columns, level, "variable")),
+        )
+        runs = _positions(
+            self._level.obs.frame.get_column(_key(self._level.obs.key_columns, self._name, "run")),
+            coarse.obs.frame.get_column(_key(coarse.obs.key_columns, level, "run")),
+        )
+        gathered = np.full((rows.size, runs.size), np.nan)
+        known_rows, known_runs = rows >= 0, runs >= 0
+        gathered[np.ix_(known_rows, known_runs)] = table[np.ix_(rows[known_rows], runs[known_runs])]
+        values = pl.DataFrame(gathered, schema=[f"obs_{i}" for i in range(runs.size)], orient="row")
+        provenance: Provenance = {
+            "location": reference.location,
+            "name": name,
+            "level": level,
+            "through": assignment,
+            "catalogue": reference.catalogue,
+            "kind": reference.kind,
+        }
+        return LayerValues(values, provenance)
+
+
+def _key(columns: tuple[str, ...] | list[str], level: str, axis: str) -> str:
+    """A level's one key column on an axis; a composite key cannot be matched across levels."""
+    if len(columns) != 1:
+        raise ValueError(f"the {level} level keys each {axis} by {list(columns)}, not one column")
+    return columns[0]
+
+
+def _positions(
+    wanted: pl.Series, available: pl.Series
+) -> np.ndarray[tuple[int], np.dtype[np.int64]]:
+    """Each wanted value's position in ``available``; -1 where it is absent."""
+    index = {value: position for position, value in enumerate(available.cast(pl.Utf8).to_list())}
+    return np.array(
+        [index.get(value, -1) for value in wanted.cast(pl.Utf8).to_list()], dtype=np.int64
+    )

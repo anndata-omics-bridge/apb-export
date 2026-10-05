@@ -7,6 +7,7 @@ level the rule reads becomes one AnnData; several become one MuData, one modalit
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from importlib.metadata import version
@@ -23,6 +24,7 @@ from apb_export.export_rules.schema import (
     AccessionSyntax,
     AllValues,
     AnnotationMap,
+    CatalogueSource,
     ColumnEntry,
     Constant,
     EntryBase,
@@ -294,7 +296,8 @@ class _LevelExport:
         if isinstance(entry, AnnotationMap):
             return {name: name for name in self._sources.annotations()}
         if isinstance(entry, Constant) and isinstance(entry.value, dict | list):
-            return entry.value
+            # A copy: nested entries are written into it, and the rule is reused.
+            return copy.deepcopy(entry.value)
         return _series(bound, ScalarRow(), self._rule.rule.accession_syntax).item()
 
     def _apb(self) -> dict[str, object]:
@@ -338,7 +341,19 @@ class CompiledExport:
 
     @property
     def levels(self) -> tuple[str, ...]:
-        """The APB2 levels the rule reads, in rule order."""
+        """The APB2 levels the rule reads: those it writes, then those its layers reach into."""
+        reached = [
+            reference.level
+            for rule in self.rules
+            for entry in rule.rule.measurements.layers
+            for reference in (entry.source if isinstance(entry.source, list) else [entry.source])
+            if isinstance(reference, CatalogueSource) and reference.level is not None
+        ]
+        return tuple(dict.fromkeys([*self.written, *reached]))
+
+    @property
+    def written(self) -> tuple[str, ...]:
+        """The APB2 levels the rule writes, in rule order."""
         return tuple(rule.level for rule in self.rules)
 
     @property
@@ -361,9 +376,9 @@ class CompiledExport:
             UnresolvedField: apb-catalog finds an answer ambiguous or the rule unreviewed.
         """
         chosen = dict(abundance or {})
-        unknown = sorted(set(chosen) - set(self.levels))
+        unknown = sorted(set(chosen) - set(self.written))
         if unknown:
-            raise ValueError(f"abundance names levels the rule does not read: {unknown}")
+            raise ValueError(f"abundance names levels the rule does not write: {unknown}")
         modalities: dict[str, ad.AnnData] = {}
         for rule in self.rules:
             if rule.level not in parsed.levels:

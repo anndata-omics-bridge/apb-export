@@ -1,12 +1,15 @@
 # APB Export
 
-APB2 results exported in the formats downstream tools read; msmu is the first target, more follow through export rules.
-
-One command from vendor output to the MuData [msmu](https://github.com/bertis-informatics/msmu) builds itself: APB2 reads the vendor files, apb-catalog names their confidence fields, and msmu takes the result with `msmu.read_h5mu` and runs unchanged.
+APB2 results exported in the AnnData and MuData flavours downstream tools read: one export rule per target, one subcommand per target. Each target fixes the APB2 levels it reads; `--abundance` picks which layer of that level becomes X, and `--annotation` attaches an SDRF or prolfquapp-style sample table, as `apb2 annotate` does.
 
 ```bash
-apb-export report.tsv result.h5mu --params report.log.txt
+apb-export msmu report.tsv result.h5mu --params report.log.txt
+apb-export prolfqua report.tsv result.h5ad --params report.log.txt --annotation dataset.csv
+apb-export proteopy report.tsv proteins.h5ad --params report.log.txt
+apb-export alphapepttools report.tsv linked.h5mu --params report.log.txt
 ```
+
+The msmu file is the MuData [msmu](https://github.com/bertis-informatics/msmu) builds itself: apb-catalog names the confidence fields, and msmu takes the result with `msmu.read_h5mu` and runs unchanged.
 
 ```python
 import msmu as mm
@@ -17,21 +20,22 @@ mdata = mm.pp.apply_filter(mdata, modality="psm", on="var")
 mdata = mm.pp.to_peptide(mdata, calculate_q=False)
 ```
 
-From Python, APB2 converts and `MsmuExporter` exports, the shape of the other APB tools:
+From Python, APB2 converts and `Exporter` exports, the shape of the other APB tools:
 
 ```python
 from pathlib import Path
 
 from apb2.api import ParseRuleCompiler
-from apb_export.api import MsmuExporter
+from apb_export.api import Exporter
 
+exporter = Exporter("msmu")
 parsed = ParseRuleCompiler(
-    Path("report.tsv"), Path("report.log.txt"), requested_levels=("ion",)
+    Path("report.tsv"), Path("report.log.txt"), requested_levels=exporter.levels
 ).compile().parse()
-MsmuExporter().export(parsed).write_h5mu("result.h5mu")
+exporter.export(parsed).write_h5mu("result.h5mu")
 ```
 
-An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`.
+An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file each opens.
 
 ## What it writes
 
@@ -48,7 +52,14 @@ msmu's own layout, as `msmu.read_diann` writes it:
 
 ## Export rules
 
-The layout above is declared in [msmu's export rule](src/apb_export/export_rules/documents/msmu/v0_4/rules.json), not coded. Rules follow APB2's rule schema read in reverse: an entry's `name` is the target's field, its `source` an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning. One engine checks every source before it builds anything; the published [JSON Schemas](src/apb_export/export_rules/documents/_schema) describe the documents.
+The layout above is declared in [msmu's export rule](src/apb_export/export_rules/documents/msmu/v0_4/rules.json), not coded. Rules follow APB2's rule schema read in reverse: an entry's `name` is the target's field, its `source` an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning. A catalogued source with `"level": "protein"` reads the protein level through each variable's protein group: a cell takes its group's value in its run. One engine checks every source before it builds anything; the published [JSON Schemas](src/apb_export/export_rules/documents/_schema) describe the documents.
+
+| Target | File | APB2 levels | Layout |
+| --- | --- | --- | --- |
+| [msmu](src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | ion | long `psm` modality, one feature per run and precursor |
+| [prolfquapp](src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | ion, reading protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata`, factors from `apb2 annotate` columns; q-value layers `qValue` (precursor, per run), `pg_qValue` (protein group, per run) and `pg_qValue_experiment` (protein group, library or experiment-wide), each where the vendor reports it |
+| [ProteoPy](src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes |
+| [AlphaPeptTools](src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | ion, peptide, protein | one wide modality per level, linked by id columns for `mulink_from_anndatas` |
 
 ## Confidence, by meaning
 
@@ -72,7 +83,7 @@ Written as msmu's readers write them: members split on `;`, the accession taken 
 
 ## Development
 
-The development release expects APB2 and apb-catalog checked out beside this repository, at the revisions pinned in [quality.yml](.github/workflows/quality.yml):
+The development release expects APB2 and apb-catalog checked out beside this repository, on `main`, as CI checks them out:
 
 ```text
 anndata_bridge/
@@ -86,4 +97,4 @@ uv sync --group dev
 make check
 ```
 
-`uv sync --group dev --group parity` adds msmu, and with it the tests that compare an export against `msmu.read_diann` through msmu's own pipeline. Tests use synthetic vendor files only.
+Tests use synthetic vendor files only and install none of the target tools. Whether the tools read the files is checked in [consumers/](consumers): the [Consumers workflow](.github/workflows/consumers.yml) exports the synthetic examples, builds one image with msmu, ProteoPy and AlphaPeptTools, runs prolfquapp's check in prolfquapp's own image, and runs each tool's check, msmu's comparison with its own `read_diann` among them.

@@ -1,0 +1,143 @@
+{
+  "schema_version": "0.1",
+  "file_version": "1",
+  "target_name": "prolfquapp",
+  "target_version_pattern": "^2\\.11\\.",
+  "tables": [
+    {
+      "output": {"shape": "wide", "extensions": [".h5ad"]},
+      "levels": {
+        "ion": {
+          "axis": {"obs_keys": ["sampleName"], "var_keys": ["feature_id"]},
+          "measurements": {
+            "primary_layer": "intensity",
+            "layers": [
+              {"name": "intensity", "source": {"measurements": "primary_layer"}},
+              {
+                "name": "qValue",
+                "source": [
+                  {
+                    "catalogue": "identification_confidence",
+                    "concept": "confidence",
+                    "kind": "q_value"
+                  },
+                  {
+                    "catalogue": "proteobench_entrapment",
+                    "concept": "confidence",
+                    "kind": "global_q_value"
+                  }
+                ]
+              },
+              {
+                "name": "pg_qValue",
+                "source": {
+                  "catalogue": "identification_confidence",
+                  "concept": "confidence",
+                  "kind": "q_value",
+                  "level": "protein"
+                }
+              },
+              {
+                "name": "pg_qValue_experiment",
+                "source": [
+                  {
+                    "catalogue": "identification_confidence",
+                    "concept": "confidence",
+                    "kind": "library_q_value",
+                    "level": "protein",
+                    "accept": "nonzero"
+                  },
+                  {
+                    "catalogue": "identification_confidence",
+                    "concept": "confidence",
+                    "kind": "global_q_value",
+                    "level": "protein"
+                  },
+                  {
+                    "catalogue": "identification_confidence",
+                    "concept": "confidence",
+                    "kind": "global_q_value",
+                    "location": "var",
+                    "level": "protein"
+                  }
+                ]
+              }
+            ]
+          },
+          "columns": {
+            "obs": [
+              {"name": "sampleName", "source": {"axis": "obs_keys"}},
+              {"name": "raw.file", "source": {"axis": "obs_keys"}},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [
+              {
+                "name": "feature_id",
+                "how": "join_nonempty",
+                "inputs": [{"role": "protein_assignment"}, "ProForma_peptide", "ProForma_ion"],
+                "separator": "~",
+                "index_only": true
+              },
+              {"name": "protein_Id", "source": {"role": "protein_assignment"}},
+              {"name": "peptide_Id", "source": "ProForma_peptide"},
+              {"name": "precursor_Id", "source": "ProForma_ion"},
+              {"name": "nr_children", "how": "constant", "value": 1, "type": "integer"}
+            ]
+          },
+          "uns": [
+            {"name": "X_layer_name", "how": "constant", "value": "intensity"},
+            {"name": "prolfquapp.artifact_type", "how": "constant", "value": "lfqdata"},
+            {"name": "prolfquapp.schema_version", "how": "constant", "value": "1.0.0"},
+            {
+              "name": "prolfquapp.source_software",
+              "source": {"rule": "software_name"},
+              "required": false,
+              "fill_value": "unknown"
+            },
+            {
+              "name": "prolfquapp.analysis_configuration",
+              "how": "constant",
+              "value": {
+                "sep": "~",
+                "file_name": "raw.file",
+                "sample_name": "sampleName",
+                "isotope_label": "isotopeLabel",
+                "ident_q_value": "qValue",
+                "nr_children": "nr_children",
+                "work_intensity": ["intensity"],
+                "is_response_transformed": false,
+                "factor_depth": 1,
+                "hierarchy": {
+                  "protein_Id": ["protein_Id"],
+                  "peptide_Id": ["peptide_Id"],
+                  "precursor_Id": ["precursor_Id"]
+                },
+                "hierarchy_depth": 1,
+                "min_peptides_protein": 2
+              }
+            },
+            {"name": "prolfquapp.analysis_configuration.factors", "how": "annotation_map"},
+            {
+              "name": "prolfquapp.protein_annotation",
+              "how": "constant",
+              "value": {
+                "pID": "protein_Id",
+                "full_id": "protein_Id",
+                "description": "protein_Id",
+                "cleaned_ids": "protein_Id",
+                "exp_nr_children": "nrPeptides",
+                "pattern_contaminants": "^zz|^CON|Cont_",
+                "pattern_decoys": "^REV_|^rev"
+              }
+            },
+            {
+              "name": "prolfquapp.layer_names",
+              "how": "constant",
+              "value": ["intensity", "qValue", "pg_qValue", "pg_qValue_experiment"]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

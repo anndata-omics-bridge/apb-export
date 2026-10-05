@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "file_version": "1",
+  "target_name": "ProteoPy",
+  "target_version_pattern": "^0\\.1\\.",
+  "tables": [
+    {
+      "output": {"shape": "wide", "extensions": [".h5ad"]},
+      "levels": {
+        "protein": {
+          "axis": {"obs_keys": ["sample_id"], "var_keys": ["protein_id"]},
+          "measurements": {
+            "primary_layer": "abundance",
+            "layers": [{"name": "abundance", "source": {"measurements": "primary_layer"}}]
+          },
+          "columns": {
+            "obs": [
+              {"name": "sample_id", "source": {"axis": "obs_keys"}},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [{"name": "protein_id", "source": {"role": "protein_assignment"}}]
+          }
+        }
+      }
+    }
+  ]
+}

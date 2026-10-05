@@ -1,54 +1,77 @@
 """Exports of APB2 results in the formats downstream tools read.
 
 APB2 owns conversion and persistence: ``ParseRuleCompiler`` reads vendor files into
-``ParsedLevels``, ``read_parsed_levels`` loads a stored result. An export rule declares what a
-target reads; ``MsmuExporter`` applies msmu's rule and builds the MuData msmu's own readers
-would. The ``apb-export`` command composes conversion and export in one step.
+``ParsedLevels``, ``read_parsed_levels`` loads a stored result. Each target's packaged export
+rule declares what that tool reads; ``Exporter`` applies one and returns the AnnData or MuData
+the tool opens. The ``apb-export`` command composes conversion, annotation and export.
 """
 
 from __future__ import annotations
 
-from typing import ClassVar
-
+import anndata as ad
 import mudata as md
 from apb2.api import ParsedLevels, QuantificationLevel
 
 from apb_export.engine import CompiledExport
-from apb_export.export_rules.loader import packaged_rules
-
-_MSMU = CompiledExport(packaged_rules("msmu"))
+from apb_export.export_rules.loader import packaged_documents, packaged_rules
 
 
-class MsmuExporter:
-    """Bind the abundance choice for exports to msmu's MuData."""
+class Exporter:
+    """Bind one packaged target's export rule and the layer that becomes X."""
 
-    __slots__ = ("_abundance",)
+    __slots__ = ("_abundance", "_compiled")
 
-    level: ClassVar[QuantificationLevel] = _MSMU.levels[0]
-    """The quantification level ``export`` reads; the CLI converts only this level."""
-
-    def __init__(self, abundance: str | None = None) -> None:
-        """Choose the layer that becomes msmu's ``X``; APB2's primary layer when ``None``."""
-        self._abundance = abundance
-
-    def export(self, parsed: ParsedLevels) -> md.MuData:
-        """Build msmu's MuData from an APB2 result's ion level, by msmu's export rule.
+    def __init__(self, target: str, abundance: str | None = None) -> None:
+        """Choose the target and, for a one-level target, the layer that becomes X.
 
         Args:
-            parsed: An APB2 result holding an ``ion`` level.
-
-        Returns:
-            A MuData with one ``psm`` modality, ready for ``msmu.read_h5mu`` once written.
+            target: One of :meth:`targets`.
+            abundance: A layer of the target's level; APB2's primary layer when ``None``.
 
         Raises:
-            ValueError: The result has no ion level, or lacks what msmu's psm modality needs.
+            ValueError: The target is not packaged, or ``abundance`` is given for a target that
+                writes several levels.
+        """
+        if target not in self.targets():
+            raise ValueError(f"unknown export target {target!r}; packaged: {list(self.targets())}")
+        self._compiled = CompiledExport(packaged_rules(target))
+        if abundance is not None and len(self._compiled.written) != 1:
+            raise ValueError(
+                f"{target} writes {list(self._compiled.written)}; "
+                "abundance applies only to targets that write one level"
+            )
+        self._abundance = abundance
+
+    @staticmethod
+    def targets() -> tuple[str, ...]:
+        """The packaged targets, by name."""
+        return tuple(dict.fromkeys(name.split("/", 1)[0] for name in packaged_documents()))
+
+    @property
+    def levels(self) -> tuple[QuantificationLevel, ...]:
+        """The APB2 levels the target reads; the command asks APB2 for exactly these."""
+        return self._compiled.levels
+
+    @property
+    def extension(self) -> str:
+        """The file the target opens: ``.h5ad`` or ``.h5mu``."""
+        return self._compiled.extension
+
+    def export(self, parsed: ParsedLevels) -> ad.AnnData | md.MuData:
+        """Build the target's AnnData or MuData from an APB2 result.
+
+        Args:
+            parsed: An APB2 result holding the levels the target requires.
+
+        Returns:
+            One AnnData for an ``.h5ad`` target; a MuData with one modality per level otherwise.
+
+        Raises:
+            ValueError: The result lacks a level or field the target requires.
             UnresolvedField: apb-catalog finds an answer ambiguous or the vendor rule unreviewed.
         """
-        chosen = None if self._abundance is None else {self.level: self._abundance}
-        exported = _MSMU.export(parsed, abundance=chosen)
-        if not isinstance(exported, md.MuData):
-            raise TypeError("msmu's export rule must write a MuData")
-        return exported
+        chosen = None if self._abundance is None else {self._compiled.written[0]: self._abundance}
+        return self._compiled.export(parsed, abundance=chosen)
 
 
-__all__ = ["MsmuExporter"]
+__all__ = ["Exporter"]

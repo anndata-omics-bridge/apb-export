@@ -20,18 +20,16 @@ jobs:
         with:
           path: apb-export
 
-      - name: Check out compatible APB2
+      - name: Check out APB2
         uses: actions/checkout@v6
         with:
           repository: anndata-omics-bridge/apb2
-          ref: ce7d7369624472c6a4a1ce3ae014ff8b7e7bd665
           path: apb2
 
-      - name: Check out compatible APB Catalog
+      - name: Check out APB Catalog
         uses: actions/checkout@v6
         with:
           repository: anndata-omics-bridge/apb-catalog
-          ref: e3ee07aab1ce094810b953e64578a2bea769a2f3
           path: apb-catalog
 
       - name: Set up Python
@@ -47,7 +45,7 @@ jobs:
           cache-dependency-glob: "**/pyproject.toml"
 
       - name: Synchronize environment
-        run: uv sync --group dev --group parity
+        run: uv sync --group dev
 
       - name: Run quality gates
         run: make check

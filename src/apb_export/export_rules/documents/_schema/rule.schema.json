@@ -267,6 +267,20 @@
           "title": "Location",
           "type": "string"
         },
+        "level": {
+          "anyOf": [
+            {
+              "const": "protein",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Read the field from this level through each variable's protein_assignment, as a layer: a cell takes its protein group's value in its run; a var column's value repeats in every run. A group the level lacks reads as missing.",
+          "title": "Level"
+        },
         "accept": {
           "default": "present",
           "description": "nonzero rejects a layer holding no finite nonzero value, such as DIA-NN's library q-value without match-between-runs.",

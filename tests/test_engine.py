@@ -14,7 +14,7 @@ import polars as pl
 import pytest
 from apb2.api import ParsedLevels, ParseRuleCompiler
 
-from apb_export.api import MsmuExporter
+from apb_export.api import Exporter
 from apb_export.engine import CompiledExport
 from apb_export.export_rules.loader import effective_rules
 from apb_export.export_rules.schema import ExportRuleDocument
@@ -70,7 +70,7 @@ def _var(psm: object) -> pd.DataFrame:
 
 def test_zero_global_q_values_stay_selected(tmp_path: Path) -> None:
     diann = write_diann(tmp_path, global_q=0.0)
-    psm = MsmuExporter().export(_parsed(diann))["psm"]
+    psm = Exporter("msmu").export(_parsed(diann))["psm"]
 
     assert psm.uns["apb"]["sources"]["var.q_value"]["kind"] == "global_q_value"
     assert (_var(psm)["q_value"] == 0).all(), "zero is a value; only the library needs nonzero"
