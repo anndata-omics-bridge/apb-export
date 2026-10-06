@@ -3,7 +3,7 @@
     "JsonValue": {},
     "Output": {
       "additionalProperties": false,
-      "description": "What one table writes, like apb2's ``input``.\n\n``wide`` keeps APB2's samples-by-features matrices; ``long`` writes one row per measured\ncell. ``.h5ad`` holds one level; ``.h5mu`` one modality per level.",
+      "description": "What one table writes, like apb2's ``input``.\n\n``wide`` keeps APB2's samples-by-features matrices; ``long`` writes one row per measured\ncell. ``.h5ad`` holds one level: the first listed that the result's software and levels\nallow. ``.h5mu`` holds one modality per level.",
       "properties": {
         "shape": {
           "enum": [

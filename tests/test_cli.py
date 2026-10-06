@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import anndata as ad
 import mudata as md
 import pytest
+from apb2.api import sidecar_path
 from apb_catalog.api import UnresolvedField
 
 from apb_export.api import Exporter
@@ -95,13 +97,18 @@ def test_prolfqua_takes_its_factors_from_the_annotation(diann: DiannInput, tmp_p
     assert list(adata.obs["condition"]) == ["A", "A", "B", "B"]
 
 
-def test_proteopy_and_alphapepttools_write_their_files(diann: DiannInput, tmp_path: Path) -> None:
+def test_proteopy_and_alphapepttools_write_their_files_and_sidecars(
+    diann: DiannInput, tmp_path: Path
+) -> None:
     proteins, linked = tmp_path / "proteins.h5ad", tmp_path / "linked.h5mu"
 
     assert _run("proteopy", str(diann.report), str(proteins), "--params", str(diann.log)) == 0
     assert _run("alphapepttools", str(diann.report), str(linked), "--params", str(diann.log)) == 0
     assert "protein_id" in ad.read_h5ad(proteins).var.columns
     assert set(md.read_h5mu(linked).mod) == {"precursors", "proteins"}
+    for path, levels in ((proteins, ["proteins"]), (linked, ["precursors", "proteins"])):
+        sidecar = json.loads(sidecar_path(path).read_text(encoding="utf-8"))
+        assert [level["name"] for level in sidecar["levels"]] == levels, "Studio's viewer reads it"
 
 
 def test_a_target_refuses_the_other_file_type(diann: DiannInput, tmp_path: Path) -> None:

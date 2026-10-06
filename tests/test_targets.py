@@ -19,7 +19,18 @@ import pytest
 from apb2.api import ParsedLevels, ParseRuleCompiler
 
 from apb_export.api import Exporter
-from conftest import PRECURSORS, RUNS, DiannInput, observed, write_diann
+from conftest import (
+    EXPERIMENTS,
+    GROUPS,
+    PEPTIDES,
+    PRECURSORS,
+    RUNS,
+    DiannInput,
+    MaxQuantInput,
+    observed,
+    write_diann,
+    write_maxquant,
+)
 
 # validate_prolfquapp_anndata: the keys an "lfqdata" artifact must carry.
 PROLFQUAPP_KEYS = {
@@ -99,7 +110,13 @@ def test_prolfquapp_finds_its_configuration_and_columns(diann: DiannInput, tmp_p
     assert list(obs[config["sample_name"]]) == list(adata.obs_names)
     assert dict(config["factors"]) == {"condition": "condition"}
     assert list(config["work_intensity"]) == [adata.uns["X_layer_name"]]
-    assert list(meta["layer_names"]) == ["intensity", "qValue", "pg_qValue", "pg_qValue_experiment"]
+    assert list(meta["layer_names"]) == [
+        "intensity",
+        "qValue",
+        "pg_qValue",
+        "pg_qValue_experiment",
+        "pep",
+    ]
     assert "qValue" in adata.layers
     first = var.iloc[0]
     keys = ("protein_Id", "peptide_Id", "precursor_Id")
@@ -156,6 +173,65 @@ def test_prolfquapp_without_a_protein_level_has_no_protein_group_q_values(
     assert "qValue" in adata.layers
 
 
+def test_prolfquapp_reads_each_precursors_pep(diann: DiannInput) -> None:
+    adata = _anndata(Exporter("prolfqua").export(_parsed(diann)))
+
+    pep = _per_cell(adata, lambda _run, precursor: 0.01 * (precursor + 1))
+    np.testing.assert_allclose(np.asarray(adata.layers["pep"]), pep)
+
+
+def _maxquant(maxquant: MaxQuantInput) -> ad.AnnData:
+    """The prolfqua export of a MaxQuant folder, parsed into the levels prolfqua reads."""
+    levels = Exporter("prolfqua").levels
+    compiler = ParseRuleCompiler(maxquant.folder, maxquant.params, requested_levels=levels)
+    return _anndata(Exporter("prolfqua").export(compiler.compile().parse()))
+
+
+def test_prolfquapp_reads_maxquant_from_its_peptide_level(tmp_path: Path) -> None:
+    adata = _maxquant(write_maxquant(tmp_path))
+    var = _frame(adata.var)
+    config = adata.uns["prolfquapp"]["analysis_configuration"]
+
+    assert adata.uns["apb"]["source_level"] == "peptide", "peptides.txt, as prolfquapp reads it"
+    assert list(var.columns) == ["protein_Id", "peptide_Id", "nr_children"]
+    assert set(config["hierarchy"]) == {"protein_Id", "peptide_Id"}
+    assert dict(zip(var["peptide_Id"], var["protein_Id"], strict=True)) == {
+        sequence: razor for sequence, _, razor in PEPTIDES
+    }
+    assert list(adata.obs_names) == list(EXPERIMENTS)
+    assert {"qValue", "pg_qValue"}.isdisjoint(adata.layers), "MaxQuant reports neither per run"
+
+
+def test_prolfquapp_links_maxquant_peptides_to_the_group_their_razor_protein_leads(
+    tmp_path: Path,
+) -> None:
+    adata = _maxquant(write_maxquant(tmp_path))
+    peptides = [sequence for sequence, _, _ in PEPTIDES]
+    rows = [peptides.index(sequence) for sequence in _frame(adata.var)["peptide_Id"]]
+    group_q = {
+        peptide: 0.001 * (group + 1)
+        for group, (_, members) in enumerate(GROUPS)
+        for peptide in members
+    }
+
+    experiment_wide = np.array([[group_q.get(row, np.nan) for row in rows]] * len(EXPERIMENTS))
+    np.testing.assert_allclose(
+        np.asarray(adata.layers["pg_qValue_experiment"]),
+        experiment_wide,
+        err_msg="the last peptide's razor protein leads no group",
+    )
+    pep = np.array([[0.01 * (row + 1) for row in rows]] * len(EXPERIMENTS))
+    np.testing.assert_allclose(np.asarray(adata.layers["pep"]), pep)
+
+
+def test_prolfquapp_reads_maxquant_evidence_alone_from_its_ion_level(tmp_path: Path) -> None:
+    adata = _maxquant(write_maxquant(tmp_path, peptides=False))
+
+    assert adata.uns["apb"]["source_level"] == "ion"
+    assert "precursor_Id" in _frame(adata.var).columns
+    assert "pg_qValue_experiment" not in adata.layers
+
+
 def test_alphapepttools_levels_link_by_their_ids(diann: DiannInput, tmp_path: Path) -> None:
     mdata = _written("alphapepttools", _parsed(diann), tmp_path)
     assert isinstance(mdata, md.MuData)
@@ -185,7 +261,7 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
     assert found == {
         "alphapepttools": (("ion", "peptide", "protein"), ".h5mu"),
         "msmu": (("ion",), ".h5mu"),
-        "prolfqua": (("ion", "protein"), ".h5ad"),
+        "prolfqua": (("peptide", "ion", "protein"), ".h5ad"),
         "proteopy": (("protein",), ".h5ad"),
     }
 

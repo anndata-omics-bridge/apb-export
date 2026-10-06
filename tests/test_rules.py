@@ -141,7 +141,7 @@ def _h5ad_with_two_levels(document: dict[str, Any]) -> None:
         (_mapping_constant_in_columns, "'x' can only be written to uns"),
         (_named_column, "'peptide' is named_index but no axis key"),
         (_two_tables, "an export rule writes one table, not 2"),
-        (_h5ad_with_two_levels, ".h5ad holds one level"),
+        (_h5ad_with_two_levels, r"\.h5ad levels \['ion'\] precede another but name no software"),
     ],
 )
 def test_inconsistent_declarations_are_refused(change: Change, message: str) -> None:

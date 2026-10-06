@@ -48,6 +48,7 @@ from apb_export.sources import (
     Resolved,
     ScalarValue,
     VarValues,
+    rule_field,
 )
 
 if TYPE_CHECKING:
@@ -148,6 +149,19 @@ def _nest(values: Sequence[tuple[str, object]]) -> dict[str, object]:
     return root
 
 
+def _repeated(values: VarValues, runs: int) -> LayerValues:
+    """A catalogued value per variable as a layer: the same value in every run."""
+    column = values.values.cast(pl.Float64)
+    frame = pl.DataFrame([column.alias(f"obs_{run}") for run in range(runs)])
+    return LayerValues(frame, values.provenance)
+
+
+def _software(parsed: ParsedLevels) -> set[str]:
+    """The software apb2's rules name for the result's levels."""
+    names = (rule_field(level, "software_name") for level in parsed.levels.values())
+    return {name for name in names if isinstance(name, str)}
+
+
 def _matrix(values: pl.DataFrame, entry: LayerEntry) -> Matrix:
     """A layer as observations by features, declared missing values blanked."""
     matrix = values.select(pl.all().cast(pl.Float64)).to_numpy().T.copy()
@@ -225,6 +239,8 @@ class _LevelExport:
                 raise ValueError(f"layer {entry.name!r}: the result carries no layer for it")
             self._provenance[key] = {"location": "absent"}
             return None
+        if isinstance(resolved, VarValues) and "catalogue" in resolved.provenance:
+            resolved = _repeated(resolved, self._level.obs.frame.height)
         if not isinstance(resolved, LayerValues):
             raise ValueError(f"layer {entry.name!r} cannot take {_describe(resolved.provenance)}")
         self._provenance[key] = resolved.provenance
@@ -353,8 +369,13 @@ class CompiledExport:
 
     @property
     def written(self) -> tuple[str, ...]:
-        """The APB2 levels the rule writes, in rule order."""
+        """The APB2 levels the rule writes, in rule order; an ``.h5ad`` export writes one."""
         return tuple(rule.level for rule in self.rules)
+
+    @property
+    def writes_one_level(self) -> bool:
+        """Whether every export writes one level: an ``.h5ad`` rule, or a rule of one level."""
+        return self.extension == ".h5ad" or len(self.rules) == 1
 
     @property
     def extension(self) -> str:
@@ -380,14 +401,7 @@ class CompiledExport:
         if unknown:
             raise ValueError(f"abundance names levels the rule does not write: {unknown}")
         modalities: dict[str, ad.AnnData] = {}
-        for rule in self.rules:
-            if rule.level not in parsed.levels:
-                if rule.rule.required:
-                    raise ValueError(
-                        f"{rule.target_name} export needs APB2's {rule.level} level; "
-                        f"this result has {sorted(parsed.levels)}"
-                    )
-                continue
+        for rule in self._exported_by(parsed):
             level = _LevelExport(rule, parsed, chosen.get(rule.level))
             built = level.long() if self.output.shape == "long" else level.wide()
             modalities[rule.rule.modality or rule.level] = built
@@ -395,3 +409,30 @@ class CompiledExport:
             (adata,) = modalities.values()
             return adata
         return mudata(modalities)
+
+    def _exported_by(self, parsed: ParsedLevels) -> list[EffectiveRule]:
+        """The levels that export this result: those for its software that it holds.
+
+        An ``.h5ad`` export takes the first of them; an ``.h5mu`` export takes all of them and
+        needs every required one.
+        """
+        software = _software(parsed)
+        rules = [
+            rule
+            for rule in self.rules
+            if rule.rule.software is None or software & set(rule.rule.software)
+        ]
+        held = [rule for rule in rules if rule.level in parsed.levels]
+        if self.extension == ".h5ad":
+            missing = [] if held else [rule.level for rule in rules]
+        else:
+            missing = [rule.level for rule in rules if rule not in held and rule.rule.required]
+        target = self.rules[0].target_name
+        if missing:
+            raise ValueError(
+                f"{target} export needs APB2's {' or '.join(missing)} level; "
+                f"this result has {sorted(parsed.levels)}"
+            )
+        if not held:
+            raise ValueError(f"{target} export reads no level of {sorted(software)} results")
+        return held[:1] if self.extension == ".h5ad" else held

@@ -1,6 +1,6 @@
 # APB Export
 
-APB2 results exported in the AnnData and MuData flavours downstream tools read: one export rule per target, one subcommand per target. Each target fixes the APB2 levels it reads; `--abundance` picks which layer of that level becomes X, and `--annotation` attaches an SDRF or prolfquapp-style sample table, as `apb2 annotate` does.
+APB2 results exported in the AnnData and MuData flavours downstream tools read: one export rule per target, one subcommand per target. Each file gets APB2's `<file>.apb.json` sidecar, which APB Studio's viewer reads. Each target fixes the APB2 levels it reads; `--abundance` picks which layer of that level becomes X, and `--annotation` attaches an SDRF or prolfquapp-style sample table, as `apb2 annotate` does.
 
 ```bash
 apb-export msmu report.tsv result.h5mu --params report.log.txt
@@ -52,12 +52,12 @@ msmu's own layout, as `msmu.read_diann` writes it:
 
 ## Export rules
 
-The layout above is declared in [msmu's export rule](src/apb_export/export_rules/documents/msmu/v0_4/rules.json), not coded. Rules follow APB2's rule schema read in reverse: an entry's `name` is the target's field, its `source` an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning. A catalogued source with `"level": "protein"` reads the protein level through each variable's protein group: a cell takes its group's value in its run. One engine checks every source before it builds anything; the published [JSON Schemas](src/apb_export/export_rules/documents/_schema) describe the documents.
+The layout above is declared in [msmu's export rule](src/apb_export/export_rules/documents/msmu/v0_4/rules.json), not coded. Rules follow APB2's rule schema read in reverse: an entry's `name` is the target's field, its `source` an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning. A catalogued source with `"level": "protein"` reads the protein level through each variable's protein group, named whole or by the protein that leads it: a cell takes its group's value in its run. A level block may name the `software` it is for; an `.h5ad` rule lists its levels in order and writes the first one the result's software and levels allow. One engine checks every source before it builds anything; the published [JSON Schemas](src/apb_export/export_rules/documents/_schema) describe the documents.
 
 | Target | File | APB2 levels | Layout |
 | --- | --- | --- | --- |
 | [msmu](src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | ion | long `psm` modality, one feature per run and precursor |
-| [prolfquapp](src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | ion, reading protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata`, factors from `apb2 annotate` columns; q-value layers `qValue` (precursor, per run), `pg_qValue` (protein group, per run) and `pg_qValue_experiment` (protein group, library or experiment-wide), each where the vendor reports it |
+| [prolfquapp](src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | ion, or peptide for MaxQuant; reading protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata`, factors from `apb2 annotate` columns; confidence layers `qValue` (precursor, per run), `pg_qValue` (protein group, per run), `pg_qValue_experiment` (protein group, library or experiment-wide) and `pep`, each where the vendor reports it |
 | [ProteoPy](src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes |
 | [AlphaPeptTools](src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | ion, peptide, protein | one wide modality per level, linked by id columns for `mulink_from_anndatas` |
 

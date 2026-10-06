@@ -13,7 +13,13 @@ from typing import Annotated
 
 import anndata as ad
 import mudata as md
-from apb2.api import AnnotationCompiler, ParsedLevels, ParseRuleCompiler, QuantificationLevel
+from apb2.api import (
+    AnnotationCompiler,
+    ParsedLevels,
+    ParseRuleCompiler,
+    QuantificationLevel,
+    write_container_representation,
+)
 from apb_catalog.api import UnresolvedField
 from cyclopts import App, Parameter
 from loguru import logger
@@ -126,7 +132,8 @@ def _write(result: ad.AnnData | md.MuData | None, output: Path) -> int:
     else:
         result.write_h5ad(output)
         shapes = _summary(result)
-    logger.info(f"wrote {output}: {shapes}")
+    write_container_representation(result, output)
+    logger.info(f"wrote {output} and its sidecar: {shapes}")
     return 0
 
 

@@ -61,7 +61,8 @@ class CatalogueSource(ModelBase):
         default=None,
         description="Read the field from this level through each variable's protein_assignment, "
         "as a layer: a cell takes its protein group's value in its run; a var column's value "
-        "repeats in every run. A group the level lacks reads as missing.",
+        "repeats in every run. The assignment names its group whole, or else the group it "
+        "leads, as MaxQuant's razor protein does. A group the level lacks reads as missing.",
     )
     accept: Literal["present", "nonzero"] = Field(
         default="present",
@@ -283,6 +284,12 @@ class LevelRule(ModelBase):
 
     modality: str | None = Field(default=None, description="The MuData modality it fills.")
     required: bool = Field(default=True, description="When false, a result without it is fine.")
+    software: list[str] | None = Field(
+        default=None,
+        min_length=1,
+        description="The software, as apb2's rule names it, whose results this level exports; "
+        "every software when omitted. Another software's result skips the level.",
+    )
     axis: Axis
     measurements: Measurements
     columns: Columns
@@ -314,7 +321,8 @@ class Output(ModelBase):
     """What one table writes, like apb2's ``input``.
 
     ``wide`` keeps APB2's samples-by-features matrices; ``long`` writes one row per measured
-    cell. ``.h5ad`` holds one level; ``.h5mu`` one modality per level.
+    cell. ``.h5ad`` holds one level: the first listed that the result's software and levels
+    allow. ``.h5mu`` holds one modality per level.
     """
 
     shape: Literal["long", "wide"]

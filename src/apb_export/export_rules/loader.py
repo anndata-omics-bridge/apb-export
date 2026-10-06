@@ -52,16 +52,18 @@ def _merge(base: dict[str, JsonValue], level: dict[str, JsonValue]) -> dict[str,
 def effective_rules(document: ExportRuleDocument, name: str) -> tuple[EffectiveRule, ...]:
     """Validate every table level of a rule document.
 
+    An ``.h5ad`` table's levels are alternatives in order: each before the last names the
+    software it is for, so a software-specific level precedes the one every software takes.
+
     Raises:
-        ValueError: The document has more than one table, an ``.h5ad`` table more than one
-            level, a level's declarations are invalid, or an ``.h5mu`` level lacks a modality.
+        ValueError: The document has more than one table, an ``.h5ad`` level before the last
+            names no software, a level's declarations are invalid, or an ``.h5mu`` level lacks
+            a modality.
     """
     if len(document.tables) != 1:
         raise ValueError(f"{name}: an export rule writes one table, not {len(document.tables)}")
     rules: list[EffectiveRule] = []
     for table in document.tables:
-        if ".h5ad" in table.output.extensions and len(table.levels) != 1:
-            raise ValueError(f"{name}: .h5ad holds one level, not {sorted(table.levels)}")
         for level, block in table.levels.items():
             rule = LevelRule.model_validate(_merge(table.base, block))
             if ".h5mu" in table.output.extensions and rule.modality is None:
@@ -77,6 +79,9 @@ def effective_rules(document: ExportRuleDocument, name: str) -> tuple[EffectiveR
                     rule=rule,
                 )
             )
+        unnamed = [rule.level for rule in rules[:-1] if rule.rule.software is None]
+        if ".h5ad" in table.output.extensions and unnamed:
+            raise ValueError(f"{name}: .h5ad levels {unnamed} precede another but name no software")
     return tuple(rules)
 
 

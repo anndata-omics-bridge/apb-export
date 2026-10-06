@@ -278,7 +278,7 @@
             }
           ],
           "default": null,
-          "description": "Read the field from this level through each variable's protein_assignment, as a layer: a cell takes its protein group's value in its run; a var column's value repeats in every run. A group the level lacks reads as missing.",
+          "description": "Read the field from this level through each variable's protein_assignment, as a layer: a cell takes its protein group's value in its run; a var column's value repeats in every run. The assignment names its group whole, or else the group it leads, as MaxQuant's razor protein does. A group the level lacks reads as missing.",
           "title": "Level"
         },
         "accept": {
@@ -1106,6 +1106,23 @@
       "description": "When false, a result without it is fine.",
       "title": "Required",
       "type": "boolean"
+    },
+    "software": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The software, as apb2's rule names it, whose results this level exports; every software when omitted. Another software's result skips the level.",
+      "title": "Software"
     },
     "axis": {
       "$ref": "#/$defs/Axis"

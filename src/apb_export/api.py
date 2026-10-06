@@ -35,7 +35,7 @@ class Exporter:
         if target not in self.targets():
             raise ValueError(f"unknown export target {target!r}; packaged: {list(self.targets())}")
         self._compiled = CompiledExport(packaged_rules(target))
-        if abundance is not None and len(self._compiled.written) != 1:
+        if abundance is not None and not self._compiled.writes_one_level:
             raise ValueError(
                 f"{target} writes {list(self._compiled.written)}; "
                 "abundance applies only to targets that write one level"
@@ -70,7 +70,8 @@ class Exporter:
             ValueError: The result lacks a level or field the target requires.
             UnresolvedField: apb-catalog finds an answer ambiguous or the vendor rule unreviewed.
         """
-        chosen = None if self._abundance is None else {self._compiled.written[0]: self._abundance}
+        written = self._compiled.written
+        chosen = None if self._abundance is None else dict.fromkeys(written, self._abundance)
         return self._compiled.export(parsed, abundance=chosen)
 
 

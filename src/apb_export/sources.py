@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import polars as pl
-from apb2.api import FinalLayerTable, ParsedLevels
+from apb2.api import FinalLayerTable, ParsedLevel, ParsedLevels
 from apb_catalog.api import Catalog
 
 from apb_export.export_rules.schema import (
@@ -27,6 +27,9 @@ from apb_export.export_rules.schema import (
 )
 
 type Provenance = dict[str, str]
+
+_MEMBERS = ";"
+"""How APB2 joins a protein group's members, as the vendors write them."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,6 +72,13 @@ def _has_values(layer: FinalLayerTable) -> bool:
     values = layer.quantitative_values()
     total = values.select(pl.sum_horizontal(pl.all().fill_nan(0).fill_null(0)).sum()).item()
     return bool(total)
+
+
+def rule_field(level: ParsedLevel, name: str) -> object:
+    """A top-level field of the apb2 rule stored with a level; ``None`` when it has none."""
+    stored = level.uns.get("rule_json")
+    rule = json.loads(stored) if isinstance(stored, str) else {}
+    return rule.get(name) if isinstance(rule, dict) else None
 
 
 def _scalar(value: object) -> Scalar:
@@ -163,9 +173,7 @@ class LevelSources:
         return LayerValues(values, {"location": "layers", "name": name})
 
     def _rule_field(self, reference: RuleSource) -> ScalarValue | None:
-        stored = self._level.uns.get("rule_json")
-        rule = json.loads(stored) if isinstance(stored, str) else {}
-        value = rule.get(reference.rule) if isinstance(rule, dict) else None
+        value = rule_field(self._level, reference.rule)
         if value is None:
             return None
         return ScalarValue(_scalar(value), {"location": "rule", "name": reference.rule})
@@ -196,8 +204,9 @@ class LevelSources:
     def _through_protein_group(self, reference: CatalogueSource, level: str) -> LayerValues | None:
         """A catalogued field of ``level``, seen from this level's cells through protein groups.
 
-        Each variable takes the row of its ``protein_assignment`` value; each observation the
-        column of the same run. A var column has one value per group, repeated in every run.
+        Each variable takes the group its ``protein_assignment`` names; each observation the
+        column of the same run. A var column has one value per group, the same in every run,
+        so its runs need no counterpart in ``level``.
         """
         assignment = self._level.var.roles.get("protein_assignment")
         if level not in self._parsed.levels or assignment is None:
@@ -208,22 +217,24 @@ class LevelSources:
             column = catalog.var(level, concept=reference.concept, kind=reference.kind)
             if column is None:
                 return None
-            per_group = column.cast(pl.Float64).to_numpy()[:, np.newaxis]
-            table = np.repeat(per_group, coarse.obs.frame.height, axis=1)
+            table = column.cast(pl.Float64).to_numpy()[:, np.newaxis]
+            runs = np.zeros(self._level.obs.frame.height, dtype=np.int64)
             name = column.name
         else:
             layer = catalog.layer(level, concept=reference.concept, kind=reference.kind)
             if layer is None or (reference.accept == "nonzero" and not _has_values(layer)):
                 return None
             table = layer.decoded_values().select(pl.all().cast(pl.Float64)).to_numpy()
+            runs = _positions(
+                self._level.obs.frame.get_column(
+                    _key(self._level.obs.key_columns, self._name, "run")
+                ),
+                coarse.obs.frame.get_column(_key(coarse.obs.key_columns, level, "run")),
+            )
             name = layer.layer_name
-        rows = _positions(
+        rows = _groups(
             self._level.var.frame.get_column(assignment),
             coarse.var.frame.get_column(_key(coarse.var.key_columns, level, "variable")),
-        )
-        runs = _positions(
-            self._level.obs.frame.get_column(_key(self._level.obs.key_columns, self._name, "run")),
-            coarse.obs.frame.get_column(_key(coarse.obs.key_columns, level, "run")),
         )
         gathered = np.full((rows.size, runs.size), np.nan)
         known_rows, known_runs = rows >= 0, runs >= 0
@@ -254,4 +265,32 @@ def _positions(
     index = {value: position for position, value in enumerate(available.cast(pl.Utf8).to_list())}
     return np.array(
         [index.get(value, -1) for value in wanted.cast(pl.Utf8).to_list()], dtype=np.int64
+    )
+
+
+def _groups(
+    assignments: pl.Series, groups: pl.Series
+) -> np.ndarray[tuple[int], np.dtype[np.int64]]:
+    """Each assignment's protein group: the one it names whole, else the one it leads; or -1.
+
+    A group leads with its first member, as MaxQuant lists the razor protein first. A member
+    leading several groups names none of them.
+    """
+    keys: list[str | None] = groups.cast(pl.Utf8).to_list()
+    whole = {key: position for position, key in enumerate(keys) if key is not None}
+    leads: dict[str, int] = {}
+    shared: set[str] = set()
+    for position, key in enumerate(keys):
+        if key is None:
+            continue
+        lead = key.split(_MEMBERS, 1)[0]
+        if lead in leads:
+            shared.add(lead)
+        leads[lead] = position
+    for lead in shared:
+        del leads[lead]
+    wanted: list[str | None] = assignments.cast(pl.Utf8).to_list()
+    return np.array(
+        [-1 if value is None else whole.get(value, leads.get(value, -1)) for value in wanted],
+        dtype=np.int64,
     )
