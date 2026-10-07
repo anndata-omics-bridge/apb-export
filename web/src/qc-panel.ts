@@ -61,7 +61,7 @@ export class ApbQcPanel extends LitElement {
     const empty = matrix.cv.series.every(({ features }) => features === 0)
     return html`
       <section class="card qc">
-        <h2>4 · Quality control</h2>
+        <h2>Quality control</h2>
         ${matrices.length > 1
           ? html`<nav class="tabs" role="tablist">
               ${matrices.map((item, index) => html`

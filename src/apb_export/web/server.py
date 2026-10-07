@@ -184,6 +184,15 @@ class Api:
             raise HTTPException(404, "no such file")
         return FileResponse(path, filename=name)
 
+    def example_head(self, example_id: str, name: str) -> FileResponse:
+        """The head of an example file, written at startup."""
+        if name not in self._example(example_id).files():
+            raise HTTPException(404, "no such file")
+        path = self.store.previews / example_id / f"{name}.json"
+        if not path.is_file():
+            raise HTTPException(404, "no preview of this file")
+        return FileResponse(path, headers={"Cache-Control": "no-cache"})
+
     def _link_example(self, job: Job, example: Example, fields: set[str]) -> dict[str, str]:
         """The chosen example files, linked into the job under the names the tool wrote.
 
@@ -319,6 +328,7 @@ def create_app(
     app.add_api_route("/api/options.json", api.options, methods=["GET"])
     app.add_api_route("/api/examples.json", api.examples_file, methods=["GET"])
     app.add_api_route("/api/examples/{example_id}/{name}", api.example_file, methods=["GET"])
+    app.add_api_route("/api/examples/{example_id}/head/{name}", api.example_head, methods=["GET"])
     app.add_api_route("/api/jobs", api.submit, methods=["POST"])
     app.add_api_route("/api/jobs/{job_id}/files/{name}", api.download, methods=["GET"])
     app.add_api_route("/api/jobs/{job_id}/{name}", api.job_file, methods=["GET"])

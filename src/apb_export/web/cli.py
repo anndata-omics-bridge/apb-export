@@ -9,7 +9,7 @@ from typing import Annotated
 import uvicorn
 from cyclopts import App, Parameter
 
-from apb_export.web.examples import load_examples, write_examples
+from apb_export.web.examples import load_examples, write_examples, write_previews
 from apb_export.web.exports import load_hints, rule_versions
 from apb_export.web.options import write_options
 from apb_export.web.server import Worker, create_app
@@ -58,6 +58,7 @@ def serve(
         )
     )
     write_examples(jobs.examples_path, offered)
+    write_previews(jobs.previews, offered)
     worker = Worker(jobs, timeout_seconds=timeout_minutes * 60)
     app = create_app(jobs, worker, outputs, software, max_upload_bytes, offered)
     uvicorn.run(app, host=host, port=port)

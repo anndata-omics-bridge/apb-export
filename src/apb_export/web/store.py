@@ -163,6 +163,11 @@ class JobStore:
     def examples_path(self) -> Path:
         return self.root / "examples.json"
 
+    @property
+    def previews(self) -> Path:
+        """One folder per example, holding ``<name>.json``, the head of each of its files."""
+        return self.root / "previews"
+
     def create(self) -> Job:
         job = Job(self.jobs / uuid.uuid4().hex)
         job.inputs.mkdir(parents=True)

@@ -7,6 +7,7 @@ export interface OutputLink {
 }
 
 export interface About {
+  group: 'tool' | 'apb2'
   title: string
   file: string
   what: string
@@ -33,7 +34,6 @@ export interface Export {
   kinds: string[]
   labels: string[]
   note: string | null
-  reads: string | null
 }
 
 export interface Hint {
@@ -58,6 +58,8 @@ export interface Example {
   data: string[]
   stored_data: string[]
   folder: boolean
+  // The files inside a folder result, each previewable; empty for a file result.
+  folder_files: string[]
   params: string | null
   stored_params: string | null
   annotation: string | null
@@ -115,6 +117,16 @@ export interface Qc {
   matrices: QcMatrix[]
 }
 
+// The first lines of an example file, written by the server at startup; a Parquet file's
+// first rows come as tab-separated text.
+export interface Head {
+  name: string
+  bytes: number
+  format: 'text' | 'parquet'
+  lines: string[]
+  complete: boolean
+}
+
 async function json<T> (url: string): Promise<T> {
   const response = await fetch(url, { cache: 'no-store' })
   if (!response.ok) throw new Error(`${url}: ${response.status} ${response.statusText}`)
@@ -126,6 +138,8 @@ export const loadExamples = async (): Promise<Example[]> =>
   (await json<{ examples: Example[] }>('api/examples.json')).examples
 export const exampleFileUrl = (id: string, name: string): string =>
   `api/examples/${id}/${encodeURIComponent(name)}`
+export const loadHead = async (id: string, name: string): Promise<Head> =>
+  await json<Head>(`api/examples/${id}/head/${encodeURIComponent(name)}`)
 export const loadStatus = async (id: string): Promise<Status> => await json<Status>(`api/jobs/${id}/status.json`)
 export const loadQc = async (id: string): Promise<Qc> => await json<Qc>(`api/jobs/${id}/qc.json`)
 export const logUrl = (id: string): string => `api/jobs/${id}/job.log`

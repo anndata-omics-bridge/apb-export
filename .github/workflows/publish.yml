@@ -1,0 +1,68 @@
+name: Publish
+
+# The web app's image, ghcr.io/anndata-omics-bridge/apb-export, which the FGCZ portal
+# deployment pulls. A v* tag publishes that version; a manual run publishes the commit as
+# sha-<short>. arm64 is the deploy host's architecture; amd64 serves local test hosts.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out APB Export
+        uses: actions/checkout@v6
+        with:
+          path: apb-export
+
+      - name: Check out APB2
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb2
+          path: apb2
+
+      - name: Check out APB Catalog
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb-catalog
+          path: apb-catalog
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Name the image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/anndata-omics-bridge/apb-export
+          tags: |
+            type=ref,event=tag
+            type=sha
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apb-export/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

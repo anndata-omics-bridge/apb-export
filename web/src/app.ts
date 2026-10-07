@@ -5,6 +5,7 @@ import './app.css'
 import { loadExamples, loadOptions, loadQc, loadStatus, submitJob } from './api.ts'
 import type { Status } from './api.ts'
 import { ApbDownloads } from './downloads.ts'
+import { ApbFilePreview } from './file-preview.ts'
 import { ApbJobStatus } from './job-status.ts'
 import { ApbQcPanel } from './qc-panel.ts'
 import { ApbUploadForm } from './upload-form.ts'
@@ -13,6 +14,7 @@ customElements.define('apb-upload-form', ApbUploadForm)
 customElements.define('apb-job-status', ApbJobStatus)
 customElements.define('apb-downloads', ApbDownloads)
 customElements.define('apb-qc-panel', ApbQcPanel)
+customElements.define('apb-file-preview', ApbFilePreview)
 
 const POLL_MS = 2000
 

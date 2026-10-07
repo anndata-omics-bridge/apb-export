@@ -11,11 +11,19 @@ from io import BytesIO
 from pathlib import Path
 
 import numpy as np
+import polars as pl
 import pytest
 from fastapi.testclient import TestClient
 
-from apb_export.web.examples import Example, load_examples, write_examples
-from apb_export.web.exports import Export, load_hints, rule_versions
+from apb_export.web.examples import (
+    HEAD_LINES,
+    Example,
+    head,
+    load_examples,
+    write_examples,
+    write_previews,
+)
+from apb_export.web.exports import Export, SoftwareHint, export_for, load_hints, rule_versions
 from apb_export.web.job import error_text
 from apb_export.web.options import about, write_options
 from apb_export.web.qc import ALL_SAMPLES, Matrix, grouping_column, summarize
@@ -322,6 +330,18 @@ def test_examples_read_a_corpus_and_find_its_sdrf(examples: list[Example]) -> No
     assert set(example.files()) == {"report.tsv", "report.log.txt", "sdrf.tsv"}
 
 
+def test_examples_under_a_relative_root_have_absolute_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    corpus = _corpus(tmp_path / "data")
+    monkeypatch.chdir(tmp_path)
+
+    (example,) = _load(corpus, Path("data"))
+
+    assert example.data.is_absolute(), "a job's link to a relative path would dangle"
+    assert example.annotation is not None and example.annotation.is_absolute()
+
+
 def test_a_corpus_naming_a_missing_input_is_refused(tmp_path: Path) -> None:
     corpus = tmp_path / "corpus.csv"
     corpus.write_text(
@@ -408,10 +428,21 @@ def test_hints_name_every_offered_software_and_packaged_rule(options: Options) -
     _, hints = load_hints()
     patterns = rule_versions()
     named = {rule for hint in hints.values() for export in hint.exports for rule in export.rules}
+    # An export may name a rule apb2 is renaming; one that names no packaged rule is stale.
+    stale = [
+        export.result
+        for hint in hints.values()
+        for export in hint.exports
+        if not set(export.rules) & patterns.keys()
+    ]
 
     assert set(software) <= set(hints)
-    assert named <= patterns.keys(), f"hints name rules apb2 lacks: {named - patterns.keys()}"
-    assert patterns.keys() <= named, f"apb2 rules without a hint: {patterns.keys() - named}"
+    assert stale == [], f"exports read by no packaged apb2 rule: {stale}"
+    # AlphaDIA 1.10's rule reads only a table ProteoBench joined; AlphaDIA never writes it.
+    unoffered = {"alphadia/v1_10/rules.json"}
+    missing = patterns.keys() - named - unoffered
+    assert missing == set(), f"apb2 rules without a hint: {missing}"
+    assert not unoffered & named, "the page claims a rule it leaves out"
     assert hints["Sage"].params_required, "apb2 refuses Sage without its parameter file"
     assert all(hint.sources for hint in hints.values()), (
         "every hint cites where its names come from"
@@ -508,18 +539,87 @@ def test_a_two_file_export_names_its_files_in_the_tools_order() -> None:
         params="log.txt",
         kinds=(".tsv",),
     )
-    joined = Export(
-        rules=("alphadia/v1_10/rules.json",),
-        versions="1.10",
-        result=("precursors.tsv", "precursor.matrix.tsv"),
-        params="log.txt",
-        kinds=(".tsv",),
-        reads="joined.tsv",
-    )
 
     assert export.result_names(2) == ["precursors.tsv", "precursor.matrix.tsv"]
     assert export.result_names(1) is None, "one file of a two-file export has no fixed name"
-    assert joined.result_names(1) == ["joined.tsv"]
+
+
+def test_without_a_version_the_file_kind_alone_must_pick_the_export(tmp_path: Path) -> None:
+    hints, patterns = load_hints()[1], rule_versions()
+    table = tmp_path / "table.tsv"
+    table.write_text("Sequence\n", encoding="utf-8")
+
+    custom = export_for(hints["pb_custom"], patterns, "pb_custom", None, table)
+    peaks = export_for(hints["MetaMorpheus"], patterns, "MetaMorpheus", None, table)
+    ambiguous = export_for(hints["DIA-NN"], patterns, "DIA-NN", None, tmp_path / "report.parquet")
+
+    assert custom is not None and custom.rules == ("pb_custom/rules.json",)
+    assert peaks is not None and peaks.result == ("Task1-SearchTask/AllQuantifiedPeaks.tsv",)
+    assert ambiguous is None, "DIA-NN 1.9 and 2.x both write report.parquet"
+
+
+def test_a_folder_example_lists_and_serves_every_file_in_it(tmp_path: Path) -> None:
+    folder = tmp_path / "data" / "txt"
+    folder.mkdir(parents=True)
+    for name in ("evidence.txt", "peptides.txt", "mqpar.xml"):
+        (folder / name).write_text(f"{name}\n", encoding="utf-8")
+    corpus = tmp_path / "corpus.csv"
+    corpus.write_text(
+        "input_file,vendor_parameter_file,module,software_name\ntxt,txt/mqpar.xml,m,MaxQuant\n",
+        encoding="utf-8",
+    )
+
+    (example,) = load_examples(corpus, tmp_path / "data")
+    write_previews(tmp_path / "previews", [example])
+
+    assert example.describe()["folder_files"] == ["evidence.txt", "mqpar.xml", "peptides.txt"]
+    assert set(example.files()) == {"evidence.txt", "mqpar.xml", "peptides.txt"}
+    assert (tmp_path / "previews" / example.id / "peptides.txt.json").is_file()
+
+
+def test_example_previews_show_the_first_lines_of_each_file(
+    tmp_path: Path, options: Options, examples: list[Example]
+) -> None:
+    software, outputs = options
+    store = JobStore(tmp_path / "store", ttl_seconds=3600)
+    write_previews(store.previews, examples)
+    (example,) = examples
+    with TestClient(
+        create_app(store, Worker(store, 60), outputs, software, 1 << 30, examples)
+    ) as test_client:
+        preview = test_client.get(f"/api/examples/{example.id}/head/report.tsv").json()
+        sdrf = test_client.get(f"/api/examples/{example.id}/head/sdrf.tsv").json()
+        absent = test_client.get(f"/api/examples/{example.id}/head/corpus.csv")
+
+    assert preview["name"] == "report.tsv", "the name the page serves, not the stored one"
+    assert preview["format"] == "text"
+    assert preview["lines"][0].startswith("Run\tModified.Sequence\t")
+    assert len(preview["lines"]) == HEAD_LINES and not preview["complete"]
+    assert sdrf["complete"] and sdrf["lines"][0].startswith("raw_file\tcondition")
+    assert absent.status_code == 404
+
+
+def test_a_parquet_head_is_its_first_rows_as_tab_separated_text(tmp_path: Path) -> None:
+    path = tmp_path / "report.parquet"
+    pl.DataFrame({"Run": ["a", "b", "c"], "Intensity": [1.0, 2.0, None]}).write_parquet(path)
+
+    preview = head(path)
+
+    assert preview["format"] == "parquet"
+    assert preview["lines"] == ["Run\tIntensity", "a\t1.0", "b\t2.0", "c\t"]
+    assert preview["complete"]
+
+
+def test_a_row_no_hint_describes_is_no_example(tmp_path: Path) -> None:
+    root = tmp_path / "data"
+    corpus = _corpus(root)
+    diann = load_hints()[1]["DIA-NN"]
+    unclaimed = SoftwareHint(exports=(), params_required=False, sources=diann.sources)
+
+    offered = load_examples(corpus, root, None, ["DIA-NN"], {"DIA-NN": unclaimed}, rule_versions())
+
+    assert offered == [], "the row stays in the corpus, but the page claims no export for it"
+    assert len(_load(corpus, root)) == 1
 
 
 def test_an_example_brings_its_secondary_file_as_one_folder(
@@ -582,6 +682,7 @@ def test_every_offered_output_is_described_with_https_links(options: Options) ->
     assert {output.id for output in outputs} == set(described), "no stale or missing entries"
     for entry in described.values():
         assert entry["what"] and entry["open"] and entry["links"]
+        assert entry["group"] in {"tool", "apb2"}
         links = entry["links"]
         assert isinstance(links, list)
         assert all(str(link["url"]).startswith("https://") for link in links)

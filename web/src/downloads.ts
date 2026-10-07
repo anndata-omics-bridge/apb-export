@@ -18,7 +18,7 @@ export class ApbDownloads extends LitElement {
     if (!status || status.state !== 'done') return nothing
     return html`
       <section class="card">
-        <h2>3 · Download</h2>
+        <h2>Downloads</h2>
         <ul class="files">
           ${status.files.map(({ name, bytes }) => html`
             <li><a href=${fileUrl(status.id, name)} download=${name}>${name}</a><span>${formatBytes(bytes)}</span></li>

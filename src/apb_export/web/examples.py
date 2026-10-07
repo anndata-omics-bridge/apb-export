@@ -15,9 +15,12 @@ from __future__ import annotations
 import csv
 import hashlib
 import re
+import shutil
 from dataclasses import dataclass
+from itertools import islice
 from pathlib import Path
 
+import polars as pl
 from apb2.api import parse_search_parameters
 from loguru import logger
 
@@ -25,6 +28,9 @@ from apb_export.web.exports import Export, SoftwareHint, export_for
 from apb_export.web.store import write_json
 
 _COLUMNS = ("input_file", "vendor_parameter_file", "module", "software_name")
+# What a preview shows: the first lines, each cut to a width a page can still scroll.
+HEAD_LINES = 20
+_HEAD_WIDTH = 4000
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,11 +68,26 @@ class Example:
             named["annotation"] = [(self.annotation.name, self.annotation)]
         return named
 
+    def folder_files(self) -> list[Path]:
+        """The files inside a folder result, such as MaxQuant's txt folder; none for a file."""
+        if not self.data.is_dir():
+            return []
+        return sorted(path for path in self.data.iterdir() if path.is_file())
+
     def files(self) -> dict[str, Path]:
-        """The example's downloadable files by the name they are served under."""
-        return {
-            name: path for named in self.inputs().values() for name, path in named if path.is_file()
-        }
+        """The example's downloadable files by the name they are served under.
+
+        A folder result's files go by their own names; one that is also the parameter file or
+        annotation, such as MaxQuant's mqpar.xml, is the same file.
+        """
+        named = {path.name: path for path in self.folder_files()}
+        named.update(
+            (name, path)
+            for files in self.inputs().values()
+            for name, path in files
+            if path.is_file()
+        )
+        return named
 
     def describe(self) -> dict[str, object]:
         inputs = self.inputs()
@@ -81,6 +102,7 @@ class Example:
             "data": [name for name, _ in inputs["data"]],
             "stored_data": [path.name for _, path in inputs["data"]],
             "folder": self.data.is_dir(),
+            "folder_files": [path.name for path in self.folder_files()],
             "params": None if params is None else params[0][0],
             "stored_params": None if self.params is None else self.params.name,
             "annotation": None if annotation is None else annotation[0][0],
@@ -149,11 +171,19 @@ def load_examples(
 ) -> list[Example]:
     """Every row of the corpus CSV whose input exists under ``root``.
 
+    With hints, a row no export of its software describes stays in the corpus but is no
+    example: the page offers only what it says the converter reads. AlphaDIA 1.10's rows are
+    such, a table ProteoBench joined from AlphaDIA's two outputs.
+
+    Paths are absolute: jobs link to them from their own folders.
+
     Raises:
         ValueError: The CSV lacks a corpus column, or names an input that does not exist.
     """
     with corpus.open(encoding="utf-8", newline="") as table:
         rows = list(csv.DictReader(table))
+    root = root.absolute()
+    sdrf = None if sdrf is None else sdrf.absolute()
     examples: list[Example] = []
     for row in rows:
         absent = [column for column in _COLUMNS if column not in row]
@@ -171,6 +201,9 @@ def load_examples(
             if hint is None
             else export_for(hint, patterns or {}, row["software_name"], version, data)
         )
+        if hint is not None and export is None:
+            logger.warning(f"{row['input_file']}: no {parameter_software} hint describes it")
+            continue
         examples.append(
             Example(
                 id=hashlib.sha256(row["input_file"].encode()).hexdigest()[:12],
@@ -191,3 +224,34 @@ def load_examples(
 
 def write_examples(path: Path, examples: list[Example]) -> None:
     write_json(path, {"examples": [example.describe() for example in examples]})
+
+
+def head(path: Path) -> dict[str, object]:
+    """The first lines of a file as the page previews it; a Parquet file's first rows as TSV."""
+    if path.suffix.lower() == ".parquet":
+        table = pl.read_parquet(path, n_rows=HEAD_LINES)
+        lines = table.write_csv(separator="\t").splitlines()
+        complete = table.height < HEAD_LINES
+        kind = "parquet"
+    else:
+        with path.open(encoding="utf-8", errors="replace", newline="") as text:
+            lines = [line.rstrip("\r\n") for line in islice(text, HEAD_LINES + 1)]
+        complete = len(lines) <= HEAD_LINES
+        lines, kind = lines[:HEAD_LINES], "text"
+    return {
+        "name": path.name,
+        "bytes": path.stat().st_size,
+        "format": kind,
+        "lines": [line[:_HEAD_WIDTH] for line in lines],
+        "complete": complete,
+    }
+
+
+def write_previews(folder: Path, examples: list[Example]) -> None:
+    """Each example file's head as ``<folder>/<example id>/<served name>.json``."""
+    if folder.exists():
+        shutil.rmtree(folder)
+    for example in examples:
+        (folder / example.id).mkdir(parents=True)
+        for name, path in example.files().items():
+            write_json(folder / example.id / f"{name}.json", {**head(path), "name": name})

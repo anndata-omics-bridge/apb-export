@@ -37,22 +37,6 @@
             ".tsv"
           ],
           "note": "Two tables from the output folder; upload both. Intensities come from precursor.matrix.tsv, which needs Precursor Level LFQ; precursors.tsv alone holds only protein-group intensities and is refused."
-        },
-        {
-          "rules": [
-            "alphadia/v1_10/rules.json"
-          ],
-          "versions": "1.10",
-          "result": [
-            "precursors.tsv",
-            "precursor.matrix.tsv"
-          ],
-          "params": "log.txt",
-          "kinds": [
-            ".tsv"
-          ],
-          "reads": "precursor_matrix_with_precursor_info_fixed.tsv",
-          "note": "Read as one table: precursor.matrix.tsv joined with the sequence columns of precursors.tsv, as ProteoBench's former conversion notebook wrote it. precursor.matrix.tsv needs Precursor Level LFQ."
         }
       ]
     },
@@ -204,7 +188,8 @@
       "exports": [
         {
           "rules": [
-            "maxquant/rules.json"
+            "maxquant/rules.json",
+            "maxquant_wide/rules.json"
           ],
           "versions": "1.5–2.x",
           "result": [

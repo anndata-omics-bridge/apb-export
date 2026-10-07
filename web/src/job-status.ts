@@ -19,7 +19,7 @@ export class ApbJobStatus extends LitElement {
     const status = this.status
     return html`
       <section class="card">
-        <h2>2 · Progress</h2>
+        <h2>Progress</h2>
         ${status
           ? html`
             <p class="state state-${status.state}">${status.state}</p>

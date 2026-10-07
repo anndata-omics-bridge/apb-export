@@ -1,0 +1,7 @@
+input_file,vendor_parameter_file,module,software_name,source,sdrf
+submissions/Results_quant_ion_DDA/2a5ef6191b8098757d490acf76bb9c2af5b89a39/input_file.txt,submissions/Results_quant_ion_DDA/2a5ef6191b8098757d490acf76bb9c2af5b89a39/param_0..txt,dda_qexactive,MSAngel,,apb-export/scripts/web_sdrf/msangel.sdrf.tsv
+submissions/Results_quant_ion_DDA/6ed9da37e9d4600a9a28968c9a01db2b967d33cb/input_file.txt,submissions/Results_quant_ion_DDA/6ed9da37e9d4600a9a28968c9a01db2b967d33cb/param_0..txt,dda_qexactive,ProlineStudio,,
+submissions/Results_quant_ion_DDA/d01e87b997b84c985868204b1ed26749902fd7f9/input_file.csv,submissions/Results_quant_ion_DDA/d01e87b997b84c985868204b1ed26749902fd7f9/param_0..yml,dda_qexactive,quantms,,
+submissions/Results_quant_ion_DDA/6636a8c845b94a386a2f8ab8827e47e13dd87761/input_file.csv,submissions/Results_quant_ion_DDA/6636a8c845b94a386a2f8ab8827e47e13dd87761/param_0..yml,dda_qexactive,WOMBAT,,apb-export/scripts/web_sdrf/wombat.sdrf.tsv
+pb_custom/custom_input.tsv,,dda_qexactive,pb_custom,apb2/tests/parserV2/data/pb_custom/CustomFormat_DDA_quant_ions_test.txt,
+metamorpheus/AllQuantifiedPeaks.tsv,,dda_qexactive,MetaMorpheus,apb2/tests/parserV2/data/metamorpheus/sample.tsv.gz,

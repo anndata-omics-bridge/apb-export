@@ -1,0 +1,22 @@
+# The context is the workspace: only the three packages go in, without local state.
+*
+!apb-export
+!apb2
+!apb-catalog
+**/.venv
+**/.git
+**/node_modules
+**/__pycache__
+**/.*_cache
+**/.coverage
+**/coverage.xml
+**/uv.lock
+*/build
+*/dist
+*/public
+*/site
+*/docs
+*/documentation
+*/tests
+apb-export/web
+apb-export/consumers

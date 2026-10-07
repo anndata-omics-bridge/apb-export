@@ -41,14 +41,9 @@ class Export:
     # Corpus names that choose it whatever the version, such as "FragPipe (DIA-NN quant)".
     labels: tuple[str, ...] = ()
     note: str | None = None
-    # The one file the converter reads when it is not what the tool writes, such as a table
-    # ProteoBench joined from two AlphaDIA outputs.
-    reads: str | None = None
 
     def concrete_name(self) -> str | None:
         """The file name an example of this export goes by; None for a pattern or several files."""
-        if self.reads is not None:
-            return self.reads
         if len(self.result) != 1 or _pattern(self.result[0]):
             return None
         return Path(self.result[0]).name
@@ -93,7 +88,6 @@ def load_hints(path: Path = HINTS) -> tuple[dict[str, object], dict[str, Softwar
                     kinds=tuple(export["kinds"]),
                     labels=tuple(export.get("labels", ())),
                     note=export.get("note"),
-                    reads=export.get("reads"),
                 )
                 for export in entry["exports"]
             ),
@@ -122,15 +116,21 @@ def export_for(
     version: str | None,
     data: Path,
 ) -> Export | None:
-    """The one export an example is: by corpus label, else by version, then by file kind."""
+    """The one export an example is: by corpus label, else by version, then by file kind.
+
+    Without a version, as for an example without a parameter file, the file kind alone must
+    single one out, as it does for pb_custom and MetaMorpheus.
+    """
     kind = "folder" if data.is_dir() else data.suffix.lower()
     labelled = [export for export in hint.exports if label in export.labels]
     candidates = labelled or [
         export
         for export in hint.exports
         if not export.labels
-        and version is not None
-        and any(re.match(patterns.get(rule, r"(?!)"), version.strip()) for rule in export.rules)
+        and (
+            version is None
+            or any(re.match(patterns.get(rule, r"(?!)"), version.strip()) for rule in export.rules)
+        )
     ]
     matching = [export for export in candidates if kind in export.kinds]
     return matching[0] if len(matching) == 1 else None

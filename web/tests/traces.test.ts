@@ -48,4 +48,5 @@ test('source links name their repository and file', () => {
   assert.equal(sourceLabel('https://github.com/MannLabs/alphadia/blob/main/docs/methods/output-format.md'), 'MannLabs/alphadia › output-format.md')
   assert.equal(sourceLabel('https://github.com/vdemichev/DiaNN'), 'vdemichev/DiaNN')
   assert.equal(sourceLabel('https://sage-docs.vercel.app/docs/results'), 'sage-docs.vercel.app › results')
+  assert.equal(sourceLabel('https://github.com/vdemichev/DiaNN/blob/ce0549614d/README.md'), 'vdemichev/DiaNN › README.md (ce0549614d)')
 })

@@ -2,31 +2,40 @@ import { LitElement, html, nothing } from './lit.ts'
 import type { TemplateResult } from './lit.ts'
 import { exampleFileUrl } from './api.ts'
 import type { Example, Export, Hint, Options, Output } from './api.ts'
+import type { ApbFilePreview } from './file-preview.ts'
 import { formatBytes } from './traces.ts'
 
-// What an example run includes: the result alone, with its parameters, or with both and the
-// sample annotation. The server links exactly these files into the job.
 // A source link named by its repository (or host) and file: "MannLabs/alphadia › output-format.md".
 export function sourceLabel (url: string): string {
   const { host, pathname } = new URL(url)
   const parts = pathname.split('/').filter(Boolean)
   const site = host === 'github.com' && parts.length >= 2 ? `${parts[0]}/${parts[1]}` : host.replace(/^www\./, '')
   const file = parts.length > (host === 'github.com' ? 2 : 0) ? parts[parts.length - 1] : ''
-  return file ? `${site} › ${decodeURIComponent(file)}` : site
+  // A file pinned to a commit says which, so two revisions of one README read apart.
+  const ref = host === 'github.com' && parts[2] === 'blob' && parts[3] && !['main', 'master'].includes(parts[3]) ? ` (${parts[3]})` : ''
+  return file ? `${site} › ${decodeURIComponent(file)}${ref}` : site
 }
 
-export type ExampleFiles = 'data' | 'data,params' | 'data,params,annotation'
+// What an example run includes: the result alone, with its parameters, or with both and the
+// sample annotation; a result without a parameter file, such as pb_custom's, with the SDRF
+// alone. The server links exactly these files into the job.
+export type ExampleFiles = 'data' | 'data,params' | 'data,params,annotation' | 'data,annotation'
 
 interface Variant {
   files: ExampleFiles
   label: string
 }
 
-const VARIANTS: Variant[] = [
-  { files: 'data', label: 'Result file only' },
-  { files: 'data,params', label: '+ parameter file' },
-  { files: 'data,params,annotation', label: '+ parameters + SDRF' }
+const VARIANTS: Array<Variant & { phrase: string }> = [
+  { files: 'data', label: 'Result file only', phrase: 'result file only' },
+  { files: 'data,params', label: '+ parameter file', phrase: 'result and parameter file' },
+  { files: 'data,params,annotation', label: '+ parameters + SDRF', phrase: 'result, parameters and SDRF' },
+  { files: 'data,annotation', label: '+ SDRF', phrase: 'result file and SDRF' }
 ]
+
+// An example with a parameter file adds it before the SDRF; one without adds the SDRF alone.
+const variantsOf = (example: Example): typeof VARIANTS =>
+  VARIANTS.filter(({ files }) => files.includes('params') ? example.params !== null : files === 'data' || example.params === null)
 
 // Software first, then either an example or the user's own files. Emits `submit-job` with the
 // multipart form the server's POST /api/jobs reads.
@@ -80,8 +89,8 @@ export class ApbUploadForm extends LitElement {
 
   private unavailable (example: Example, files: ExampleFiles): string | null {
     if (files === 'data' && this.hint()?.params_required && example.label === example.software) return `${example.software} needs its parameter file`
-    if (files !== 'data' && example.params === null) return 'this example has no parameter file'
-    if (files === 'data,params,annotation' && example.annotation === null) return 'this example has no SDRF'
+    if (files.includes('params') && example.params === null) return 'this example has no parameter file'
+    if (files.endsWith('annotation') && example.annotation === null) return 'this example has no SDRF'
     return null
   }
 
@@ -146,7 +155,7 @@ export class ApbUploadForm extends LitElement {
             <tr>
               <td>${example.label}${example.version ? ` ${example.version}` : ''}<br><span class="note">${example.module} · ${example.folder ? `${example.data[0]}/` : example.data.join(' + ')} · ${formatBytes(example.bytes)}</span></td>
               <td><div class="variants">
-                ${VARIANTS.map(({ files, label }) => {
+                ${variantsOf(example).map(({ files, label }) => {
                   const reason = this.unavailable(example, files)
                   const active = this.example === example && this.exampleFiles === files
                   return html`
@@ -164,16 +173,24 @@ export class ApbUploadForm extends LitElement {
     `
   }
 
+  private preview (event: Event, exampleId: string, name: string): void {
+    event.preventDefault()
+    void this.querySelector<ApbFilePreview>('apb-file-preview')?.show(exampleId, name)
+  }
+
   private renderExample (example: Example): TemplateResult {
     const included = new Set(this.exampleFiles.split(','))
     const storedNote = (names: string[], stored: string[]): TemplateResult | typeof nothing =>
       stored.join() !== names.join()
         ? html` <span class="note">(ProteoBench stores ${stored.length > 1 ? 'them' : 'it'} as ${stored.join(' + ')})</span>`
         : nothing
+    const fileLink = (name: string): TemplateResult =>
+      html`<a href=${exampleFileUrl(example.id, name)} title="Show the first lines" @click=${(event: Event) => { this.preview(event, example.id, name) }}>${name}</a>`
     const links = (field: string, names: string[], stored: string[]): TemplateResult | string => {
       if (names.length === 0) return '–'
-      if (!included.has(field)) return html`<span class="note">not sent: ${names.join(' + ')}</span>`
-      return html`${names.map((name, index) => html`${index > 0 ? ' + ' : ''}<a href=${exampleFileUrl(example.id, name)} download=${name}>${name}</a>`)}${storedNote(names, stored)}`
+      const listed = html`${names.map((name, index) => html`${index > 0 ? ' + ' : ''}${fileLink(name)}`)}`
+      if (!included.has(field)) return html`<span class="note">not sent:</span> ${listed}`
+      return html`${listed}${storedNote(names, stored)}`
     }
     const optional = (value: string | null): string[] => (value === null ? [] : [value])
     const exported: Export | null = example.export
@@ -186,12 +203,12 @@ export class ApbUploadForm extends LitElement {
             : nothing}
           <dt>Result ${example.data.length > 1 ? 'files' : 'file'}</dt>
           <dd>
-            ${example.folder ? html`<code>${example.data[0]}/</code> (folder, sent whole)` : links('data', example.data, example.stored_data)}
+            ${example.folder ? html`<code>${example.data[0]}/</code> (folder, sent whole): ${example.folder_files.map((name, index) => html`${index > 0 ? ' · ' : ''}${fileLink(name)}`)}` : links('data', example.data, example.stored_data)}
           </dd>
           <dt>Parameter file</dt><dd>${links('params', optional(example.params), optional(example.stored_params))}</dd>
           <dt>Sample annotation</dt><dd>${links('annotation', optional(example.annotation), optional(example.annotation))}</dd>
         </dl>
-        ${exported?.note ? html`<p class="note">${exported.note}</p>` : nothing}
+        <p class="note">Click a file name to see its first lines.</p>
         <button type="button" class="secondary" @click=${() => { this.example = null }}>Upload my own files instead</button>
       </div>
     `
@@ -215,75 +232,106 @@ export class ApbUploadForm extends LitElement {
         Sample annotation <span class="optional">optional</span>
         <input type="file" name="annotation" ?disabled=${output !== undefined && !output.annotation}>
       </label>
+      <p class="note">Up to ${formatBytes(this.options?.max_upload_bytes ?? 0)} in total.</p>
+    `
+  }
+
+  private renderTile (output: Output, chosen: Output | undefined): TemplateResult {
+    const { id, about } = output
+    const selected = id === chosen?.id
+    return html`
+      <label class="tile ${selected ? 'chosen' : ''}">
+        <input type="radio" name="output" class="visually-hidden" .checked=${selected}
+          @change=${() => { this.output = id }}>
+        <span class="tile-title">${about.title}${about.version ? html`<span class="version">${about.version}</span>` : nothing}</span>
+        <code class="tile-file">${about.file}</code>
+        <span class="tile-what">${about.what}</span>
+      </label>
     `
   }
 
   private renderOutputs (chosen: Output | undefined): TemplateResult {
     const outputs = this.options?.outputs ?? []
+    const groups: Array<[string, string]> = [
+      ['tool', 'For a downstream tool'],
+      ['apb2', 'APB2 result: every level, all layers']
+    ]
     return html`
-      <fieldset class="outputs">
-        <legend>Output</legend>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Format</th><th>File</th><th>What you get</th><th>Open it with</th><th>More</th></tr></thead>
-            <tbody>
-              ${outputs.map(({ id, about }) => html`
-                <tr class=${id === chosen?.id ? 'chosen' : ''} @click=${() => { this.output = id }}>
-                  <td>
-                    <label class="choice">
-                      <input type="radio" name="output" .checked=${id === chosen?.id} @change=${() => { this.output = id }}>
-                      ${about.title}${about.version ? html` <span class="note">${about.version}</span>` : nothing}
-                    </label>
-                  </td>
-                  <td><code>${about.file}</code></td>
-                  <td>${about.what}</td>
-                  <td><code>${about.open}</code></td>
-                  <td>${about.links.map((link, index) => html`${index > 0 ? html`<br>` : nothing}<a href=${link.url} target="_blank" rel="noopener" @click=${(event: Event) => { event.stopPropagation() }}>${link.label}</a>`)}</td>
-                </tr>
-              `)}
-            </tbody>
-          </table>
+      ${groups.map(([group, title]) => html`
+        <h3>${title}</h3>
+        <div class="tiles" role="radiogroup" aria-label=${title}>
+          ${outputs.filter(({ about }) => about.group === group).map(output => this.renderTile(output, chosen))}
         </div>
-      </fieldset>
+      `)}
+      ${chosen
+        ? html`
+          <dl class="output-detail">
+            <dt>Open it with</dt><dd><code>${chosen.about.open}</code></dd>
+            <dt>More</dt>
+            <dd>${chosen.about.links.map((link, index) => html`${index > 0 ? ' · ' : ''}<a href=${link.url} target="_blank" rel="noopener">${link.label}</a>`)}</dd>
+            ${chosen.annotation ? nothing : html`<dt>Annotation</dt><dd>${chosen.about.title} takes none; CV is computed across all samples.</dd>`}
+          </dl>
+        `
+        : nothing}
     `
   }
 
+  // What still stops a conversion, in the order the steps ask for it; null when nothing does.
+  private missing (): string | null {
+    if (!this.software) return 'Choose the software that wrote the result.'
+    if (!this.example && !this.hasData) return 'Try an example or add your result file.'
+    if (!this.example && this.hint()?.params_required && !this.hasParams) return `${this.software} needs its parameter file.`
+    return null
+  }
+
+  private summary (output: Output | undefined): string {
+    const target = output ? `${output.about.title} (${output.about.file})` : 'the chosen output'
+    if (!this.example) return `Converts your ${this.software} files to ${target}.`
+    const variant = VARIANTS.find(({ files }) => files === this.exampleFiles)?.phrase ?? ''
+    const version = this.example.version ? ` ${this.example.version}` : ''
+    return `Converts the ${this.example.label}${version} example (${variant}) to ${target}.`
+  }
+
   private ready (): boolean {
-    if (this.busy || !this.software) return false
-    if (this.example) return true
-    return this.hasData && (this.hasParams || this.hint()?.params_required !== true)
+    return !this.busy && this.missing() === null
   }
 
   render (): TemplateResult {
     if (!this.options) return html`<p class="note">Loading options…</p>`
     const output = this.chosen()
+    const missing = this.missing()
     return html`
-      <form class="card upload" @submit=${(event: Event) => { this.submit(event) }}>
-        <h2>1 · Software and files</h2>
-        <label>
-          Software
-          <select @change=${(event: Event) => { this.chooseSoftware((event.currentTarget as HTMLSelectElement).value) }}>
-            <option value="" ?selected=${this.software === ''} disabled>Choose the software that wrote the result…</option>
-            ${this.options.software.map(name => html`<option value=${name} ?selected=${name === this.software}>${name}</option>`)}
-          </select>
-        </label>
-        ${this.software
-          ? html`
-            ${this.renderHint(this.hint())}
-            ${this.renderExamples(this.softwareExamples())}
-            ${this.example ? this.renderExample(this.example) : this.renderUploads()}
-            ${output !== undefined && !output.annotation
-              ? html`<p class="note">${output.name} takes no annotation; CV is computed across all samples.</p>`
-              : nothing}
-          `
-          : nothing}
-        ${this.renderOutputs(output)}
-        <div class="actions">
+      <form class="wizard" @submit=${(event: Event) => { this.submit(event) }}>
+        <section class="card step upload">
+          <h2><span class="num">1</span>Software</h2>
+          <label>
+            <span class="visually-hidden">Software</span>
+            <select @change=${(event: Event) => { this.chooseSoftware((event.currentTarget as HTMLSelectElement).value) }}>
+              <option value="" ?selected=${this.software === ''} disabled>Choose the software that wrote the result…</option>
+              ${this.options.software.map(name => html`<option value=${name} ?selected=${name === this.software}>${name}</option>`)}
+            </select>
+          </label>
+        </section>
+        <section class="card step upload ${this.software ? '' : 'waiting'}">
+          <h2><span class="num">2</span>Files</h2>
+          ${this.software
+            ? html`
+              ${this.renderHint(this.hint())}
+              ${this.renderExamples(this.softwareExamples())}
+              ${this.example ? this.renderExample(this.example) : this.renderUploads()}
+            `
+            : html`<p class="note">Once you choose the software, this step shows which files it writes and examples you can run without uploading.</p>`}
+        </section>
+        <section class="card step">
+          <h2><span class="num">3</span>Output</h2>
+          ${this.renderOutputs(output)}
+        </section>
+        <div class="convert-bar">
           <button type="submit" ?disabled=${!this.ready()}>${this.busy ? 'Working…' : 'Convert'}</button>
-          <span class="note">Uploads up to ${formatBytes(this.options.max_upload_bytes)} in total.</span>
+          <span class=${missing ? 'missing' : 'summary'}>${missing ?? this.summary(output)}</span>
         </div>
-        <p class="note source">File names: ${this.options.hints.source}.</p>
       </form>
+      <apb-file-preview></apb-file-preview>
     `
   }
 }

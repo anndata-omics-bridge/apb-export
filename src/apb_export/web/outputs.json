@@ -2,67 +2,115 @@
   "apb-export:alphapepttools": {
     "title": "AlphaPeptTools",
     "file": ".h5mu",
-    "what": "Ion, peptide and protein levels, each a wide modality, linked by their id columns.",
+    "what": "Ion, peptide and protein levels as wide modalities linked by their ids.",
     "open": "alphapepttools.io.mulink_from_anndatas on mudata.read_h5mu(path)",
     "version": "0.4",
-    "links": [{"label": "MannLabs/alphapepttools", "url": "https://github.com/MannLabs/alphapepttools"}]
+    "links": [
+      {
+        "label": "MannLabs/alphapepttools",
+        "url": "https://github.com/MannLabs/alphapepttools"
+      }
+    ],
+    "group": "tool"
   },
   "apb-export:msmu": {
     "title": "msmu",
     "file": ".h5mu",
-    "what": "msmu's own layout: a long psm modality, one feature per run and precursor, with catalogued confidence columns.",
+    "what": "msmu's long psm layout: one feature per run and precursor.",
     "open": "msmu.read_h5mu(path)",
     "version": "0.4",
-    "links": [{"label": "bertis-informatics/msmu", "url": "https://github.com/bertis-informatics/msmu"}]
+    "links": [
+      {
+        "label": "bertis-informatics/msmu",
+        "url": "https://github.com/bertis-informatics/msmu"
+      }
+    ],
+    "group": "tool"
   },
   "apb-export:prolfqua": {
     "title": "prolfquapp",
     "file": ".h5ad",
-    "what": "A wide ion table (peptides for MaxQuant) with protein groups and q-value layers; annotation columns become prolfquapp's factors.",
+    "what": "Wide ion table (peptides for MaxQuant) with protein groups and q-values; annotation columns become factors.",
     "open": "R: prolfquapp::LFQData_from_anndata(anndataR::read_h5ad(path))",
     "version": "2.11",
-    "links": [{"label": "prolfqua/prolfquapp", "url": "https://github.com/prolfqua/prolfquapp"}]
+    "links": [
+      {
+        "label": "prolfqua/prolfquapp",
+        "url": "https://github.com/prolfqua/prolfquapp"
+      }
+    ],
+    "group": "tool"
   },
   "apb-export:proteopy": {
     "title": "ProteoPy",
     "file": ".h5ad",
-    "what": "A wide protein table with sample_id and protein_id columns.",
+    "what": "Wide protein table with sample_id and protein_id.",
     "open": "anndata.read_h5ad(path)",
     "version": "0.1",
-    "links": [{"label": "UKHD-NP/proteopy", "url": "https://github.com/UKHD-NP/proteopy"}]
+    "links": [
+      {
+        "label": "UKHD-NP/proteopy",
+        "url": "https://github.com/UKHD-NP/proteopy"
+      }
+    ],
+    "group": "tool"
   },
   "apb2:hdf5": {
-    "title": "APB2 result",
+    "title": "AnnData / MuData",
     "file": ".h5ad or .h5mu",
-    "what": "Every level the vendor reports, with all its layers and APB metadata: one AnnData per level, a MuData for several.",
+    "what": "One AnnData per level, a MuData for several.",
     "open": "apb2.api.read_parsed_levels(path), or anndata / mudata",
     "version": null,
     "links": [
-      {"label": "APB2 results", "url": "https://anndata-omics-bridge.github.io/apb2/result_io/"},
-      {"label": "AnnData", "url": "https://anndata.readthedocs.io/"},
-      {"label": "MuData", "url": "https://mudata.readthedocs.io/"}
-    ]
+      {
+        "label": "APB2 results",
+        "url": "https://anndata-omics-bridge.github.io/apb2/result_io/"
+      },
+      {
+        "label": "AnnData",
+        "url": "https://anndata.readthedocs.io/"
+      },
+      {
+        "label": "MuData",
+        "url": "https://mudata.readthedocs.io/"
+      }
+    ],
+    "group": "apb2"
   },
   "apb2:parquet": {
-    "title": "APB2 result",
-    "file": ".parquet folder, zipped",
-    "what": "The same content as plain Parquet tables with a manifest.json, readable from any language.",
+    "title": "Parquet",
+    "file": ".parquet folder (zip)",
+    "what": "Plain tables plus manifest.json; readable from any language.",
     "open": "apb2.api.read_parsed_levels(path), or Polars, pandas, DuckDB, Arrow",
     "version": null,
     "links": [
-      {"label": "APB2 results", "url": "https://anndata-omics-bridge.github.io/apb2/result_io/"},
-      {"label": "Apache Parquet", "url": "https://parquet.apache.org/"}
-    ]
+      {
+        "label": "APB2 results",
+        "url": "https://anndata-omics-bridge.github.io/apb2/result_io/"
+      },
+      {
+        "label": "Apache Parquet",
+        "url": "https://parquet.apache.org/"
+      }
+    ],
+    "group": "apb2"
   },
   "apb2:duckdb": {
-    "title": "APB2 result",
+    "title": "DuckDB",
     "file": ".duckdb",
-    "what": "The same content in one DuckDB database file, queryable with SQL.",
+    "what": "One database file, queryable with SQL.",
     "open": "apb2.api.read_parsed_levels(path), or duckdb.connect(path)",
     "version": null,
     "links": [
-      {"label": "APB2 results", "url": "https://anndata-omics-bridge.github.io/apb2/result_io/"},
-      {"label": "DuckDB", "url": "https://duckdb.org/"}
-    ]
+      {
+        "label": "APB2 results",
+        "url": "https://anndata-omics-bridge.github.io/apb2/result_io/"
+      },
+      {
+        "label": "DuckDB",
+        "url": "https://duckdb.org/"
+      }
+    ],
+    "group": "apb2"
   }
 }
