@@ -50,10 +50,10 @@ jobs:
           enable-cache: true
 
       - name: Synchronize environment
-        run: uv sync --frozen --group dev
+        run: uv sync --group dev
 
       - name: Export the synthetic examples
-        run: uv run --frozen python consumers/export_examples.py "$RUNNER_TEMP/examples"
+        run: uv run python consumers/export_examples.py "$RUNNER_TEMP/examples"
 
       - name: Keep the examples for the readers
         uses: actions/upload-artifact@v4
