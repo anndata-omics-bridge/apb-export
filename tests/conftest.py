@@ -108,17 +108,19 @@ def diann(tmp_path: Path) -> DiannInput:
 
 EXPERIMENTS = ("S1", "S2", "S3", "S4")
 # Sequence, proteins and razor protein of each peptide. The razor protein names a one-member
-# group whole, leads a two-member group, leads a group with a UniProt "db|ACC|NAME" member,
-# and, for the last peptide, belongs to no group.
+# group whole, leads a two-member group, or leads a group with a UniProt "db|ACC|NAME" member.
+# Every razor protein is in a group, as in real MaxQuant output, which APB2 requires.
 PEPTIDES = (
     ("PEPTIDEK", "P1", "P1"),
     ("SECONDK", "P2;P3", "P2"),
     ("THIRDPEPK", "P2;P3", "P2"),
     ("FOURTHK", "sp|P4|P4_HUMAN;P5", "sp|P4|P4_HUMAN"),
-    ("ORPHANK", "P9", "P9"),
+    ("FIFTHK", "P9", "P9"),
 )
 # Each protein group and the peptides it holds.
-GROUPS = (("P1", (0,)), ("P2;P3", (1, 2)), ("sp|P4|P4_HUMAN;P5", (3,)))
+GROUPS = (("P1", (0,)), ("P2;P3", (1, 2)), ("sp|P4|P4_HUMAN;P5", (3,)), ("P9", (4,)))
+# The protein-group id of each peptide, as evidence.txt links it.
+GROUP_OF = {member: group for group, (_, members) in enumerate(GROUPS) for member in members}
 MQPAR = """<?xml version="1.0" encoding="utf-8"?>
 <MaxQuantParams>
   <maxQuantVersion>2.4.0.0</maxQuantVersion>
@@ -161,6 +163,8 @@ EVIDENCE_COLUMNS = (
     "Retention time",
     "Score",
     "PEP",
+    "id",
+    "Protein group IDs",
 )
 # The per-experiment intensity columns sit between the first four columns and the IDs.
 PEPTIDE_COLUMNS = (
@@ -208,6 +212,8 @@ def write_maxquant(folder: Path, /, *, peptides: bool = True) -> MaxQuantInput:
                     [
                         *(f"raw_{name}", name, sequence, f"_{sequence}_", "Unmodified", 2),
                         *(1000.5, proteins, razor, intensity, 1, 10.0, 50.0, 0.01 * (index + 1)),
+                        len(evidence),
+                        GROUP_OF[index],
                     ]
                 )
     _table(folder / "evidence.txt", list(EVIDENCE_COLUMNS), evidence)

@@ -1,0 +1,25 @@
+{
+  "name": "apb-export-web",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "check": "tsc --noEmit",
+    "build": "npm run check && vite build",
+    "test": "tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "lit": "3.2.1",
+    "plotly.js-dist-min": "4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.6",
+    "@types/plotly.js": "3.0.14",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vite": "8.3.0"
+  }
+}

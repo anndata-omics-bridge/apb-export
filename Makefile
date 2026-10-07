@@ -1,7 +1,7 @@
 VENV_BIN := .venv/bin
 
 .DEFAULT_GOAL := help
-.PHONY: help sync format format-check lint typecheck deps test build schema check clean
+.PHONY: help sync format format-check lint typecheck deps test build schema web check clean
 
 help:  ## Show developer commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -35,6 +35,9 @@ build:  ## Build and validate source and wheel distributions
 
 schema:  ## Rewrite the export-rule JSON Schemas from the models
 	$(VENV_BIN)/python -m apb_export.export_rules.schema_artifact
+
+web:  ## Test, type-check and rebuild the web page bundle into the package
+	cd web && npm ci && npm test && npm run build
 
 check:  ## Run every merge-blocking quality gate
 	$(MAKE) format-check lint typecheck deps test build

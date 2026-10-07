@@ -73,6 +73,19 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 
 Written as msmu's readers write them: members split on `;`, the accession taken from a UniProt `db|ACC|NAME` entry, contaminants marked `contam_`, `Cont_` or `CON__` written `Cont_ACC` and flagged in `contaminant`.
 
+## Web app
+
+`apb-export-web` serves a page that takes a vendor result, an optional parameter file and an optional SDRF or prolfquapp sample table, converts them to any target above or to an APB2 result (h5ad/h5mu, Parquet, DuckDB), and shows QC before download: intensity density per sample, CV per feature within each annotation group (across all samples without one), and detected and missing counts.
+
+```bash
+uv pip install 'apb-export[web]'
+apb-export-web --store ./web-store --port 8770
+```
+
+The page asks for the software first, then shows which files it writes (result and parameter file names from ProteoBench's module documentation, packaged as `src/apb_export/web/hints.json`) and whether the parameter file is required. `--examples corpus.csv --examples-root DIR` offers one row per software of an APB Studio corpus CSV, such as `apb_studio/corpuses/routine.csv`, three ways: result file only, with its parameter file, and with parameters and SDRF. The SDRF is an `sdrf.tsv` beside the input, else `<module>.sdrf.tsv` from `--examples-sdrf DIR`, such as apb-proteobench's `src/apb_proteobench/data/modules`. The server links the chosen files into the job instead of uploading them; the data stays where the corpus keeps it, and this repository holds none.
+
+Each upload becomes a job folder; one worker runs the `apb-export` or `apb2` command in its own process and writes `status.json`, `qc.json` and the downloads, which the server only serves. Finished jobs are deleted after `--ttl-hours`. The page is a Lit/Vite project in [web](web); `make web` rebuilds its bundle into `src/apb_export/web/static`, which the wheel ships, so no Node runs in production.
+
 ## Limits
 
 - Needs APB2's `ion` level; a vendor export without one (Sage's `lfq.tsv` is peptide-level) is refused

@@ -1,0 +1,441 @@
+{
+  "source": "each tool's own documentation and source code, October 2026",
+  "annotation": "an SDRF whose comment[data file] column names the raw files, or a prolfquapp CSV/TSV with a raw-file column and one column per factor",
+  "software": {
+    "AlphaDIA": {
+      "sources": [
+        "https://github.com/MannLabs/alphadia/blob/main/docs/methods/output-format.md",
+        "https://github.com/MannLabs/alphadia/releases/tag/v2.0.0",
+        "https://github.com/MannLabs/alphadia/blob/v1.10.4/alphadia/outputtransform.py"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "alphadia/v2/rules.json"
+          ],
+          "versions": "2.x",
+          "result": [
+            "precursors.parquet"
+          ],
+          "params": "log.txt",
+          "kinds": [
+            ".parquet"
+          ],
+          "note": "Both in the output folder. With file_format: tsv AlphaDIA writes precursors.tsv instead, which this converter does not read."
+        },
+        {
+          "rules": [
+            "alphadia/v1_12/rules.json"
+          ],
+          "versions": "1.12",
+          "result": [
+            "precursors.tsv",
+            "precursor.matrix.tsv"
+          ],
+          "params": "log.txt",
+          "kinds": [
+            ".tsv"
+          ],
+          "note": "Two tables from the output folder; upload both. Intensities come from precursor.matrix.tsv, which needs Precursor Level LFQ; precursors.tsv alone holds only protein-group intensities and is refused."
+        },
+        {
+          "rules": [
+            "alphadia/v1_10/rules.json"
+          ],
+          "versions": "1.10",
+          "result": [
+            "precursors.tsv",
+            "precursor.matrix.tsv"
+          ],
+          "params": "log.txt",
+          "kinds": [
+            ".tsv"
+          ],
+          "reads": "precursor_matrix_with_precursor_info_fixed.tsv",
+          "note": "Read as one table: precursor.matrix.tsv joined with the sequence columns of precursors.tsv, as ProteoBench's former conversion notebook wrote it. precursor.matrix.tsv needs Precursor Level LFQ."
+        }
+      ]
+    },
+    "AlphaPept": {
+      "sources": [
+        "https://mannlabs.github.io/alphapept/file_formats.html",
+        "https://github.com/MannLabs/alphapept/blob/master/alphapept/interface.py"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "alphapept/rules.json"
+          ],
+          "versions": "0.5",
+          "result": [
+            "results_peptides.csv"
+          ],
+          "params": "results.yaml",
+          "kinds": [
+            ".csv",
+            ".txt"
+          ],
+          "note": "Beside results.hdf. Setting results_path renames them to <stem>_peptides.csv and <stem>.yaml; the yaml written after the run carries the version."
+        }
+      ]
+    },
+    "DIA-NN": {
+      "sources": [
+        "https://github.com/vdemichev/DiaNN",
+        "https://github.com/vdemichev/DiaNN/blob/ce0549614d/README.md",
+        "https://github.com/vdemichev/DiaNN/blob/601b76f644/README.md"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "diann/v2/rules.json"
+          ],
+          "versions": "2.x",
+          "result": [
+            "report.parquet"
+          ],
+          "params": "report.log.txt",
+          "kinds": [
+            ".parquet"
+          ],
+          "note": "Default names: Main output (--out) renames both, e.g. x.parquet and x.log.txt. Not report.pr_matrix.tsv, report.pg_matrix.tsv or report.stats.tsv."
+        },
+        {
+          "rules": [
+            "diann/v1_8/rules.json"
+          ],
+          "versions": "1.9 (Parquet)",
+          "result": [
+            "report.parquet"
+          ],
+          "params": "report.log.txt",
+          "kinds": [
+            ".parquet"
+          ],
+          "note": "1.9 also writes the legacy report.tsv; either works."
+        },
+        {
+          "rules": [
+            "diann/v1_7/rules.json",
+            "diann/v1_8/rules.json"
+          ],
+          "versions": "1.9 and earlier (TSV)",
+          "result": [
+            "report.tsv"
+          ],
+          "params": "report.log.txt",
+          "kinds": [
+            ".tsv",
+            ".txt"
+          ],
+          "note": "Default names: --out renames both, e.g. x.tsv and x.log.txt."
+        }
+      ]
+    },
+    "FragPipe": {
+      "sources": [
+        "https://fragpipe.nesvilab.org/docs/tutorial_fragpipe_outputs.html",
+        "https://github.com/Nesvilab/FragPipe/blob/23.1/FragPipe-GUI/src/main/java/org/nesvilab/fragpipe/cmd/CmdDiann.java",
+        "https://github.com/Nesvilab/FragPipe/blob/23.1/FragPipe-GUI/src/main/java/org/nesvilab/fragpipe/FragpipeRun.java"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "fragpipe/rules.json"
+          ],
+          "versions": "22–23, DDA with IonQuant",
+          "result": [
+            "combined_ion.tsv"
+          ],
+          "params": "fragpipe.workflow",
+          "kinds": [
+            ".tsv"
+          ],
+          "note": "Both at the output folder root. combined_ion.tsv needs runs assigned to experiments, as the LFQ-MBR workflow does."
+        },
+        {
+          "rules": [
+            "diann/v1_8/rules.json"
+          ],
+          "versions": "23 and later, DIA with DIA-NN quant",
+          "labels": [
+            "FragPipe (DIA-NN quant)"
+          ],
+          "result": [
+            "dia-quant-output/report.tsv"
+          ],
+          "params": "fragpipe.workflow",
+          "kinds": [
+            ".tsv"
+          ],
+          "note": "FragPipe 21–22 write diann-output/report.tsv, 19–20 diann-output/diann-output.tsv."
+        }
+      ]
+    },
+    "i2MassChroQ": {
+      "sources": [
+        "https://forge.inrae.fr/pappso/i2masschroq/-/blob/main/src/gui/run/mcqr/mcqrrunviewng.cpp",
+        "https://forge.inrae.fr/pappso/i2masschroq/-/blob/main/debian/changelog"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "i2masschroq/rules.json"
+          ],
+          "versions": "1.x",
+          "result": [
+            "proteobench_export.tsv"
+          ],
+          "params": "Project parameters.tsv",
+          "kinds": [
+            ".tsv",
+            ".txt"
+          ],
+          "note": "The ProteoBench export button in the MCQR view, after Normalisation and PCA, saves <project name>.zip holding both files; unzip it and upload them."
+        }
+      ]
+    },
+    "MaxQuant": {
+      "sources": [
+        "https://cox-labs.github.io/coxdocs/MQ_FirstSteps.html",
+        "https://cox-labs.github.io/coxdocs/output_tables.html",
+        "https://maxquant.org/static/main/pdf/Linux_MQ_Installation.pdf"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "maxquant/rules.json"
+          ],
+          "versions": "1.5–2.x",
+          "result": [
+            "combined/txt/evidence.txt"
+          ],
+          "params": "mqpar.xml",
+          "kinds": [
+            ".txt"
+          ],
+          "note": "MaxDIA writes the same evidence.txt. mqpar.xml is written to the raw-file folder; a renamed copy works too."
+        },
+        {
+          "rules": [
+            "maxquant_wide/rules.json"
+          ],
+          "versions": "1.5–2.x, whole txt folder",
+          "result": [
+            "combined/txt/"
+          ],
+          "params": "mqpar.xml",
+          "kinds": [
+            "folder"
+          ],
+          "note": "evidence.txt, peptides.txt and proteinGroups.txt read together. The browser cannot upload a folder yet; examples only."
+        }
+      ]
+    },
+    "MetaMorpheus": {
+      "sources": [
+        "https://github.com/smith-chem-wisc/MetaMorpheus/blob/master/MetaMorpheus/TaskLayer/SearchTask/PostSearchAnalysisTask.cs",
+        "https://github.com/smith-chem-wisc/MetaMorpheus/blob/master/MetaMorpheus/TaskLayer/MetaMorpheusTask.cs",
+        "https://github.com/smith-chem-wisc/MetaMorpheus/wiki/Quantification"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "metamorpheus/rules.json"
+          ],
+          "versions": "1.0.7 and later",
+          "result": [
+            "Task1-SearchTask/AllQuantifiedPeaks.tsv"
+          ],
+          "params": "Task Settings/<task>config.toml + allResults.txt",
+          "kinds": [
+            ".tsv"
+          ],
+          "note": "Default GUI task folder; the command line writes Task1SearchTask without the hyphen. Not AllQuantifiedPeptides.tsv or the per-run *_QuantifiedPeaks.tsv. The two parameter files cannot be uploaded here yet, so convert from the result alone; the prolfqua output waits for apb-catalog to review MetaMorpheus."
+        }
+      ]
+    },
+    "MSAngel": {
+      "sources": [
+        "https://profiproteomics.fr/download/ms-angel-user-guide-instructions/",
+        "https://github.com/profiproteomics/proline-server/blob/master/pm-dataset-exporter/src/main/scala/fr/proline/module/exporter/commons/config/ExportConfigSheet.scala"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "msangel/rules.json"
+          ],
+          "versions": "2.x",
+          "result": [
+            "<name>.xlsx"
+          ],
+          "params": "<name>-export-param.json",
+          "kinds": [
+            ".xlsx",
+            ".txt"
+          ],
+          "note": "Proline's Excel export of the quantification, with its Quantified peptide ions sheet, plus MS-Angel's exported workflow JSON. MS-Angel documents neither name."
+        }
+      ]
+    },
+    "pb_custom": {
+      "sources": [
+        "https://github.com/Proteobench/ProteoBench/blob/main/docs/modules/dda/dda-ion-qexactive.md"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "pb_custom/rules.json"
+          ],
+          "versions": "any",
+          "result": [
+            "custom_input.tsv"
+          ],
+          "params": null,
+          "kinds": [
+            ".tsv",
+            ".txt"
+          ],
+          "note": "ProteoBench's own tab-separated format for tools without a parser."
+        }
+      ]
+    },
+    "PEAKS": {
+      "sources": [
+        "https://www.bioinfor.com/wp-content/uploads/2017/08/PEAKS_Studio_85_Manual.pdf",
+        "https://github.com/Proteobench/ProteoBench/blob/main/docs/modules/dda/dda-ion-qexactive.md"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "peaks/rules.json"
+          ],
+          "versions": "13",
+          "result": [
+            "*.features.csv"
+          ],
+          "params": "*.txt",
+          "kinds": [
+            ".csv"
+          ],
+          "note": "The Label Free Quantification Feature Vector CSV, e.g. lfq.features.csv (DDA) or lfq.dia.features.csv (DIA), and the All Search Parameters text export; PEAKS documentation gives no default names."
+        }
+      ]
+    },
+    "ProlineStudio": {
+      "sources": [
+        "https://profiproteomics.fr/software/doc/2.3/",
+        "https://github.com/profiproteomics/proline-server/blob/master/pm-dataset-exporter/src/main/scala/fr/proline/module/exporter/commons/config/ExportConfigSheet.scala"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "prolinestudio/rules.json"
+          ],
+          "versions": "2.x",
+          "result": [
+            "<name>.xlsx"
+          ],
+          "params": "<name>.xlsx, the result file itself",
+          "kinds": [
+            ".xlsx",
+            ".txt"
+          ],
+          "note": "Export > Excel… with a custom export: enable the Quantified peptide ions sheet and its samesets_accessions and subsets_accessions columns, all off by default. Its settings sheets are the parameters."
+        }
+      ]
+    },
+    "quantms": {
+      "sources": [
+        "https://github.com/bigbio/quantms/blob/1.3.0/modules/local/openms/proteomicslfq/main.nf",
+        "https://github.com/bigbio/quantms/blob/1.10.0/workflows/quantms.nf"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "quantms/rules.json"
+          ],
+          "versions": "1.x",
+          "result": [
+            "quant_tables/<sdrf name>_openms_design_msstats_in.csv"
+          ],
+          "params": "pipeline_info/nf_core_quantms_software_mqc_versions.yml",
+          "kinds": [
+            ".csv"
+          ],
+          "note": "Up to 1.4 the table is in proteomicslfq/; nf-core/quantms 1.0 wrote out_msstats.csv. This converter reads the software-versions YAML, not params_<timestamp>.json."
+        }
+      ]
+    },
+    "Sage": {
+      "params_required": true,
+      "sources": [
+        "https://sage-docs.vercel.app/docs/results",
+        "https://sage-docs.vercel.app/docs/configuration"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "sage/rules.json"
+          ],
+          "versions": "0.x",
+          "result": [
+            "lfq.tsv"
+          ],
+          "params": "results.json",
+          "kinds": [
+            ".tsv"
+          ],
+          "note": "Both in output_directory. results.sage.tsv is the PSM table, not this one; lfq.parquet (--parquet) is not read. Your own config file has no version: upload results.json."
+        }
+      ]
+    },
+    "Spectronaut": {
+      "sources": [
+        "https://files.biognosys.ch/Tutorials/Command_Line_Use_in_Spectronaut.pdf",
+        "https://www.ebi.ac.uk/pride/ws/archive/v3/projects/PXD054445/files/all",
+        "https://www.ebi.ac.uk/pride/ws/archive/v3/projects/PXD023834/files/all"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "spectronaut/v15/rules.json",
+            "spectronaut/rules.json",
+            "spectronaut/v21/rules.json"
+          ],
+          "versions": "15, 19–21",
+          "result": [
+            "<report name>.tsv"
+          ],
+          "params": "<report name>.setup.txt",
+          "kinds": [
+            ".tsv"
+          ],
+          "note": "A Normal-format BGS Factory Report, named when you export it; Spectronaut writes the .setup.txt beside it. Pipeline runs write <Experiment>_ExperimentSetupOverview_<schema>.txt instead; either works."
+        }
+      ]
+    },
+    "WOMBAT": {
+      "sources": [
+        "https://github.com/wombat-p/WOMBAT-Pipelines/blob/0.9.11/modules/local/calcbenchmarks/main.nf",
+        "https://github.com/wombat-p/WOMBAT-Pipelines/blob/0.9.11/modules/local/prepare_files/main.nf"
+      ],
+      "exports": [
+        {
+          "rules": [
+            "wombat/rules.json"
+          ],
+          "versions": "0.9.11",
+          "result": [
+            "stand_ion_quant_merged<workflow>.csv"
+          ],
+          "params": "prepare_files/params.yml",
+          "kinds": [
+            ".csv"
+          ],
+          "note": "In the results folder, e.g. stand_ion_quant_mergedproline.csv; the stand_pep_quant files lack charges. This converter accepts params.yml reporting version 0.9.11 only."
+        }
+      ]
+    }
+  }
+}

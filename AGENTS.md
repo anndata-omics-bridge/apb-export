@@ -26,6 +26,7 @@ Export rules declare what each target reads; one engine applies them. Packaged t
 - `computed`: the conversions a computed entry's `how` names
 - `sources`: APB references resolved against one level, catalogue lookups through apb-catalog, and catalogued protein-level fields read through each variable's protein group, named whole or by its leading protein
 - `container`: AnnData/MuData assembly; the only module that builds them
+- `web`: `apb-export-web`, a FastAPI server and job runner; jobs run the `apb-export` and `apb2` commands as subprocesses and write every answer as a file; reaches this package only through `apb_export.api`; its page is the Lit/Vite project in `web/`, built into `web/static` by `make web`
 - `export_rules`: schema models, loader and the packaged `documents/<target>/<version>/rules.json`; `make schema` rewrites `documents/_schema`
 
 Rules for this package:

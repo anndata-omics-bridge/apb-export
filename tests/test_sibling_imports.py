@@ -65,3 +65,15 @@ def test_the_cli_imports_its_package_only_through_the_api() -> None:
         if module != f"{PACKAGE}.api" and module.split(".")[:2] != [PACKAGE, "cli"]
     ]
     assert offenders == []
+
+
+def test_the_web_front_end_imports_its_package_only_through_the_api() -> None:
+    sources = sorted((ROOT / "src" / PACKAGE / "web").rglob("*.py"))
+    offenders = [
+        f"{path.relative_to(ROOT)}: {module}"
+        for path in sources
+        for module in _package_modules(path)
+        if module != f"{PACKAGE}.api" and module.split(".")[:2] != [PACKAGE, "web"]
+    ]
+    assert sources
+    assert offenders == []

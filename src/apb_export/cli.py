@@ -57,18 +57,18 @@ def _parse(
     software: str | None,
     strict: bool,
 ) -> ParsedLevels:
-    """Read the vendor files into the levels the target reads, those the vendor has."""
-    return (
-        ParseRuleCompiler(
-            data,
-            params,
-            requested_levels=levels,
-            checks="strict" if strict else "standard",
-            software=software,
-        )
-        .compile()
-        .parse()
+    """Read the vendor files into the levels the target reads, those the vendor has.
+
+    Without a parameter file the software's columns alone choose the rule, as ``apb2
+    convert --software`` does.
+    """
+    checks = "strict" if strict else "standard"
+    compiler = (
+        ParseRuleCompiler.from_software(data, software, levels, checks)
+        if params is None and software is not None
+        else ParseRuleCompiler(data, params, levels, checks, software)
     )
+    return compiler.compile().parse()
 
 
 def _exported(

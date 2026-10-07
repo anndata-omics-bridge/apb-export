@@ -13,7 +13,7 @@ from apb_catalog.api import UnresolvedField
 
 from apb_export.api import Exporter
 from apb_export.cli import app, main
-from conftest import RUNS, DiannInput
+from conftest import RUNS, DiannInput, write_maxquant
 
 
 def _run(*argv: str) -> int:
@@ -115,3 +115,13 @@ def test_a_target_refuses_the_other_file_type(diann: DiannInput, tmp_path: Path)
     wrong = str(tmp_path / "out.h5mu")
 
     assert _run("prolfqua", str(diann.report), wrong, "--params", str(diann.log)) == 1
+
+
+def test_software_alone_exports_without_a_parameter_file(tmp_path: Path) -> None:
+    (tmp_path / "txt").mkdir()
+    inputs = write_maxquant(tmp_path / "txt")
+    inputs.params.unlink()
+    target = tmp_path / "out.h5ad"
+
+    assert _run("prolfqua", str(inputs.folder), str(target), "--software", "MaxQuant") == 0
+    assert ad.read_h5ad(target).n_obs == 4

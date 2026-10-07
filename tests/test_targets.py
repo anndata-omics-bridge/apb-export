@@ -214,11 +214,11 @@ def test_prolfquapp_links_maxquant_peptides_to_the_group_their_razor_protein_lea
         for peptide in members
     }
 
-    experiment_wide = np.array([[group_q.get(row, np.nan) for row in rows]] * len(EXPERIMENTS))
+    experiment_wide = np.array([[group_q[row] for row in rows]] * len(EXPERIMENTS))
     np.testing.assert_allclose(
         np.asarray(adata.layers["pg_qValue_experiment"]),
         experiment_wide,
-        err_msg="the last peptide's razor protein leads no group",
+        err_msg="each peptide takes the q-value of the group its razor protein leads",
     )
     pep = np.array([[0.01 * (row + 1) for row in rows]] * len(EXPERIMENTS))
     np.testing.assert_allclose(np.asarray(adata.layers["pep"]), pep)
