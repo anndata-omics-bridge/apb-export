@@ -1,5 +1,5 @@
-# apb-export-web, the upload-and-convert page, with apb2 and apb-catalog built from source.
-# The build context is the folder holding the three checkouts side by side, as the
+# apb-export-web, the upload-and-convert page, with its anndata_bridge siblings built from
+# source. The build context is the folder holding the checkouts side by side, as the
 # anndata_bridge workspace and the publish workflow lay them out:
 #   docker build -f apb-export/Dockerfile -t apb-export ..
 FROM ghcr.io/astral-sh/uv:0.9.8-python3.13-trixie-slim
@@ -12,6 +12,9 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 COPY apb2 /src/apb2
 COPY apb-catalog /src/apb-catalog
+COPY apb-fasta /src/apb-fasta
+COPY protein_fasta /src/protein_fasta
+COPY prozor /src/prozor
 COPY apb-export /src/apb-export
 WORKDIR /src/apb-export
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --no-dev --extra web --no-editable

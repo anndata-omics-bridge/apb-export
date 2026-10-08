@@ -33,6 +33,24 @@ jobs:
           repository: anndata-omics-bridge/apb-catalog
           path: apb-catalog
 
+      - name: Check out APB FASTA
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb-fasta
+          path: apb-fasta
+
+      - name: Check out protein-fasta
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/protein-fasta
+          path: protein_fasta
+
+      - name: Check out Prozor
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/prozor
+          path: prozor
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 

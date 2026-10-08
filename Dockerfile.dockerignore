@@ -1,8 +1,11 @@
-# The context is the workspace: only the three packages go in, without local state.
+# The context is the workspace: only apb-export and its siblings go in, without local state.
 *
 !apb-export
 !apb2
 !apb-catalog
+!apb-fasta
+!protein_fasta
+!prozor
 **/.venv
 **/.git
 **/node_modules
