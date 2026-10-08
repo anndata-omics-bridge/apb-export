@@ -8,7 +8,6 @@
       "output": {"shape": "wide", "extensions": [".h5ad"]},
       "levels": {
         "protein": {
-          "software": ["AlphaDIA", "DIA-NN", "MaxQuant", "Spectronaut"],
           "axis": {"obs_keys": ["sample_id"], "var_keys": ["protein_id"]},
           "measurements": {
             "primary_layer": "abundance",
@@ -30,36 +29,6 @@
               {"name": "gene_id", "source": {"fasta": "fasta_gene_names"}, "required": false},
               {"name": "description", "source": {"fasta": "fasta_descriptions"}, "required": false},
               {"name": "fasta_organisms", "source": {"fasta": "fasta_organism_names"}, "required": false}
-            ]
-          }
-        },
-        "ion": {
-          "axis": {"obs_keys": ["sample_id"], "var_keys": ["peptide_id"]},
-          "measurements": {
-            "primary_layer": "abundance",
-            "layers": [{"name": "abundance", "source": {"measurements": "primary_layer"}}]
-          },
-          "columns": {
-            "obs": [
-              {"name": "sample_id", "source": {"axis": "obs_keys"}},
-              {"name": "annotations", "how": "all_values"}
-            ],
-            "var": [
-              {"name": "peptide_id", "source": "ProForma_ion"},
-              {"name": "protein_id", "source": {"role": "protein_assignment"}, "drop_missing": true},
-              {
-                "name": "in_fasta",
-                "source": {"fasta": "peptide_in_fasta"},
-                "type": "boolean",
-                "required": false
-              },
-              {"name": "gene_id", "source": {"fasta": "reported_leading_gene_name"}, "required": false},
-              {
-                "name": "description",
-                "source": {"fasta": "reported_leading_description"},
-                "required": false
-              },
-              {"name": "fasta_organisms", "source": {"fasta": "fasta_matching_organisms"}, "required": false}
             ]
           }
         }

@@ -244,29 +244,11 @@ def test_prolfquapp_reads_maxquant_evidence_alone_from_its_ion_level(tmp_path: P
     assert "pg_qValue_experiment" not in adata.layers
 
 
-def test_proteopy_reads_precursors_as_peptides_without_a_protein_level(tmp_path: Path) -> None:
-    """ProteoPy's peptide-level data, as its own DIA-NN reader writes precursors."""
-    maxquant = write_maxquant(tmp_path, peptides=False)
-    levels = Exporter("proteopy").levels
-    compiler = ParseRuleCompiler(maxquant.folder, maxquant.params, requested_levels=levels)
-    adata = _anndata(Exporter("proteopy").export(compiler.compile().parse()))
-    var = _frame(adata.var)
-
-    assert level_part(adata)["export"]["provenance"]["source_level"] == "ion"
-    peptides = list(var["peptide_id"])
-    assert peptides == list(adata.var_names)
-    assert len(peptides) == len(set(peptides)), "peptide ids must be unique"
-    proteins = list(var["protein_id"])
-    assert all(isinstance(protein, str) and protein for protein in proteins), "one protein each"
-
-
-@pytest.mark.parametrize(
-    ("target", "protein"), [("proteopy", "protein_id"), ("prolfqua", "protein_Id")]
-)
+@pytest.mark.parametrize(("target", "protein"), [("prolfqua", "protein_Id")])
 def test_precursors_without_a_protein_are_left_out(
     tmp_path: Path, target: str, protein: str
 ) -> None:
-    """ProteoPy and prolfquapp need a protein per feature; PEAKS and DIA-NN leave some without."""
+    """prolfquapp needs a protein per feature; PEAKS and DIA-NN leave some without."""
     maxquant = write_maxquant(tmp_path, peptides=False)
     levels = Exporter(target).levels
     compiler = ParseRuleCompiler(maxquant.folder, maxquant.params, requested_levels=levels)
@@ -315,7 +297,7 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
         "alphapepttools": (("ion", "peptide", "protein"), ".h5mu"),
         "msmu": (("ion",), ".h5mu"),
         "prolfqua": (("peptide", "ion", "protein"), ".h5ad"),
-        "proteopy": (("protein", "ion"), ".h5ad"),
+        "proteopy": (("protein",), ".h5ad"),
     }
 
 
