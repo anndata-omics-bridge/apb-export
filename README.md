@@ -4,6 +4,7 @@ APB2 results exported in the AnnData and MuData flavours downstream tools read: 
 
 ```bash
 apb-export msmu report.tsv result.h5mu --params report.log.txt
+apb-export msmu report.tsv result.h5mu --params report.log.txt --fasta proteins.fasta
 apb-export prolfqua report.tsv result.h5ad --params report.log.txt --annotation dataset.csv
 apb-export proteopy report.tsv proteins.h5ad --params report.log.txt
 apb-export alphapepttools report.tsv linked.h5mu --params report.log.txt
@@ -71,7 +72,7 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 
 ## Protein groups
 
-Written as msmu's readers write them: members split on `;`, the accession taken from a UniProt `db|ACC|NAME` entry, and members spelled `contam_`, `Cont_` or `CON__` respelled `Cont_ACC`. `contaminant` flags a row that apb2 marked `apb_Contaminant`, a contaminant the software flags or adds itself, or that apb-fasta matched to a FASTA contaminant; without `apb-fasta verify-peptides` only the first is known.
+Written as msmu's readers write them: members split on `;`, the accession taken from a UniProt `db|ACC|NAME` entry, and members spelled `contam_`, `Cont_` or `CON__` respelled `Cont_ACC`. `contaminant` flags a row that apb2 marked `apb_Contaminant`, a contaminant the software flags or adds itself, or that apb-fasta matched to a FASTA contaminant. `apb-export msmu --fasta` runs that FASTA check after conversion; without a FASTA only the vendor's own flags are known.
 
 ## Web app
 

@@ -1,8 +1,9 @@
 """``apb-export``: vendor output in, the AnnData or MuData a downstream tool opens.
 
 One subcommand per target, each reading the APB2 levels its export rule names: APB2 converts
-the vendor files, apb2's sample annotation attaches ``--annotation``, and
-:class:`~apb_export.api.Exporter` builds the file. Existing files are never overwritten.
+the vendor files, apb2's sample annotation attaches ``--annotation``, apb-fasta checks the
+peptides against an optional ``--fasta``, and :class:`~apb_export.api.Exporter` builds the
+file. Existing files are never overwritten.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from apb2.api import (
     write_container_representation,
 )
 from apb_catalog.api import UnresolvedField
+from apb_fasta.api import FastaAnnotator
 from cyclopts import App, Parameter
 from loguru import logger
 
@@ -46,6 +48,14 @@ SampleAnnotation = Annotated[
 ]
 Strict = Annotated[
     bool, Parameter(negative=False, help="Promote APB2 layer-contract warnings to errors")
+]
+Fasta = Annotated[
+    tuple[Path, ...],
+    Parameter(
+        negative=False,
+        help="Optional FASTA files, or their protein-fasta database: check the peptides first, "
+        "so the FASTA's contaminants are flagged beside the vendor's own",
+    ),
 ]
 
 
@@ -81,8 +91,9 @@ def _exported(
     abundance: str | None,
     annotation: Path | None,
     strict: bool,
+    fasta: tuple[Path, ...] = (),
 ) -> ad.AnnData | md.MuData | None:
-    """Convert, annotate and export; ``None`` after logging why not."""
+    """Convert, annotate, FASTA-check and export; ``None`` after logging why not."""
     exporter = Exporter(target, abundance)
     if output.suffix != exporter.extension:
         logger.error(f"{target} opens {exporter.extension} files, not {output}")
@@ -94,6 +105,8 @@ def _exported(
         parsed = _parse(data, params, exporter.levels, software=software, strict=strict)
         if annotation is not None:
             parsed = AnnotationCompiler().compile(annotation).parse(parsed).annotate().parsed
+        if fasta:
+            parsed = _fasta_checked(parsed, fasta)
         return exporter.export(parsed)
     except (OSError, ValueError) as error:
         logger.error(str(error))
@@ -105,6 +118,18 @@ def _exported(
             "catalogues against this APB2 revision"
         )
     return None
+
+
+def _fasta_checked(parsed: ParsedLevels, fasta: tuple[Path, ...]) -> ParsedLevels:
+    """Verify the peptides against the FASTA and log each level's coverage."""
+    result = FastaAnnotator.read(fasta).verify_peptides(parsed)
+    for level, coverage in result.reports.peptide_levels.items():
+        logger.info(
+            f"fasta level={level} peptides_in_fasta={coverage.matched_feature_count}/"
+            f"{coverage.feature_count - coverage.decoy_feature_count} "
+            f"unmatched={coverage.unmatched_feature_count} decoys={coverage.decoy_feature_count}"
+        )
+    return result.parsed
 
 
 def _summary(adata: ad.AnnData) -> str:
@@ -147,6 +172,7 @@ def msmu(
     software: Software = None,
     abundance: Abundance = None,
     strict: Strict = False,
+    fasta: Fasta = (),
 ) -> int:
     """APB2's ion level as msmu's psm modality: one feature per run and precursor."""
     result = _exported(
@@ -158,6 +184,7 @@ def msmu(
         abundance=abundance,
         annotation=None,
         strict=strict,
+        fasta=fasta,
     )
     if isinstance(result, md.MuData):
         # An APB2 result does not record its source files; this command read them.

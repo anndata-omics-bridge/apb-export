@@ -47,6 +47,8 @@ export interface Options {
   hints: { source: string, annotation: string, software: Record<string, Hint> }
   outputs: Output[]
   max_upload_bytes: number
+  // Installed package versions, for the About dialog: { "apb-export": "0.1.0", ... }.
+  versions: Record<string, string>
 }
 
 export interface Example {

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import anndata as ad
 import mudata as md
+import pandas as pd
 import pytest
 from apb2.api import sidecar_path
 from apb_catalog.api import UnresolvedField
@@ -27,6 +28,38 @@ def test_writes_msmu_file(diann: DiannInput, tmp_path: Path) -> None:
     psm = md.read_h5mu(target)["psm"]
     assert psm.n_vars == diann.cells
     assert psm.uns["identification_file"] == str(diann.report), "the command names its source"
+
+
+def test_msmu_flags_the_fasta_contaminants_when_given_a_fasta(
+    diann: DiannInput, tmp_path: Path
+) -> None:
+    fasta = tmp_path / "proteins.fasta"
+    fasta.write_text(
+        ">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE\nMPEPTIDEKAACLLKR\n"
+        ">sp|Cont_P4|FOUR_BOVIN Four OS=Bos taurus OX=9913 GN=FOUR\nMCONTPEPKR\n"
+    )
+    plain, checked = tmp_path / "plain.h5mu", tmp_path / "checked.h5mu"
+
+    assert _run("msmu", str(diann.report), str(plain), "--params", str(diann.log)) == 0
+    assert (
+        _run(
+            "msmu",
+            str(diann.report),
+            str(checked),
+            "--params",
+            str(diann.log),
+            "--fasta",
+            str(fasta),
+        )
+        == 0
+    )
+
+    without = md.read_h5mu(plain)["psm"].var
+    flagged = md.read_h5mu(checked)["psm"].var
+    assert isinstance(without, pd.DataFrame) and isinstance(flagged, pd.DataFrame)
+    assert without["contaminant"].sum() == 0, "DIA-NN marks no contaminant itself"
+    assert flagged.loc["run_A1.CONTPEPK/2", "contaminant"] == 1
+    assert flagged.loc["run_A1.PEPTIDEK/2", "contaminant"] == 0
 
 
 def test_refuses_overwrite_wrong_suffix_and_bad_input(diann: DiannInput, tmp_path: Path) -> None:

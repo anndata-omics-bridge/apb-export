@@ -17,6 +17,7 @@ dependencies = [
     "anndata>=0.11",
     "apb2>=0.1,<0.2",
     "apb-catalog>=0.1,<0.2",
+    "apb-fasta>=0.1,<0.2",
     "cyclopts>=4,<5",
     "loguru>=0.7,<1",
     "mudata>=0.4.1,<0.5",
@@ -128,3 +129,4 @@ DEP002 = ["python-multipart"]
 [tool.uv.sources]
 apb2 = { path = "../apb2", editable = true }
 apb-catalog = { path = "../apb-catalog", editable = true }
+apb-fasta = { path = "../apb-fasta", editable = true }

@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 from dataclasses import asdict
+from importlib.metadata import version
 from pathlib import Path
 
 from apb2.api import get_rules
@@ -104,6 +105,7 @@ def write_options(path: Path, max_upload_bytes: int) -> tuple[list[str], list[Ou
             "hints": load_hints()[0],
             "outputs": [{**asdict(output), "about": described[output.id]} for output in offered],
             "max_upload_bytes": max_upload_bytes,
+            "versions": {name: version(name) for name in ("apb-export", "apb2")},
         },
     )
     return names, offered

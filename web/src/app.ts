@@ -4,6 +4,7 @@
 import './app.css'
 import { loadExamples, loadOptions, loadQc, loadStatus, submitJob } from './api.ts'
 import type { Status } from './api.ts'
+import { ApbAbout } from './about.ts'
 import { ApbDownloads } from './downloads.ts'
 import { ApbFilePreview } from './file-preview.ts'
 import { ApbJobStatus } from './job-status.ts'
@@ -15,6 +16,7 @@ customElements.define('apb-job-status', ApbJobStatus)
 customElements.define('apb-downloads', ApbDownloads)
 customElements.define('apb-qc-panel', ApbQcPanel)
 customElements.define('apb-file-preview', ApbFilePreview)
+customElements.define('apb-about', ApbAbout)
 
 const POLL_MS = 2000
 
@@ -28,6 +30,7 @@ const form = element<ApbUploadForm>('apb-upload-form')
 const progress = element<ApbJobStatus>('apb-job-status')
 const downloads = element<ApbDownloads>('apb-downloads')
 const qc = element<ApbQcPanel>('apb-qc-panel')
+const about = element<ApbAbout>('apb-about')
 
 let polling = 0
 
@@ -71,7 +74,7 @@ function fromHash (): void {
 
 window.addEventListener('hashchange', fromHash)
 loadOptions()
-  .then(options => { form.options = options })
+  .then(options => { form.options = options; about.versions = options.versions })
   .catch((error: unknown) => { progress.error = String(error) })
 loadExamples()
   .then(examples => { form.examples = examples })
