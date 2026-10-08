@@ -10,6 +10,7 @@ from dataclasses import asdict
 from io import BytesIO
 from pathlib import Path
 
+import anndata as ad
 import httpx
 import mudata as md
 import numpy as np
@@ -110,9 +111,7 @@ def test_options_list_targets_formats_and_annotation_support(options: Options) -
     assert by_id["apb-export:prolfqua"].annotation
     assert not by_id["apb-export:msmu"].annotation, "msmu's command takes no --annotation"
     assert {"apb2:hdf5", "apb2:parquet", "apb2:duckdb"} <= by_id.keys()
-    assert {output for output, offered in by_id.items() if not offered.fasta} == {
-        "apb-export:proteopy"
-    }, "ProteoPy reads only proteins, so it has no peptide to check"
+    assert all(output.fasta for output in outputs), "every output takes an optional FASTA"
 
 
 def test_an_msmu_job_flags_the_uploaded_fastas_contaminants(
@@ -149,15 +148,19 @@ def test_an_apb2_job_checks_the_peptides_against_the_uploaded_fasta(
     ]
 
 
-def test_an_output_that_reads_no_fasta_refuses_one(
+def test_a_proteopy_job_annotates_its_proteins_from_the_uploaded_fasta(
     client: tuple[TestClient, Worker, JobStore], diann: DiannInput, tmp_path: Path
 ) -> None:
-    test_client, _, store = client
-    response = _post(test_client, diann, "apb-export:proteopy", fasta=_fasta(tmp_path))
+    test_client, worker, _ = client
+    job = _submit(test_client, diann, "apb-export:proteopy", fasta=_fasta(tmp_path))
+    worker.join()
 
-    assert response.status_code == 400
-    assert "takes no FASTA" in response.text
-    assert list(store.jobs.iterdir()) == []
+    status = test_client.get(f"/api/jobs/{job}/status.json").json()
+    assert status["state"] == "done", status
+    content = test_client.get(f"/api/jobs/{job}/files/report_proteopy.h5ad").content
+    target = tmp_path / "out.h5ad"
+    target.write_bytes(content)
+    assert "in_fasta" in ad.read_h5ad(target).var.columns
 
 
 def test_prolfqua_job_groups_cv_by_the_annotation(

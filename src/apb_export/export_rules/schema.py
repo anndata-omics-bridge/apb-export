@@ -56,7 +56,8 @@ class RuleSource(ModelBase):
 
 
 class FastaSource(ModelBase):
-    """A column of apb-fasta's per-feature FASTA check; absent unless the result was checked."""
+    """A column of apb-fasta's FASTA check: per feature on a peptide-derived level, per protein
+    group on the protein level; absent unless the result was checked."""
 
     fasta: Literal[
         "peptide_in_fasta",
@@ -72,6 +73,11 @@ class FastaSource(ModelBase):
         "reported_leading_gene_name",
         "reported_leading_protein_length",
         "reported_leading_tryptic_peptides",
+        "any_member_in_fasta",
+        "all_members_in_fasta",
+        "fasta_descriptions",
+        "fasta_gene_names",
+        "fasta_organism_names",
     ]
 
 

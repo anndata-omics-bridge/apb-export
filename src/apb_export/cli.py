@@ -2,8 +2,8 @@
 
 One subcommand per target, each reading the APB2 levels its export rule names: APB2 converts
 the vendor files, apb2's sample annotation attaches ``--annotation``, apb-fasta checks the
-peptides against an optional ``--fasta``, and :class:`~apb_export.api.Exporter` builds the
-file. Existing files are never overwritten.
+peptides against an optional ``--fasta``, or annotates the proteins when the target reads
+proteins alone, and :class:`~apb_export.api.Exporter` builds the file. Existing files are never overwritten.
 """
 
 from __future__ import annotations
@@ -53,8 +53,9 @@ Fasta = Annotated[
     tuple[Path, ...],
     Parameter(
         negative=False,
-        help="Optional FASTA files, or their protein-fasta database: check the peptides first and "
-        "log how many the FASTA holds; msmu also flags the FASTA's contaminants",
+        help="Optional FASTA files, or their protein-fasta database: check the peptides first, or "
+        "annotate the protein groups of a protein-only target, and log how many the FASTA holds; "
+        "msmu also flags the FASTA's contaminants",
     ),
 ]
 
@@ -121,8 +122,20 @@ def _exported(
 
 
 def _fasta_checked(parsed: ParsedLevels, fasta: tuple[Path, ...]) -> ParsedLevels:
-    """Verify the peptides against the FASTA and log each level's coverage."""
-    result = FastaAnnotator.read(fasta).verify_peptides(parsed)
+    """Verify the peptides against the FASTA, or annotate the proteins of a protein-only result,
+    and log the coverage."""
+    annotator = FastaAnnotator.read(fasta)
+    if set(parsed.levels) == {"protein"}:
+        annotated = annotator.merge_annotations(parsed)
+        groups = annotated.reports.protein_groups
+        if groups is not None:
+            logger.info(
+                f"fasta level=protein members_in_fasta={groups.matched_member_count}/"
+                f"{groups.member_count} unmatched={groups.unmatched_member_count} "
+                f"ambiguous={groups.ambiguous_member_count}"
+            )
+        return annotated.parsed
+    result = annotator.verify_peptides(parsed)
     for level, coverage in result.reports.peptide_levels.items():
         logger.info(
             f"fasta level={level} peptides_in_fasta={coverage.matched_feature_count}/"
@@ -233,6 +246,7 @@ def proteopy(
     abundance: Abundance = None,
     annotation: SampleAnnotation = None,
     strict: Strict = False,
+    fasta: Fasta = (),
 ) -> int:
     """APB2's protein level for ProteoPy, with sample_id and protein_id."""
     return _write(
@@ -245,6 +259,7 @@ def proteopy(
             abundance=abundance,
             annotation=annotation,
             strict=strict,
+            fasta=fasta,
         ),
         output,
     )

@@ -531,7 +531,7 @@
     },
     "FastaSource": {
       "additionalProperties": false,
-      "description": "A column of apb-fasta's per-feature FASTA check; absent unless the result was checked.",
+      "description": "A column of apb-fasta's FASTA check: per feature on a peptide-derived level, per protein\ngroup on the protein level; absent unless the result was checked.",
       "properties": {
         "fasta": {
           "enum": [
@@ -547,7 +547,12 @@
             "reported_leading_description",
             "reported_leading_gene_name",
             "reported_leading_protein_length",
-            "reported_leading_tryptic_peptides"
+            "reported_leading_tryptic_peptides",
+            "any_member_in_fasta",
+            "all_members_in_fasta",
+            "fasta_descriptions",
+            "fasta_gene_names",
+            "fasta_organism_names"
           ],
           "title": "Fasta",
           "type": "string"

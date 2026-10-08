@@ -18,7 +18,18 @@
               {"name": "sample_id", "source": {"axis": "obs_keys"}},
               {"name": "annotations", "how": "all_values"}
             ],
-            "var": [{"name": "protein_id", "source": {"role": "protein_assignment"}}]
+            "var": [
+              {"name": "protein_id", "source": {"role": "protein_assignment"}},
+              {
+                "name": "in_fasta",
+                "source": {"fasta": "any_member_in_fasta"},
+                "type": "boolean",
+                "required": false
+              },
+              {"name": "gene_id", "source": {"fasta": "fasta_gene_names"}, "required": false},
+              {"name": "description", "source": {"fasta": "fasta_descriptions"}, "required": false},
+              {"name": "fasta_organisms", "source": {"fasta": "fasta_organism_names"}, "required": false}
+            ]
           }
         }
       }

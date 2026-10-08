@@ -31,6 +31,7 @@ type Provenance = dict[str, str]
 
 _CONTAMINANT = "apb_Contaminant"
 _FASTA_TABLE = "fasta_validation"
+_FASTA_PROTEIN_TABLE = "fasta"
 _FASTA_CONTAMINANT = "fasta_matches_contaminant"
 
 _MEMBERS = ";"
@@ -162,11 +163,12 @@ class LevelSources:
                 return self._fasta(reference)
 
     def _fasta(self, reference: FastaSource) -> VarValues | None:
-        fasta = self._level.varm.get(_FASTA_TABLE)
-        if fasta is None or reference.fasta not in fasta.columns:
-            return None
-        provenance: Provenance = {"location": "varm", "name": f"{_FASTA_TABLE}.{reference.fasta}"}
-        return VarValues(fasta.get_column(reference.fasta), provenance)
+        for table in (_FASTA_TABLE, _FASTA_PROTEIN_TABLE):
+            fasta = self._level.varm.get(table)
+            if fasta is not None and reference.fasta in fasta.columns:
+                provenance: Provenance = {"location": "varm", "name": f"{table}.{reference.fasta}"}
+                return VarValues(fasta.get_column(reference.fasta), provenance)
+        return None
 
     def _column(self, name: str) -> VarValues | None:
         frame = self._level.var.frame

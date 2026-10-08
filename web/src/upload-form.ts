@@ -318,7 +318,7 @@ export class ApbUploadForm extends LitElement {
     if (!this.example && !this.hasData) return 'Try an example or add your result file.'
     if (!this.example && this.hint()?.params_required && !this.hasParams) return `${this.software} needs its parameter file.`
     const output = this.chosen()
-    if (this.example && this.exampleFasta && output !== undefined && !output.fasta) return `${output.about.title} reads only proteins and takes no FASTA; switch "+ FASTA" off.`
+    if (this.example && this.exampleFasta && output !== undefined && !output.fasta) return `${output.about.title} takes no FASTA; switch "+ FASTA" off.`
     return null
   }
 
