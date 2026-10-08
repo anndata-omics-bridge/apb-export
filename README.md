@@ -76,7 +76,7 @@ Written as msmu's readers write them: members split on `;`, the accession taken 
 
 ## Web app
 
-`apb-export-web` serves a page that takes a vendor result, an optional parameter file and an optional SDRF or prolfquapp sample table, converts them to any target above or to an APB2 result (h5ad/h5mu, Parquet, DuckDB), and shows QC before download: intensity density per sample, CV per feature within each annotation group (across all samples without one), and detected and missing counts.
+`apb-export-web` serves a page that takes a vendor result, an optional parameter file, an optional SDRF or prolfquapp sample table and an optional FASTA, converts them to any target above or to an APB2 result (h5ad/h5mu, Parquet, DuckDB), and shows QC before download: intensity density per sample, CV per feature within each annotation group (across all samples without one), and detected and missing counts.
 
 ```bash
 uv pip install 'apb-export[web]'

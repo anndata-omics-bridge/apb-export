@@ -225,7 +225,7 @@ class Api:
         return self._save_all(job, uploads)
 
     def _example_fields(self, example: Example, example_files: str) -> set[str]:
-        """Which of the example's files to use: the result, then parameters, then annotation."""
+        """Which of the example's files to use: the result, parameters, annotation and FASTA."""
         fields = {field for field in example_files.split(",") if field} or {
             "data",
             "params",
@@ -233,11 +233,15 @@ class Api:
         }
         held = {"data"} | {
             field
-            for field, path in (("params", example.params), ("annotation", example.annotation))
+            for field, path in (
+                ("params", example.params),
+                ("annotation", example.annotation),
+                ("fasta", example.fasta),
+            )
             if path is not None
         }
-        if "data" not in fields or not fields <= {"data", "params", "annotation"}:
-            raise HTTPException(400, "example files are data, then params, then annotation")
+        if "data" not in fields or not fields <= {"data", "params", "annotation", "fasta"}:
+            raise HTTPException(400, "example files are data, params, annotation and fasta")
         if not fields <= held:
             raise HTTPException(400, f"this example has no {sorted(fields - held)}")
         return fields
@@ -251,11 +255,13 @@ class Api:
         software: Annotated[str, Form()] = "",
         params: UploadFile | None = None,
         annotation: UploadFile | None = None,
+        fasta: UploadFile | None = None,
     ) -> dict[str, str]:
         uploads = {
             "data": data or [],
             "params": [] if params is None else [params],
             "annotation": [] if annotation is None else [annotation],
+            "fasta": [] if fasta is None else [fasta],
         }
         fields: set[str] = set()
         if example:
@@ -274,6 +280,8 @@ class Api:
         else:
             has_params = params is not None
         chosen = self._chosen(output, software, has_params)
+        if (fasta is not None or "fasta" in fields) and not chosen.fasta:
+            raise HTTPException(400, f"{chosen.label} takes no FASTA")
         self.store.expire()
         job = self.store.create()
         try:
@@ -287,6 +295,7 @@ class Api:
             params=saved.get("params"),
             annotation=saved.get("annotation"),
             software=software or None,
+            fasta=saved.get("fasta"),
         )
         write_json(job.request_path, asdict(request))
         job.write_status(Status(id=job.id, state="queued"))

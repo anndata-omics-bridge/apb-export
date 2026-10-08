@@ -23,6 +23,8 @@ export interface Output {
   name: string
   extension: string
   annotation: boolean
+  // Whether a FASTA changes the result: msmu's contaminant flags, APB2's peptide check.
+  fasta: boolean
   about: About
 }
 
@@ -65,6 +67,8 @@ export interface Example {
   params: string | null
   stored_params: string | null
   annotation: string | null
+  // The FASTA the example's module prescribes, sent when the user keeps it ticked.
+  fasta: string | null
   export: Export | null
   bytes: number
 }

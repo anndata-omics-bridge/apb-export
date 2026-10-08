@@ -6,7 +6,9 @@ corpus, plus extra rows. An extra row is a corpus row under the same root, such 
 ProteoBench submission outside the routine corpus, unless its ``source`` column names a file
 to copy from the workspace, such as a sample apb2 commits; a ``.gz`` source is unpacked. Its
 ``sdrf`` column, when set, names an SDRF placed beside the input as ``sdrf.tsv``, for a tool
-that named its samples otherwise than the module SDRF's raw files, such as WOMBAT.
+that named its samples otherwise than the module SDRF's raw files, such as WOMBAT. With
+``--fastas``, a table of each module's FASTA such as APB Studio's ``workflow_proteobench.csv``,
+every example of a listed module gets its FASTA under ``data/`` and in a ``fasta`` column.
 Serve it with
 ``--examples <out>/examples.csv --examples-root <out>/data --examples-sdrf <out>/sdrf``.
 """
@@ -23,7 +25,7 @@ from cyclopts import App
 
 app = App(name="web_examples", help=__doc__)
 
-COLUMNS = ("input_file", "vendor_parameter_file", "module", "software_name")
+COLUMNS = ("input_file", "vendor_parameter_file", "module", "software_name", "fasta")
 
 
 def _rows(path: Path) -> list[dict[str, str]]:
@@ -50,6 +52,7 @@ def collect(
     *,
     extra: Path | None = None,
     workspace: Path = Path(".."),
+    fastas: Path | None = None,
 ) -> None:
     """Copy the corpus rows' folders, the extra rows' sources and the SDRFs into ``out``."""
     rows = _rows(corpus)
@@ -67,6 +70,12 @@ def collect(
             _copy(workspace / row["source"], out / "data" / row["input_file"])
         if row["sdrf"]:
             _copy(workspace / row["sdrf"], (out / "data" / row["input_file"]).parent / "sdrf.tsv")
+    modules = {} if fastas is None else {row["module"]: row["fasta"] for row in _rows(fastas)}
+    for row in [*rows, *added]:
+        fasta = modules.get(row["module"], "")
+        row["fasta"] = fasta
+        if fasta and not (out / "data" / fasta).exists():
+            _copy(root / fasta, out / "data" / fasta)
     with (out / "examples.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, COLUMNS, extrasaction="ignore")
         writer.writeheader()

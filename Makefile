@@ -45,7 +45,7 @@ web:  ## Test, type-check and rebuild the web page bundle into the package
 	cd web && npm ci && npm test && npm run build
 
 web-examples:  ## Collect the routine corpus, scripts/web_examples.csv and module SDRFs into one folder the server mounts
-	$(VENV_BIN)/python scripts/web_examples.py $(STUDIO)/corpuses/routine.csv $(STUDIO)/test_data_download $(MODULES) $(WEB_EXAMPLES) --extra scripts/web_examples.csv --workspace ..
+	$(VENV_BIN)/python scripts/web_examples.py $(STUDIO)/corpuses/routine.csv $(STUDIO)/test_data_download $(MODULES) $(WEB_EXAMPLES) --extra scripts/web_examples.csv --workspace .. --fastas $(STUDIO)/workflow_tables/workflow_proteobench.csv
 
 image:  ## Build the web app's image from this checkout and its apb2 and apb-catalog siblings
 	docker build -f Dockerfile -t $(IMAGE):$(IMAGE_TAG) ..

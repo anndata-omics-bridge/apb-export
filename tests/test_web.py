@@ -10,7 +10,10 @@ from dataclasses import asdict
 from io import BytesIO
 from pathlib import Path
 
+import httpx
+import mudata as md
 import numpy as np
+import pandas as pd
 import polars as pl
 import pytest
 from fastapi.testclient import TestClient
@@ -58,19 +61,42 @@ def _annotation(folder: Path) -> Path:
     return table
 
 
+def _fasta(folder: Path) -> Path:
+    """Two proteins: PEPTIDEK's, and a ProteoBench-style contaminant holding CONTPEPK."""
+    fasta = folder / "proteins.fasta"
+    fasta.write_text(
+        ">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE\nMPEPTIDEKAACLLKR\n"
+        ">sp|Cont_P4|FOUR_BOVIN Four OS=Bos taurus OX=9913 GN=FOUR\nMCONTPEPKR\n",
+        encoding="utf-8",
+    )
+    return fasta
+
+
+def _post(
+    test_client: TestClient,
+    diann: DiannInput,
+    output: str,
+    annotation: Path | None = None,
+    fasta: Path | None = None,
+) -> httpx.Response:
+    files = {
+        "data": (diann.report.name, diann.report.read_bytes()),
+        "params": (diann.log.name, diann.log.read_bytes()),
+    }
+    for field, path in (("annotation", annotation), ("fasta", fasta)):
+        if path is not None:
+            files[field] = (path.name, path.read_bytes())
+    return test_client.post("/api/jobs", data={"output": output}, files=files)
+
+
 def _submit(
     test_client: TestClient,
     diann: DiannInput,
     output: str,
     annotation: Path | None = None,
+    fasta: Path | None = None,
 ) -> str:
-    files = {
-        "data": (diann.report.name, diann.report.read_bytes()),
-        "params": (diann.log.name, diann.log.read_bytes()),
-    }
-    if annotation is not None:
-        files["annotation"] = (annotation.name, annotation.read_bytes())
-    response = test_client.post("/api/jobs", data={"output": output}, files=files)
+    response = _post(test_client, diann, output, annotation, fasta)
     assert response.status_code == 200, response.text
     return response.json()["id"]
 
@@ -84,6 +110,57 @@ def test_options_list_targets_formats_and_annotation_support(options: Options) -
     assert by_id["apb-export:prolfqua"].annotation
     assert not by_id["apb-export:msmu"].annotation, "msmu's command takes no --annotation"
     assert {"apb2:hdf5", "apb2:parquet", "apb2:duckdb"} <= by_id.keys()
+    assert {output for output, offered in by_id.items() if offered.fasta} == {
+        "apb-export:msmu",
+        "apb2:hdf5",
+        "apb2:parquet",
+        "apb2:duckdb",
+    }, "only msmu reads the FASTA check; APB2 results keep it"
+
+
+def test_an_msmu_job_flags_the_uploaded_fastas_contaminants(
+    client: tuple[TestClient, Worker, JobStore], diann: DiannInput, tmp_path: Path
+) -> None:
+    test_client, worker, _ = client
+    job = _submit(test_client, diann, "apb-export:msmu", fasta=_fasta(tmp_path))
+    worker.join()
+
+    assert test_client.get(f"/api/jobs/{job}/status.json").json()["state"] == "done"
+    content = test_client.get(f"/api/jobs/{job}/files/report_msmu.h5mu").content
+    target = tmp_path / "out.h5mu"
+    target.write_bytes(content)
+    var = md.read_h5mu(target)["psm"].var
+    assert isinstance(var, pd.DataFrame)
+    assert var.loc["run_A1.CONTPEPK/2", "contaminant"] == 1
+
+
+def test_an_apb2_job_checks_the_peptides_against_the_uploaded_fasta(
+    client: tuple[TestClient, Worker, JobStore], diann: DiannInput, tmp_path: Path
+) -> None:
+    test_client, worker, _ = client
+    job = _submit(test_client, diann, "apb2:hdf5", _annotation(tmp_path), _fasta(tmp_path))
+    worker.join()
+
+    status = test_client.get(f"/api/jobs/{job}/status.json").json()
+    assert status["state"] == "done", status
+    assert [step["name"] for step in status["steps"]] == [
+        "convert",
+        "annotate",
+        "verify-peptides",
+        "qc",
+        "package",
+    ]
+
+
+def test_an_output_that_reads_no_fasta_refuses_one(
+    client: tuple[TestClient, Worker, JobStore], diann: DiannInput, tmp_path: Path
+) -> None:
+    test_client, _, store = client
+    response = _post(test_client, diann, "apb-export:prolfqua", fasta=_fasta(tmp_path))
+
+    assert response.status_code == 400
+    assert "takes no FASTA" in response.text
+    assert list(store.jobs.iterdir()) == []
 
 
 def test_prolfqua_job_groups_cv_by_the_annotation(
@@ -312,6 +389,20 @@ def _load(corpus: Path, root: Path, sdrf: Path | None = None) -> list[Example]:
 def examples(tmp_path: Path) -> list[Example]:
     root = tmp_path / "data"
     return _load(_corpus(root), root)
+
+
+def test_an_example_brings_the_fasta_its_corpus_row_names(tmp_path: Path) -> None:
+    root = tmp_path / "data"
+    corpus = _corpus(root)
+    _fasta(root).rename(root / "module.fasta")
+    rows = corpus.read_text(encoding="utf-8").splitlines()
+    corpus.write_text(f"{rows[0]},fasta\n{rows[1]},module.fasta\n", encoding="utf-8")
+
+    (example,) = _load(corpus, root)
+
+    assert example.fasta == root / "module.fasta"
+    assert example.describe()["fasta"] == "module.fasta"
+    assert example.inputs()["fasta"] == [("module.fasta", root / "module.fasta")]
 
 
 def test_examples_read_a_corpus_and_find_its_sdrf(examples: list[Example]) -> None:

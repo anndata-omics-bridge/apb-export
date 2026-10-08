@@ -37,6 +37,8 @@ class Output:
     # The target's file suffix; empty for apb2, which picks its own.
     extension: str
     annotation: bool
+    # Whether a FASTA changes the result: msmu's contaminant flags, APB2's peptide check.
+    fasta: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +50,7 @@ class Request:
     params: str | None = None
     annotation: str | None = None
     software: str | None = None
+    fasta: str | None = None
 
     @classmethod
     def read(cls, path: Path) -> Request:
@@ -58,6 +61,7 @@ class Request:
             params=raw["params"],
             annotation=raw["annotation"],
             software=raw["software"],
+            fasta=raw.get("fasta"),
         )
 
 

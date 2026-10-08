@@ -94,12 +94,14 @@ class Runner:
         # A folder input such as maxquant_v2.8.1.0 has no suffix to drop.
         base = data.name if data.is_dir() else data.stem
         annotation = self._path(self.request.annotation)
+        fasta = self._path(self.request.fasta)
         results.mkdir()
         if output.command == "apb-export":
             target = results / f"{base}_{output.name}{output.extension}"
             annotated = (
                 ["--annotation", annotation] if annotation is not None and output.annotation else []
             )
+            checked = ["--fasta", fasta] if fasta is not None and output.fasta else []
             self._step(
                 "convert",
                 lambda: self._command(
@@ -110,11 +112,13 @@ class Runner:
                         target,
                         *self._vendor_options(),
                         *annotated,
+                        *checked,
                     ]
                 ),
             )
             return
-        converted = results if annotation is None else self.job.root / "converted"
+        annotated_dir = results if fasta is None else self.job.root / "annotated"
+        converted = annotated_dir if annotation is None else self.job.root / "converted"
         converted.mkdir(exist_ok=True)
         self._step(
             "convert",
@@ -132,11 +136,28 @@ class Runner:
             ),
         )
         if annotation is not None:
-            self._step("annotate", lambda: self._annotate(converted, annotation, results))
+            annotated_dir.mkdir(exist_ok=True)
+            self._step("annotate", lambda: self._annotate(converted, annotation, annotated_dir))
+        if fasta is not None:
+            self._step("verify-peptides", lambda: self._verify(annotated_dir, fasta, results))
 
     def _annotate(self, converted: Path, annotation: Path, results: Path) -> None:
         for source in result_paths(converted):
             self._command([command("apb2"), "annotate", source, annotation, results / source.name])
+
+    def _verify(self, annotated: Path, fasta: Path, results: Path) -> None:
+        """Check each result's peptides against the FASTA, as ``apb-fasta verify-peptides``."""
+        for source in result_paths(annotated):
+            self._command(
+                [
+                    command("apb-fasta"),
+                    "verify-peptides",
+                    source,
+                    fasta,
+                    "--output",
+                    results / source.name,
+                ]
+            )
 
     def run(self) -> None:
         results = self.job.root / "results"

@@ -53,6 +53,8 @@ class Example:
     # Further result files stored beside ``data`` as ``<stem>_*``, such as AlphaDIA 1.12's
     # precursor.matrix.tsv; APB Studio passes them with it as one folder.
     secondary: tuple[Path, ...] = ()
+    # The FASTA its module prescribes, from the corpus's optional ``fasta`` column.
+    fasta: Path | None = None
 
     def inputs(self) -> dict[str, list[tuple[str, Path]]]:
         """Each input field's files: the names the tool wrote, else the stored names."""
@@ -66,6 +68,8 @@ class Example:
             named["params"] = [(name or self.params.name, self.params)]
         if self.annotation is not None:
             named["annotation"] = [(self.annotation.name, self.annotation)]
+        if self.fasta is not None:
+            named["fasta"] = [(self.fasta.name, self.fasta)]
         return named
 
     def folder_files(self) -> list[Path]:
@@ -106,6 +110,7 @@ class Example:
             "params": None if params is None else params[0][0],
             "stored_params": None if self.params is None else self.params.name,
             "annotation": None if annotation is None else annotation[0][0],
+            "fasta": None if self.fasta is None else self.fasta.name,
             "export": None if self.export is None else self.export.describe(),
             "bytes": sum(_size(path) for path in (self.data, *self.secondary)),
         }
@@ -217,6 +222,7 @@ def load_examples(
                 version=version,
                 export=export,
                 secondary=_secondary(data),
+                fasta=root / row["fasta"] if row.get("fasta") else None,
             )
         )
     return examples

@@ -41,15 +41,15 @@ def software() -> list[str]:
     return sorted(names, key=str.casefold)
 
 
-def _accepts_annotation(target: str) -> bool:
-    """Whether the target's subcommand takes ``--annotation``; its own help says so."""
+def _accepts(target: str, option: str) -> bool:
+    """Whether the target's subcommand takes ``option``; its own help says so."""
     shown = subprocess.run(
         [command("apb-export"), target, "--help"],
         capture_output=True,
         text=True,
         check=True,
     )
-    return "--annotation" in shown.stdout
+    return option in shown.stdout
 
 
 def outputs() -> list[Output]:
@@ -61,7 +61,8 @@ def outputs() -> list[Output]:
             command="apb-export",
             name=target,
             extension=Exporter(target).extension,
-            annotation=_accepts_annotation(target),
+            annotation=_accepts(target, "--annotation"),
+            fasta=_accepts(target, "--fasta"),
         )
         for target in Exporter.targets()
     ]
@@ -73,6 +74,7 @@ def outputs() -> list[Output]:
             name=name,
             extension="",
             annotation=True,
+            fasta=True,
         )
         for name, label in _APB2_FORMATS
     ]

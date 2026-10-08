@@ -49,7 +49,8 @@ export class ApbUploadForm extends LitElement {
     hasData: { state: true },
     hasParams: { state: true },
     example: { state: true },
-    exampleFiles: { state: true }
+    exampleFiles: { state: true },
+    useFasta: { state: true }
   }
 
   options: Options | null = null
@@ -61,6 +62,7 @@ export class ApbUploadForm extends LitElement {
   hasParams = false
   example: Example | null = null
   exampleFiles: ExampleFiles = 'data,params,annotation'
+  useFasta = true
 
   createRenderRoot (): this { return this }
 
@@ -78,6 +80,11 @@ export class ApbUploadForm extends LitElement {
 
   private file (name: string): File | undefined {
     return this.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.files?.[0]
+  }
+
+  // The example's FASTA goes along when it has one, the user keeps it ticked and the output uses it.
+  private sendsExampleFasta (output: Output | undefined): boolean {
+    return this.useFasta && this.example?.fasta != null && output?.fasta === true
   }
 
   private chooseSoftware (software: string): void {
@@ -102,7 +109,7 @@ export class ApbUploadForm extends LitElement {
     form.append('output', output.id)
     if (this.example) {
       form.append('example', this.example.id)
-      form.append('example_files', this.exampleFiles)
+      form.append('example_files', this.sendsExampleFasta(output) ? `${this.exampleFiles},fasta` : this.exampleFiles)
     } else {
       const data = [...(this.querySelector<HTMLInputElement>('input[name="data"]')?.files ?? [])]
       if (data.length === 0) return
@@ -112,6 +119,8 @@ export class ApbUploadForm extends LitElement {
       if (params) form.append('params', params)
       const annotation = this.file('annotation')
       if (annotation && output.annotation) form.append('annotation', annotation)
+      const fasta = this.file('fasta')
+      if (fasta && output.fasta) form.append('fasta', fasta)
     }
     this.dispatchEvent(new CustomEvent('submit-job', { detail: form, bubbles: true }))
   }
@@ -207,6 +216,14 @@ export class ApbUploadForm extends LitElement {
           </dd>
           <dt>Parameter file</dt><dd>${links('params', optional(example.params), optional(example.stored_params))}</dd>
           <dt>Sample annotation</dt><dd>${links('annotation', optional(example.annotation), optional(example.annotation))}</dd>
+          <dt>FASTA</dt>
+          <dd>${example.fasta === null
+            ? '–'
+            : html`${fileLink(example.fasta)}
+              <label class="inline"><input type="checkbox" .checked=${this.useFasta}
+                @change=${(event: Event) => { this.useFasta = (event.currentTarget as HTMLInputElement).checked }}>
+                check the peptides against it</label>
+              ${this.chosen()?.fasta === false ? html`<span class="note">not used by ${this.chosen()?.about.title}</span>` : nothing}`}</dd>
         </dl>
         <p class="note">Click a file name to see its first lines.</p>
         <button type="button" class="secondary" @click=${() => { this.example = null }}>Upload my own files instead</button>
@@ -231,6 +248,10 @@ export class ApbUploadForm extends LitElement {
       <label>
         Sample annotation <span class="optional">optional</span>
         <input type="file" name="annotation" ?disabled=${output !== undefined && !output.annotation}>
+      </label>
+      <label>
+        FASTA <span class="optional">optional; checks the peptides, and msmu flags its contaminants</span>
+        <input type="file" name="fasta" accept=".fasta,.fa,.faa,.fas,.txt" ?disabled=${output !== undefined && !output.fasta}>
       </label>
       <p class="note">Up to ${formatBytes(this.options?.max_upload_bytes ?? 0)} in total.</p>
     `
@@ -270,6 +291,7 @@ export class ApbUploadForm extends LitElement {
             <dt>More</dt>
             <dd>${chosen.about.links.map((link, index) => html`${index > 0 ? ' · ' : ''}<a href=${link.url} target="_blank" rel="noopener">${link.label}</a>`)}</dd>
             ${chosen.annotation ? nothing : html`<dt>Annotation</dt><dd>${chosen.about.title} takes none; CV is computed across all samples.</dd>`}
+            ${chosen.fasta ? nothing : html`<dt>FASTA</dt><dd>${chosen.about.title} takes none.</dd>`}
           </dl>
         `
         : nothing}
@@ -289,7 +311,8 @@ export class ApbUploadForm extends LitElement {
     if (!this.example) return `Converts your ${this.software} files to ${target}.`
     const variant = VARIANTS.find(({ files }) => files === this.exampleFiles)?.phrase ?? ''
     const version = this.example.version ? ` ${this.example.version}` : ''
-    return `Converts the ${this.example.label}${version} example (${variant}) to ${target}.`
+    const fasta = this.sendsExampleFasta(output) ? ', checked against its FASTA' : ''
+    return `Converts the ${this.example.label}${version} example (${variant}${fasta}) to ${target}.`
   }
 
   private ready (): boolean {
