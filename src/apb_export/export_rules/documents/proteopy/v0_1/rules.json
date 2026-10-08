@@ -20,7 +20,7 @@
               {"name": "annotations", "how": "all_values"}
             ],
             "var": [
-              {"name": "protein_id", "source": {"role": "protein_assignment"}, "drop_missing": true},
+              {"name": "protein_id", "source": {"role": "protein_assignment"}},
               {
                 "name": "in_fasta",
                 "source": {"fasta": "any_member_in_fasta"},

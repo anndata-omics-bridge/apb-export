@@ -142,7 +142,7 @@ class EntryBase(ModelBase):
     drop_missing: bool = Field(
         default=False,
         description="A wide var entry: features whose value is missing or empty are left out "
-        "and counted, as ProteoPy needs a protein for every peptide.",
+        "and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
     )
 
     @model_validator(mode="after")
