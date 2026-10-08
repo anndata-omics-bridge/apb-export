@@ -1,0 +1,38 @@
+site_name: APB Export
+site_description: APB2 results exported as the AnnData and MuData files downstream tools open.
+site_url: https://anndata-omics-bridge.github.io/apb-export/
+repo_url: https://github.com/anndata-omics-bridge/apb-export
+repo_name: anndata-omics-bridge/apb-export
+docs_dir: docs
+site_dir: public
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.sections
+    - navigation.top
+
+nav:
+  - Home: index.md
+  - Guides:
+      - Targets and layouts: targets.md
+      - Web app: web.md
+  - Reference:
+      - Command-line interface: cli.md
+      - Python API: api.md
+  - Architecture: architecture.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false

@@ -12,6 +12,7 @@ The closest `AGENTS.md` wins. Explicit user instructions override this file.
 | Typecheck | `.venv/bin/pyright` |
 | Dependencies | `.venv/bin/deptry .` |
 | Tests | `.venv/bin/pytest --cov --cov-branch` |
+| Docs | `make docs` |
 | Build | `uv build && .venv/bin/twine check dist/*` |
 | Full gate | `make check` |
 
@@ -38,7 +39,7 @@ Rules for this package:
 - **A software name only chooses a level.** A level block's `software` picks the level a target reads for that vendor, as prolfqua reads MaxQuant's peptides.txt; its fields still come from roles and the catalogue.
 - **Match msmu's readers, not our preferences.** Layout, column names and order, q-value precedence and protein canonicalisation follow `msmu.read_diann`; the consumer image's msmu check holds this.
 - **No real vendor data** in tests, docs or examples; tests synthesise vendor files.
-- **Keep this repository private.**
+- **The repository is public** since 8 October 2026; its docs site is built from `docs/` by the Pages workflow.
 
 ## Code conventions
 

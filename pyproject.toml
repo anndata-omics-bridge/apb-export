@@ -54,6 +54,11 @@ dev = [
     "twine>=6,<7",
     "uvicorn>=0.54,<1",
 ]
+docs = [
+    "mkdocstrings[python]>=1.0,<2",
+    "pymdown-extensions>=11,<12",
+    "zensical==0.0.43",
+]
 
 [tool.ruff]
 line-length = 100

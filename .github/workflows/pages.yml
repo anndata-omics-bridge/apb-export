@@ -1,0 +1,84 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    defaults:
+      run:
+        working-directory: apb-export
+    steps:
+      - name: Check out APB Export
+        uses: actions/checkout@v6
+        with:
+          path: apb-export
+
+      - name: Check out APB2
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb2
+          path: apb2
+
+      - name: Check out APB Catalog
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb-catalog
+          path: apb-catalog
+
+      - name: Check out APB FASTA
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/apb-fasta
+          path: apb-fasta
+
+      - name: Check out protein-fasta
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/protein-fasta
+          path: protein_fasta
+
+      - name: Check out Prozor
+        uses: actions/checkout@v6
+        with:
+          repository: anndata-omics-bridge/prozor
+          path: prozor
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          version: "0.9.8"
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+
+      - name: Build documentation
+        run: uv run --group docs zensical build --clean --strict
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: apb-export/public
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
