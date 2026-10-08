@@ -285,21 +285,6 @@ def test_precursors_without_a_protein_are_left_out(
     assert sources[f"var.{protein}"]["dropped"] == "1"
 
 
-def test_proteopy_leaves_out_a_protein_group_without_a_name(diann: DiannInput) -> None:
-    """DIA-NN's protein level holds an unnamed group when precursors lack Protein.Group."""
-    parsed = _parsed(diann)
-    protein = parsed.levels["protein"]
-    column = protein.var.roles["protein_assignment"]
-    unnamed = pl.when(pl.int_range(pl.len()) == 0).then(pl.lit("")).otherwise(pl.col(column))
-    var = replace(protein.var, frame=protein.var.frame.with_columns(unnamed.alias(column)))
-    result = replace(parsed, levels={**parsed.levels, "protein": replace(protein, var=var)})
-
-    adata = _anndata(Exporter("proteopy").export(result))
-
-    assert adata.n_vars == protein.var.frame.height - 1
-    assert "" not in set(_frame(adata.var)["protein_id"])
-
-
 def test_alphapepttools_levels_link_by_their_ids(diann: DiannInput, tmp_path: Path) -> None:
     mdata = _written("alphapepttools", _parsed(diann), tmp_path)
     assert isinstance(mdata, md.MuData)

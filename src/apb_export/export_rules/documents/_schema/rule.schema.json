@@ -79,7 +79,7 @@
         },
         "drop_missing": {
           "default": false,
-          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
           "title": "Drop Missing",
           "type": "boolean"
         },
@@ -185,7 +185,7 @@
         },
         "drop_missing": {
           "default": false,
-          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
           "title": "Drop Missing",
           "type": "boolean"
         },
@@ -463,7 +463,7 @@
         },
         "drop_missing": {
           "default": false,
-          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
           "title": "Drop Missing",
           "type": "boolean"
         },
@@ -536,7 +536,7 @@
         },
         "drop_missing": {
           "default": false,
-          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
           "title": "Drop Missing",
           "type": "boolean"
         },
@@ -657,7 +657,7 @@
         },
         "drop_missing": {
           "default": false,
-          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
           "title": "Drop Missing",
           "type": "boolean"
         },
@@ -780,7 +780,7 @@
         },
         "drop_missing": {
           "default": false,
-          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
           "title": "Drop Missing",
           "type": "boolean"
         },
@@ -898,7 +898,7 @@
         },
         "drop_missing": {
           "default": false,
-          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
           "title": "Drop Missing",
           "type": "boolean"
         },
@@ -1055,7 +1055,7 @@
         },
         "drop_missing": {
           "default": false,
-          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
           "title": "Drop Missing",
           "type": "boolean"
         },
@@ -1146,7 +1146,7 @@
         },
         "drop_missing": {
           "default": false,
-          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy and prolfquapp need a protein for every precursor.",
           "title": "Drop Missing",
           "type": "boolean"
         },
