@@ -91,7 +91,7 @@ To deploy, `make image` builds `ghcr.io/anndata-omics-bridge/apb-export:local` f
 
 ## Limits
 
-- Needs APB2's `ion` level; a vendor export without one (Sage's `lfq.tsv` is peptide-level) is refused
+- A result without the level a target reads is refused: msmu needs an `ion` level (Sage's `lfq.tsv` is peptide-level), ProteoPy a `protein` level
 - Label-free only: a result keyed by more than one observation column, as multiplexed designs are, is refused
 - `decoy` is apb2's `apb_Decoy`; most exports carry no decoys, and msmu's target-decoy q-values need them, so use `calculate_q=False` unless the vendor kept them
 - Group separators other than `;` pass through unchanged; no APB2 rule declares its separator
