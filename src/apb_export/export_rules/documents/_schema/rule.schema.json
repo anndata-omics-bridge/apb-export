@@ -77,6 +77,12 @@
           "title": "Named Index",
           "type": "boolean"
         },
+        "drop_missing": {
+          "default": false,
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "title": "Drop Missing",
+          "type": "boolean"
+        },
         "how": {
           "const": "accessions",
           "title": "How",
@@ -175,6 +181,12 @@
           "default": false,
           "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
           "title": "Named Index",
+          "type": "boolean"
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "title": "Drop Missing",
           "type": "boolean"
         },
         "how": {
@@ -449,6 +461,12 @@
           "title": "Named Index",
           "type": "boolean"
         },
+        "drop_missing": {
+          "default": false,
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "title": "Drop Missing",
+          "type": "boolean"
+        },
         "how": {
           "const": "constant",
           "title": "How",
@@ -514,6 +532,12 @@
           "default": false,
           "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
           "title": "Named Index",
+          "type": "boolean"
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "title": "Drop Missing",
           "type": "boolean"
         },
         "how": {
@@ -629,6 +653,12 @@
           "default": false,
           "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
           "title": "Named Index",
+          "type": "boolean"
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "title": "Drop Missing",
           "type": "boolean"
         },
         "how": {
@@ -748,6 +778,12 @@
           "title": "Named Index",
           "type": "boolean"
         },
+        "drop_missing": {
+          "default": false,
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "title": "Drop Missing",
+          "type": "boolean"
+        },
         "how": {
           "const": "lowercase",
           "title": "How",
@@ -858,6 +894,12 @@
           "default": false,
           "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
           "title": "Named Index",
+          "type": "boolean"
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "title": "Drop Missing",
           "type": "boolean"
         },
         "how": {
@@ -1011,6 +1053,12 @@
           "title": "Named Index",
           "type": "boolean"
         },
+        "drop_missing": {
+          "default": false,
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "title": "Drop Missing",
+          "type": "boolean"
+        },
         "how": {
           "const": "sequence_length",
           "title": "How",
@@ -1094,6 +1142,12 @@
           "default": false,
           "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
           "title": "Named Index",
+          "type": "boolean"
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A wide var entry: features whose value is missing or empty are left out and counted, as ProteoPy needs a protein for every peptide.",
+          "title": "Drop Missing",
           "type": "boolean"
         },
         "source": {

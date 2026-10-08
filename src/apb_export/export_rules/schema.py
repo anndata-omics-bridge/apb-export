@@ -139,6 +139,11 @@ class EntryBase(ModelBase):
         default=False,
         description="The index takes this axis entry's name, as AlphaPeptTools' levels need.",
     )
+    drop_missing: bool = Field(
+        default=False,
+        description="A wide var entry: features whose value is missing or empty are left out "
+        "and counted, as ProteoPy needs a protein for every peptide.",
+    )
 
     @model_validator(mode="after")
     def _width_is_for_numbers(self) -> Self:

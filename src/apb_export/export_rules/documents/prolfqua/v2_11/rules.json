@@ -93,7 +93,7 @@
                 "separator": "~",
                 "index_only": true
               },
-              {"name": "protein_Id", "source": {"role": "protein_assignment"}},
+              {"name": "protein_Id", "source": {"role": "protein_assignment"}, "drop_missing": true},
               {
                 "name": "IDcolumn",
                 "source": [{"fasta": "reported_leading_accession"}, {"role": "protein_assignment"}]
@@ -188,7 +188,7 @@
                 "separator": "~",
                 "index_only": true
               },
-              {"name": "protein_Id", "source": {"role": "protein_assignment"}},
+              {"name": "protein_Id", "source": {"role": "protein_assignment"}, "drop_missing": true},
               {
                 "name": "IDcolumn",
                 "source": [{"fasta": "reported_leading_accession"}, {"role": "protein_assignment"}]

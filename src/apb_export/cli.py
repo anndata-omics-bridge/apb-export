@@ -2,8 +2,8 @@
 
 One subcommand per target, each reading the APB2 levels its export rule names: APB2 converts
 the vendor files, apb2's sample annotation attaches ``--annotation``, apb-fasta checks the
-peptides against an optional ``--fasta``, or annotates the proteins when the target reads
-proteins alone, and :class:`~apb_export.api.Exporter` builds the file. Existing files are never overwritten.
+peptides and protein groups against an optional ``--fasta``, and
+:class:`~apb_export.api.Exporter` builds the file. Existing files are never overwritten.
 """
 
 from __future__ import annotations
@@ -54,9 +54,9 @@ Fasta = Annotated[
     tuple[Path, ...],
     Parameter(
         negative=False,
-        help="Optional FASTA files, or their protein-fasta database: check the peptides first, or "
-        "annotate the protein groups of a protein-only target, and log how many the FASTA holds; "
-        "msmu also flags the FASTA's contaminants",
+        help="Optional FASTA files, or their protein-fasta database: check the peptides and "
+        "annotate the protein groups first, and log how many the FASTA holds; msmu also flags "
+        "the FASTA's contaminants",
     ),
 ]
 
@@ -123,10 +123,21 @@ def _exported(
 
 
 def _fasta_checked(parsed: ParsedLevels, fasta: tuple[Path, ...]) -> ParsedLevels:
-    """Verify the peptides against the FASTA, or annotate the proteins of a protein-only result,
-    and log the coverage."""
+    """Verify the peptides and annotate the protein groups the result holds against the FASTA,
+    and log the coverage; protein groups need apb2's ``fasta_accessions`` role."""
     annotator = FastaAnnotator.read(fasta)
-    if set(parsed.levels) == {"protein"}:
+    if set(parsed.levels) - {"protein"}:
+        verified = annotator.verify_peptides(parsed)
+        for level, coverage in verified.reports.peptide_levels.items():
+            logger.info(
+                f"fasta level={level} peptides_in_fasta={coverage.matched_feature_count}/"
+                f"{coverage.feature_count - coverage.decoy_feature_count} "
+                f"unmatched={coverage.unmatched_feature_count} "
+                f"decoys={coverage.decoy_feature_count}"
+            )
+        parsed = verified.parsed
+    protein = parsed.levels.get("protein")
+    if protein is not None and "fasta_accessions" in protein.var.roles:
         annotated = annotator.merge_annotations(parsed)
         groups = annotated.reports.protein_groups
         if groups is not None:
@@ -135,15 +146,8 @@ def _fasta_checked(parsed: ParsedLevels, fasta: tuple[Path, ...]) -> ParsedLevel
                 f"{groups.member_count} unmatched={groups.unmatched_member_count} "
                 f"ambiguous={groups.ambiguous_member_count}"
             )
-        return annotated.parsed
-    result = annotator.verify_peptides(parsed)
-    for level, coverage in result.reports.peptide_levels.items():
-        logger.info(
-            f"fasta level={level} peptides_in_fasta={coverage.matched_feature_count}/"
-            f"{coverage.feature_count - coverage.decoy_feature_count} "
-            f"unmatched={coverage.unmatched_feature_count} decoys={coverage.decoy_feature_count}"
-        )
-    return result.parsed
+        parsed = annotated.parsed
+    return parsed
 
 
 def _summary(adata: ad.AnnData) -> str:

@@ -244,6 +244,62 @@ def test_prolfquapp_reads_maxquant_evidence_alone_from_its_ion_level(tmp_path: P
     assert "pg_qValue_experiment" not in adata.layers
 
 
+def test_proteopy_reads_precursors_as_peptides_without_a_protein_level(tmp_path: Path) -> None:
+    """ProteoPy's peptide-level data, as its own DIA-NN reader writes precursors."""
+    maxquant = write_maxquant(tmp_path, peptides=False)
+    levels = Exporter("proteopy").levels
+    compiler = ParseRuleCompiler(maxquant.folder, maxquant.params, requested_levels=levels)
+    adata = _anndata(Exporter("proteopy").export(compiler.compile().parse()))
+    var = _frame(adata.var)
+
+    assert level_part(adata)["export"]["provenance"]["source_level"] == "ion"
+    peptides = list(var["peptide_id"])
+    assert peptides == list(adata.var_names)
+    assert len(peptides) == len(set(peptides)), "peptide ids must be unique"
+    proteins = list(var["protein_id"])
+    assert all(isinstance(protein, str) and protein for protein in proteins), "one protein each"
+
+
+@pytest.mark.parametrize(
+    ("target", "protein"), [("proteopy", "protein_id"), ("prolfqua", "protein_Id")]
+)
+def test_precursors_without_a_protein_are_left_out(
+    tmp_path: Path, target: str, protein: str
+) -> None:
+    """ProteoPy and prolfquapp need a protein per feature; PEAKS and DIA-NN leave some without."""
+    maxquant = write_maxquant(tmp_path, peptides=False)
+    levels = Exporter(target).levels
+    compiler = ParseRuleCompiler(maxquant.folder, maxquant.params, requested_levels=levels)
+    parsed = compiler.compile().parse()
+    ion = parsed.levels["ion"]
+    column = ion.var.roles["protein_assignment"]
+    unassigned = pl.when(pl.int_range(pl.len()) == 0).then(None).otherwise(pl.col(column))
+    var = replace(ion.var, frame=ion.var.frame.with_columns(unassigned.alias(column)))
+    result = replace(parsed, levels={**parsed.levels, "ion": replace(ion, var=var)})
+
+    adata = _anndata(Exporter(target).export(result))
+
+    assert adata.n_vars == ion.var.frame.height - 1
+    assert adata.X is not None and adata.X.shape == (adata.n_obs, adata.n_vars)
+    sources = level_part(adata)["export"]["provenance"]["sources"]
+    assert sources[f"var.{protein}"]["dropped"] == "1"
+
+
+def test_proteopy_leaves_out_a_protein_group_without_a_name(diann: DiannInput) -> None:
+    """DIA-NN's protein level holds an unnamed group when precursors lack Protein.Group."""
+    parsed = _parsed(diann)
+    protein = parsed.levels["protein"]
+    column = protein.var.roles["protein_assignment"]
+    unnamed = pl.when(pl.int_range(pl.len()) == 0).then(pl.lit("")).otherwise(pl.col(column))
+    var = replace(protein.var, frame=protein.var.frame.with_columns(unnamed.alias(column)))
+    result = replace(parsed, levels={**parsed.levels, "protein": replace(protein, var=var)})
+
+    adata = _anndata(Exporter("proteopy").export(result))
+
+    assert adata.n_vars == protein.var.frame.height - 1
+    assert "" not in set(_frame(adata.var)["protein_id"])
+
+
 def test_alphapepttools_levels_link_by_their_ids(diann: DiannInput, tmp_path: Path) -> None:
     mdata = _written("alphapepttools", _parsed(diann), tmp_path)
     assert isinstance(mdata, md.MuData)
@@ -274,7 +330,7 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
         "alphapepttools": (("ion", "peptide", "protein"), ".h5mu"),
         "msmu": (("ion",), ".h5mu"),
         "prolfqua": (("peptide", "ion", "protein"), ".h5ad"),
-        "proteopy": (("protein",), ".h5ad"),
+        "proteopy": (("protein", "ion"), ".h5ad"),
     }
 
 

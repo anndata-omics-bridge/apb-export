@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 import polars as pl
 from apb2.api import JsonValue, ParsedLevels, UnsJsonCodec
+from loguru import logger
 
 from apb_export.computed import compute, dtype
 from apb_export.container import Index, Matrix, long_anndata, mudata, wide_anndata
@@ -221,8 +222,10 @@ class _LevelExport:
         uns = self._bind_group("uns", rule.uns, _UNS_TAKES)
         obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
         var = self._columns(bound["var"], FeatureRows(self._level.var.frame.height))
+        kept = self._kept(var, rule.columns.var)
+        var = [column.filter(kept) for column in var]
         matrices = {
-            entry.name: _matrix(values.values, entry)
+            entry.name: _matrix(values.values.filter(kept), entry)
             for entry, values in found
             if values is not None
         }
@@ -292,6 +295,20 @@ class _LevelExport:
         if repeated:
             raise ValueError(f"level {self._rule.level!r} writes columns {repeated} twice")
         return columns
+
+    def _kept(self, columns: list[pl.Series], entries: Entries) -> pl.Series:
+        """Features holding a value in every ``drop_missing`` column; the others are counted."""
+        dropping = {e.name for e in entries if not isinstance(e, AllValues) and e.drop_missing}
+        kept = pl.Series([True] * self._level.var.frame.height)
+        for column in (column for column in columns if column.name in dropping):
+            kept &= (column.is_not_null() & (column.cast(pl.String) != "")).fill_null(value=False)
+            key = f"var.{column.name}"
+            dropped = kept.len() - kept.sum()
+            self._provenance[key] = {**self._provenance[key], "dropped": str(dropped)}
+            logger.info(
+                f"level {self._rule.level}: {dropped} features without {column.name} left out"
+            )
+        return kept
 
     @staticmethod
     def _index(columns: list[pl.Series], key: str, entries: Entries, group: str) -> Index:
