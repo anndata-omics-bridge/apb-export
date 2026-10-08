@@ -66,6 +66,12 @@ class FastaSource(ModelBase):
         "fasta_matching_organisms",
         "fasta_matches_contaminant",
         "peptide_in_reported_protein",
+        "reported_leading_id",
+        "reported_leading_accession",
+        "reported_leading_description",
+        "reported_leading_gene_name",
+        "reported_leading_protein_length",
+        "reported_leading_tryptic_peptides",
     ]
 
 

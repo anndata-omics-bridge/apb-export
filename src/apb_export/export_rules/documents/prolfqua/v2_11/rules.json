@@ -94,6 +94,31 @@
                 "index_only": true
               },
               {"name": "protein_Id", "source": {"role": "protein_assignment"}},
+              {
+                "name": "IDcolumn",
+                "source": [{"fasta": "reported_leading_accession"}, {"role": "protein_assignment"}]
+              },
+              {
+                "name": "fasta.id",
+                "source": [{"fasta": "reported_leading_id"}, {"role": "protein_assignment"}]
+              },
+              {
+                "name": "description",
+                "source": [{"fasta": "reported_leading_description"}, {"role": "protein_assignment"}]
+              },
+              {"name": "gene_name", "source": {"fasta": "reported_leading_gene_name"}, "required": false},
+              {
+                "name": "protein_length",
+                "source": {"fasta": "reported_leading_protein_length"},
+                "type": "number",
+                "required": false
+              },
+              {
+                "name": "nr_tryptic_peptides",
+                "source": {"fasta": "reported_leading_tryptic_peptides"},
+                "type": "number",
+                "required": false
+              },
               {"name": "peptide_Id", "source": "ProForma_peptide"},
               {"name": "nr_children", "how": "constant", "value": 1, "type": "integer"}
             ]
@@ -133,8 +158,8 @@
               "value": {
                 "pID": "protein_Id",
                 "full_id": "protein_Id",
-                "description": "protein_Id",
-                "cleaned_ids": "protein_Id",
+                "description": "description",
+                "cleaned_ids": "IDcolumn",
                 "exp_nr_children": "nrPeptides",
                 "pattern_contaminants": "^zz|^CON|Cont_",
                 "pattern_decoys": "^REV_|^rev"
@@ -163,6 +188,31 @@
                 "index_only": true
               },
               {"name": "protein_Id", "source": {"role": "protein_assignment"}},
+              {
+                "name": "IDcolumn",
+                "source": [{"fasta": "reported_leading_accession"}, {"role": "protein_assignment"}]
+              },
+              {
+                "name": "fasta.id",
+                "source": [{"fasta": "reported_leading_id"}, {"role": "protein_assignment"}]
+              },
+              {
+                "name": "description",
+                "source": [{"fasta": "reported_leading_description"}, {"role": "protein_assignment"}]
+              },
+              {"name": "gene_name", "source": {"fasta": "reported_leading_gene_name"}, "required": false},
+              {
+                "name": "protein_length",
+                "source": {"fasta": "reported_leading_protein_length"},
+                "type": "number",
+                "required": false
+              },
+              {
+                "name": "nr_tryptic_peptides",
+                "source": {"fasta": "reported_leading_tryptic_peptides"},
+                "type": "number",
+                "required": false
+              },
               {"name": "peptide_Id", "source": "ProForma_peptide"},
               {"name": "precursor_Id", "source": "ProForma_ion"},
               {"name": "nr_children", "how": "constant", "value": 1, "type": "integer"}
@@ -207,8 +257,8 @@
               "value": {
                 "pID": "protein_Id",
                 "full_id": "protein_Id",
-                "description": "protein_Id",
-                "cleaned_ids": "protein_Id",
+                "description": "description",
+                "cleaned_ids": "IDcolumn",
                 "exp_nr_children": "nrPeptides",
                 "pattern_contaminants": "^zz|^CON|Cont_",
                 "pattern_decoys": "^REV_|^rev"

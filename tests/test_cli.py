@@ -158,6 +158,32 @@ def test_prolfqua_takes_its_factors_from_the_annotation(diann: DiannInput, tmp_p
     assert list(adata.obs["condition"]) == ["A", "A", "B", "B"]
 
 
+def test_prolfqua_annotates_proteins_from_the_fasta(diann: DiannInput, tmp_path: Path) -> None:
+    fasta = tmp_path / "proteins.fasta"
+    fasta.write_text(
+        ">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE PE=1 SV=1\nMPEPTIDEKAACLLKR\n"
+    )
+    plain, checked = tmp_path / "plain.h5ad", tmp_path / "checked.h5ad"
+    common = ("--params", str(diann.log))
+
+    assert _run("prolfqua", str(diann.report), str(plain), *common) == 0
+    assert _run("prolfqua", str(diann.report), str(checked), *common, "--fasta", str(fasta)) == 0
+
+    without = ad.read_h5ad(plain)
+    annotated = ad.read_h5ad(checked)
+    annotation = annotated.uns["prolfquapp"]["protein_annotation"]
+    assert (annotation["description"], annotation["cleaned_ids"]) == ("description", "IDcolumn")
+    assert isinstance(without.var, pd.DataFrame) and isinstance(annotated.var, pd.DataFrame)
+    assert (without.var["description"] == without.var["protein_Id"]).all()
+    assert "gene_name" not in without.var.columns
+    one = annotated.var[annotated.var["protein_Id"] == "P1"].iloc[0]
+    assert (one["IDcolumn"], one["fasta.id"], one["gene_name"]) == ("P1", "sp|P1|ONE_HUMAN", "ONE")
+    assert one["description"] == "One OS=Homo sapiens OX=9606 GN=ONE PE=1 SV=1"
+    assert (one["protein_length"], one["nr_tryptic_peptides"]) == (16, 1)
+    absent = annotated.var[annotated.var["protein_Id"] == "P7"].iloc[0]
+    assert pd.isna(absent["description"]), "a protein the FASTA lacks gets no description"
+
+
 def test_proteopy_and_alphapepttools_write_their_files_and_sidecars(
     diann: DiannInput, tmp_path: Path
 ) -> None:

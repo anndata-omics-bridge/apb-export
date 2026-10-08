@@ -193,7 +193,14 @@ def test_prolfquapp_reads_maxquant_from_its_peptide_level(tmp_path: Path) -> Non
     config = adata.uns["prolfquapp"]["analysis_configuration"]
 
     assert adata.uns["apb"]["source_level"] == "peptide", "peptides.txt, as prolfquapp reads it"
-    assert list(var.columns) == ["protein_Id", "peptide_Id", "nr_children"]
+    assert list(var.columns) == [
+        "protein_Id",
+        "IDcolumn",
+        "fasta.id",
+        "description",
+        "peptide_Id",
+        "nr_children",
+    ]
     assert set(config["hierarchy"]) == {"protein_Id", "peptide_Id"}
     assert dict(zip(var["peptide_Id"], var["protein_Id"], strict=True)) == {
         sequence: razor for sequence, _, razor in PEPTIDES
