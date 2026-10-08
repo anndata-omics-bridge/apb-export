@@ -53,8 +53,8 @@ Fasta = Annotated[
     tuple[Path, ...],
     Parameter(
         negative=False,
-        help="Optional FASTA files, or their protein-fasta database: check the peptides first, "
-        "so the FASTA's contaminants are flagged beside the vendor's own",
+        help="Optional FASTA files, or their protein-fasta database: check the peptides first and "
+        "log how many the FASTA holds; msmu also flags the FASTA's contaminants",
     ),
 ]
 
@@ -203,6 +203,7 @@ def prolfqua(
     abundance: Abundance = None,
     annotation: SampleAnnotation = None,
     strict: Strict = False,
+    fasta: Fasta = (),
 ) -> int:
     """APB2's ion level for prolfquapp; the annotation's columns become its factors."""
     return _write(
@@ -215,6 +216,7 @@ def prolfqua(
             abundance=abundance,
             annotation=annotation,
             strict=strict,
+            fasta=fasta,
         ),
         output,
     )
@@ -258,6 +260,7 @@ def alphapepttools(
     software: Software = None,
     annotation: SampleAnnotation = None,
     strict: Strict = False,
+    fasta: Fasta = (),
 ) -> int:
     """APB2's ion, peptide and protein levels as AlphaPeptTools modalities, each primary layer."""
     return _write(
@@ -270,6 +273,7 @@ def alphapepttools(
             abundance=None,
             annotation=annotation,
             strict=strict,
+            fasta=fasta,
         ),
         output,
     )

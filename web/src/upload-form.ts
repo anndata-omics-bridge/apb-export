@@ -17,15 +17,9 @@ export function sourceLabel (url: string): string {
 }
 
 // What an example run includes: the result alone, with its parameters, or with both and the
-// sample annotation, and then also its module's FASTA; a result without a parameter file, such
-// as pb_custom's, with the SDRF alone or with the FASTA. The server links exactly these files.
-export type ExampleFiles =
-  | 'data'
-  | 'data,params'
-  | 'data,params,annotation'
-  | 'data,params,annotation,fasta'
-  | 'data,annotation'
-  | 'data,annotation,fasta'
+// sample annotation; a result without a parameter file, such as pb_custom's, with the SDRF
+// alone. "+ FASTA" adds the module's FASTA to any of them. The server links exactly these files.
+export type ExampleFiles = 'data' | 'data,params' | 'data,params,annotation' | 'data,annotation'
 
 interface Variant {
   files: ExampleFiles
@@ -36,16 +30,12 @@ const VARIANTS: Array<Variant & { phrase: string }> = [
   { files: 'data', label: 'Result file only', phrase: 'result file only' },
   { files: 'data,params', label: '+ parameter file', phrase: 'result and parameter file' },
   { files: 'data,params,annotation', label: '+ parameters + SDRF', phrase: 'result, parameters and SDRF' },
-  { files: 'data,params,annotation,fasta', label: '+ parameters + SDRF + FASTA', phrase: 'result, parameters, SDRF and FASTA' },
-  { files: 'data,annotation', label: '+ SDRF', phrase: 'result file and SDRF' },
-  { files: 'data,annotation,fasta', label: '+ SDRF + FASTA', phrase: 'result file, SDRF and FASTA' }
+  { files: 'data,annotation', label: '+ SDRF', phrase: 'result file and SDRF' }
 ]
 
 // An example with a parameter file adds it before the SDRF; one without adds the SDRF alone.
 const variantsOf = (example: Example): typeof VARIANTS =>
-  VARIANTS.filter(({ files }) =>
-    (files.includes('params') ? example.params !== null : files === 'data' || example.params === null) &&
-    (!files.endsWith('fasta') || example.fasta !== null))
+  VARIANTS.filter(({ files }) => files.includes('params') ? example.params !== null : files === 'data' || example.params === null)
 
 // Software first, then either an example or the user's own files. Emits `submit-job` with the
 // multipart form the server's POST /api/jobs reads.
@@ -59,7 +49,8 @@ export class ApbUploadForm extends LitElement {
     hasData: { state: true },
     hasParams: { state: true },
     example: { state: true },
-    exampleFiles: { state: true }
+    exampleFiles: { state: true },
+    exampleFasta: { state: true }
   }
 
   options: Options | null = null
@@ -71,6 +62,7 @@ export class ApbUploadForm extends LitElement {
   hasParams = false
   example: Example | null = null
   exampleFiles: ExampleFiles = 'data,params,annotation'
+  exampleFasta = false
 
   createRenderRoot (): this { return this }
 
@@ -100,10 +92,7 @@ export class ApbUploadForm extends LitElement {
   private unavailable (example: Example, files: ExampleFiles): string | null {
     if (files === 'data' && this.hint()?.params_required && example.label === example.software) return `${example.software} needs its parameter file`
     if (files.includes('params') && example.params === null) return 'this example has no parameter file'
-    if (files.includes('annotation') && example.annotation === null) return 'this example has no SDRF'
-    if (files.endsWith('fasta') && example.fasta === null) return 'this example has no FASTA'
-    const output = this.chosen()
-    if (files.endsWith('fasta') && output !== undefined && !output.fasta) return `${output.about.title} takes no FASTA`
+    if (files.endsWith('annotation') && example.annotation === null) return 'this example has no SDRF'
     return null
   }
 
@@ -115,7 +104,7 @@ export class ApbUploadForm extends LitElement {
     form.append('output', output.id)
     if (this.example) {
       form.append('example', this.example.id)
-      form.append('example_files', this.exampleFiles)
+      form.append('example_files', this.exampleFasta ? `${this.exampleFiles},fasta` : this.exampleFiles)
     } else {
       const data = [...(this.querySelector<HTMLInputElement>('input[name="data"]')?.files ?? [])]
       if (data.length === 0) return
@@ -175,17 +164,43 @@ export class ApbUploadForm extends LitElement {
                   const active = this.example === example && this.exampleFiles === files
                   return html`
                     <button type="button" class="secondary ${active ? 'active' : ''}" ?disabled=${reason !== null}
-                      title=${reason ?? ''} @click=${() => { this.example = example; this.exampleFiles = files }}>
+                      title=${reason ?? ''} @click=${() => { this.choose(example, files) }}>
                       ${label}
                     </button>
                   `
                 })}
+                ${example.fasta === null
+                  ? nothing
+                  : html`
+                    <button type="button" class="secondary ${this.example === example && this.exampleFasta ? 'active' : ''}"
+                      aria-pressed=${this.example === example && this.exampleFasta ? 'true' : 'false'}
+                      title=${`Add ${example.fasta}; the result alone is enough`} @click=${() => { this.toggleFasta(example) }}>
+                      + FASTA
+                    </button>`}
               </div></td>
             </tr>
           `)}
         </table>
       </div>
     `
+  }
+
+  private choose (example: Example, files: ExampleFiles): void {
+    if (this.example !== example) this.exampleFasta = false
+    this.example = example
+    this.exampleFiles = files
+  }
+
+  // "+ FASTA" adds the module FASTA to the chosen files; on a row not chosen yet it picks the
+  // result file alone, since the FASTA check needs neither parameters nor an SDRF.
+  private toggleFasta (example: Example): void {
+    if (this.example !== example) {
+      this.example = example
+      this.exampleFiles = 'data'
+      this.exampleFasta = true
+      return
+    }
+    this.exampleFasta = !this.exampleFasta
   }
 
   private preview (event: Event, exampleId: string, name: string): void {
@@ -222,7 +237,7 @@ export class ApbUploadForm extends LitElement {
           </dd>
           <dt>Parameter file</dt><dd>${links('params', optional(example.params), optional(example.stored_params))}</dd>
           <dt>Sample annotation</dt><dd>${links('annotation', optional(example.annotation), optional(example.annotation))}</dd>
-          <dt>FASTA</dt><dd>${links('fasta', optional(example.fasta), optional(example.fasta))}</dd>
+          <dt>FASTA</dt><dd>${example.fasta === null ? '–' : this.exampleFasta ? fileLink(example.fasta) : html`<span class="note">not sent:</span> ${fileLink(example.fasta)}`}</dd>
         </dl>
         <p class="note">Click a file name to see its first lines.</p>
         <button type="button" class="secondary" @click=${() => { this.example = null }}>Upload my own files instead</button>
@@ -249,7 +264,7 @@ export class ApbUploadForm extends LitElement {
         <input type="file" name="annotation" ?disabled=${output !== undefined && !output.annotation}>
       </label>
       <label>
-        FASTA <span class="optional">optional; checks the peptides, and msmu flags its contaminants</span>
+        FASTA <span class="optional">optional; checks the peptides; msmu also flags its contaminants</span>
         <input type="file" name="fasta" accept=".fasta,.fa,.faa,.fas,.txt" ?disabled=${output !== undefined && !output.fasta}>
       </label>
       <p class="note">Up to ${formatBytes(this.options?.max_upload_bytes ?? 0)} in total.</p>
@@ -303,7 +318,7 @@ export class ApbUploadForm extends LitElement {
     if (!this.example && !this.hasData) return 'Try an example or add your result file.'
     if (!this.example && this.hint()?.params_required && !this.hasParams) return `${this.software} needs its parameter file.`
     const output = this.chosen()
-    if (this.example && this.exampleFiles.endsWith('fasta') && output !== undefined && !output.fasta) return `${output.about.title} takes no FASTA; choose the example without it.`
+    if (this.example && this.exampleFasta && output !== undefined && !output.fasta) return `${output.about.title} reads only proteins and takes no FASTA; switch "+ FASTA" off.`
     return null
   }
 
@@ -312,7 +327,8 @@ export class ApbUploadForm extends LitElement {
     if (!this.example) return `Converts your ${this.software} files to ${target}.`
     const variant = VARIANTS.find(({ files }) => files === this.exampleFiles)?.phrase ?? ''
     const version = this.example.version ? ` ${this.example.version}` : ''
-    return `Converts the ${this.example.label}${version} example (${variant}) to ${target}.`
+    const fasta = this.exampleFasta ? ' + FASTA' : ''
+    return `Converts the ${this.example.label}${version} example (${variant}${fasta}) to ${target}.`
   }
 
   private ready (): boolean {

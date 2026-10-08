@@ -110,12 +110,9 @@ def test_options_list_targets_formats_and_annotation_support(options: Options) -
     assert by_id["apb-export:prolfqua"].annotation
     assert not by_id["apb-export:msmu"].annotation, "msmu's command takes no --annotation"
     assert {"apb2:hdf5", "apb2:parquet", "apb2:duckdb"} <= by_id.keys()
-    assert {output for output, offered in by_id.items() if offered.fasta} == {
-        "apb-export:msmu",
-        "apb2:hdf5",
-        "apb2:parquet",
-        "apb2:duckdb",
-    }, "only msmu reads the FASTA check; APB2 results keep it"
+    assert {output for output, offered in by_id.items() if not offered.fasta} == {
+        "apb-export:proteopy"
+    }, "ProteoPy reads only proteins, so it has no peptide to check"
 
 
 def test_an_msmu_job_flags_the_uploaded_fastas_contaminants(
@@ -156,7 +153,7 @@ def test_an_output_that_reads_no_fasta_refuses_one(
     client: tuple[TestClient, Worker, JobStore], diann: DiannInput, tmp_path: Path
 ) -> None:
     test_client, _, store = client
-    response = _post(test_client, diann, "apb-export:prolfqua", fasta=_fasta(tmp_path))
+    response = _post(test_client, diann, "apb-export:proteopy", fasta=_fasta(tmp_path))
 
     assert response.status_code == 400
     assert "takes no FASTA" in response.text
@@ -580,6 +577,7 @@ def test_a_result_only_example_sends_the_result_and_the_software(
             ["convert", "annotate", "verify-peptides", "qc", "package"],
             "condition",
         ),
+        ("data,params,fasta", ["convert", "verify-peptides", "qc", "package"], ALL_SAMPLES),
     ],
 )
 def test_an_example_adds_params_then_annotation(
