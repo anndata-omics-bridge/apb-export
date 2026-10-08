@@ -63,14 +63,8 @@
                 "inputs": ["ProForma_peptide"],
                 "type": "integer"
               },
-              {"name": "decoy", "how": "constant", "value": 0, "type": "integer"},
-              {
-                "name": "contaminant",
-                "how": "contaminant",
-                "inputs": [{"role": "fasta_accessions"}],
-                "syntax": "msmu",
-                "type": "integer"
-              },
+              {"name": "decoy", "source": "apb_Decoy", "type": "integer"},
+              {"name": "contaminant", "how": "contaminant", "type": "integer"},
               {
                 "name": "PEP",
                 "source": {

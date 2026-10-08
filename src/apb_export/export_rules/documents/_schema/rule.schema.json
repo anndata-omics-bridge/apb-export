@@ -469,7 +469,7 @@
     },
     "Contaminant": {
       "additionalProperties": false,
-      "description": "Whether any protein-group member carries a contaminant marker of the syntax.",
+      "description": "Whether the row is a contaminant: apb2's ``apb_Contaminant``, the contaminants the\nsoftware flags or adds itself, or apb-fasta's FASTA contaminant match where the result\nwas FASTA-checked.",
       "properties": {
         "name": {
           "description": "The target field; apb2's rules name APB fields.",
@@ -520,30 +520,25 @@
           "const": "contaminant",
           "title": "How",
           "type": "string"
-        },
-        "inputs": {
-          "items": {
-            "$ref": "#/$defs/Reference"
-          },
-          "maxItems": 1,
-          "minItems": 1,
-          "title": "Inputs",
-          "type": "array"
-        },
-        "syntax": {
-          "minLength": 1,
-          "title": "Syntax",
-          "type": "string"
         }
       },
       "required": [
         "name",
-        "how",
-        "inputs",
-        "syntax"
+        "how"
       ],
       "title": "Contaminant",
       "type": "object"
+    },
+    "FixedColumn": {
+      "enum": [
+        "ProForma_peptide",
+        "ProForma_peptidoform",
+        "ProForma_ion",
+        "ProForma_fragment",
+        "apb_Decoy",
+        "apb_Contaminant"
+      ],
+      "type": "string"
     },
     "FloatWidth": {
       "enum": [
@@ -853,19 +848,10 @@
       "title": "ProformaCharge",
       "type": "object"
     },
-    "ProformaColumn": {
-      "enum": [
-        "ProForma_peptide",
-        "ProForma_peptidoform",
-        "ProForma_ion",
-        "ProForma_fragment"
-      ],
-      "type": "string"
-    },
     "Reference": {
       "anyOf": [
         {
-          "$ref": "#/$defs/ProformaColumn"
+          "$ref": "#/$defs/FixedColumn"
         },
         {
           "$ref": "#/$defs/RoleSource"

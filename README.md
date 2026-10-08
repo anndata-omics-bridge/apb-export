@@ -71,7 +71,7 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 
 ## Protein groups
 
-Written as msmu's readers write them: members split on `;`, the accession taken from a UniProt `db|ACC|NAME` entry, contaminants marked `contam_`, `Cont_` or `CON__` written `Cont_ACC` and flagged in `contaminant`.
+Written as msmu's readers write them: members split on `;`, the accession taken from a UniProt `db|ACC|NAME` entry, and members spelled `contam_`, `Cont_` or `CON__` respelled `Cont_ACC`. `contaminant` flags a row that apb2 marked `apb_Contaminant`, a contaminant the software flags or adds itself, or that apb-fasta matched to a FASTA contaminant; without `apb-fasta verify-peptides` only the first is known.
 
 ## Web app
 
@@ -92,7 +92,7 @@ To deploy, `make image` builds `ghcr.io/anndata-omics-bridge/apb-export:local` f
 
 - Needs APB2's `ion` level; a vendor export without one (Sage's `lfq.tsv` is peptide-level) is refused
 - Label-free only: a result keyed by more than one observation column, as multiplexed designs are, is refused
-- No decoys: `decoy` is 0; msmu's target-decoy q-values need decoys, so use `calculate_q=False`
+- `decoy` is apb2's `apb_Decoy`; most exports carry no decoys, and msmu's target-decoy q-values need them, so use `calculate_q=False` unless the vendor kept them
 - Group separators other than `;` pass through unchanged; no APB2 rule declares its separator
 - Retention time is not mapped to `rt`, since no catalogue names it; it stays in `varm["search_result"]`
 

@@ -72,12 +72,6 @@ def _accessions(series: pl.Series, syntax: AccessionSyntax) -> pl.Series:
     return frame.select(rewritten).to_series()
 
 
-def _contaminant(series: pl.Series, syntax: AccessionSyntax) -> pl.Series:
-    frame, members = _members(series, syntax)
-    flagged = members.list.eval(_is_contaminant(pl.element(), syntax.contaminant_markers))
-    return frame.select(flagged.list.any()).to_series()
-
-
 def compute(
     entry: Computed, inputs: Sequence[pl.Series], syntax: Mapping[str, AccessionSyntax]
 ) -> pl.Series:
@@ -92,6 +86,6 @@ def compute(
         case Accessions():
             return _accessions(inputs[0], syntax[entry.syntax])
         case Contaminant():
-            return _contaminant(inputs[0], syntax[entry.syntax])
+            return inputs[0]
         case Lowercase():
             return inputs[0].cast(pl.Utf8).str.to_lowercase()

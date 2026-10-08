@@ -9,6 +9,7 @@ import anndata as ad
 import mudata as md
 import numpy as np
 import pandas as pd
+import polars as pl
 import pytest
 from apb2.api import ParsedLevels, ParseRuleCompiler
 from scipy import sparse
@@ -93,11 +94,32 @@ def test_protein_groups_are_written_as_msmu_writes_them(diann: DiannInput) -> No
 
     assert var.loc["run_A1.AAC[UNIMOD:4]LLK/2", "proteins"] == "P2"
     assert var.loc["run_A1.CONTPEPK/2", "proteins"] == "Cont_P4"
-    assert var.loc["run_A1.CONTPEPK/2", "contaminant"] == 1
     # SHAREDK is absent from run_A1 by design (see conftest.observed).
     assert var.loc["run_A2.SHAREDK/2", "proteins"] == "P5;Cont_P6"
+    # DIA-NN marks nothing and nothing was FASTA-checked, so nothing is a contaminant or decoy.
+    assert (var["contaminant"] == 0).all()
+    assert (var["decoy"] == 0).all()
+
+
+def test_contaminants_merge_the_vendor_marking_and_the_fasta_match(diann: DiannInput) -> None:
+    parsed = _parsed(diann)
+    level = parsed.levels["ion"]
+    ions = level.var.frame.get_column("ProForma_ion")
+    level.var.frame = level.var.frame.with_columns(
+        (ions == "SHAREDK/2").alias("apb_Contaminant"),
+        (ions == "LASTPEPK/2").alias("apb_Decoy"),
+    )
+    level.varm["fasta_validation"] = pl.DataFrame(
+        {"fasta_matches_contaminant": (ions == "CONTPEPK/2").to_list()}
+    )
+
+    var = _var(Exporter("msmu").export(parsed)["psm"])
+
+    assert var.loc["run_A1.CONTPEPK/2", "contaminant"] == 1
     assert var.loc["run_A2.SHAREDK/2", "contaminant"] == 1
     assert var.loc["run_A1.PEPTIDEK/2", "contaminant"] == 0
+    assert var.loc["run_A1.LASTPEPK/2", "decoy"] == 1
+    assert var.loc["run_A1.PEPTIDEK/2", "decoy"] == 0
 
 
 def test_every_source_value_is_kept_in_search_result(diann: DiannInput) -> None:

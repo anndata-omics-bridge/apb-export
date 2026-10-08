@@ -28,6 +28,10 @@ from apb_export.export_rules.schema import (
 
 type Provenance = dict[str, str]
 
+_CONTAMINANT = "apb_Contaminant"
+_FASTA_TABLE = "fasta_validation"
+_FASTA_CONTAMINANT = "fasta_matches_contaminant"
+
 _MEMBERS = ";"
 """How APB2 joins a protein group's members, as the vendors write them."""
 
@@ -121,6 +125,23 @@ class LevelSources:
             if resolved is not None:
                 return resolved
         return None
+
+    def contaminants(self) -> VarValues:
+        """apb2's vendor contaminant marking, merged with apb-fasta's FASTA match if present.
+
+        Raises:
+            ValueError: The level lacks ``apb_Contaminant``, which every apb2 rule writes.
+        """
+        frame = self._level.var.frame
+        if _CONTAMINANT not in frame.columns:
+            raise ValueError(f"export needs apb2's {_CONTAMINANT} marking on level {self._name!r}")
+        marked = frame.get_column(_CONTAMINANT)
+        provenance: Provenance = {"location": "var", "name": _CONTAMINANT}
+        fasta = self._level.varm.get(_FASTA_TABLE)
+        if fasta is not None and _FASTA_CONTAMINANT in fasta.columns:
+            marked = marked | fasta.get_column(_FASTA_CONTAMINANT)
+            provenance["fasta"] = f"varm.{_FASTA_TABLE}.{_FASTA_CONTAMINANT}"
+        return VarValues(marked, provenance)
 
     def _reference(self, reference: Reference) -> Resolved | None:
         match reference:

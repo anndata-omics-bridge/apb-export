@@ -14,8 +14,13 @@ type SchemaVersion = Literal["0.1"]
 type ColumnType = Literal["string", "integer", "number", "boolean"]
 type FloatWidth = Literal[32, 64]
 type Scalar = str | int | float | bool | None
-type ProformaColumn = Literal[
-    "ProForma_peptide", "ProForma_peptidoform", "ProForma_ion", "ProForma_fragment"
+type FixedColumn = Literal[
+    "ProForma_peptide",
+    "ProForma_peptidoform",
+    "ProForma_ion",
+    "ProForma_fragment",
+    "apb_Decoy",
+    "apb_Contaminant",
 ]
 """The column names apb2's rule schema fixes for every vendor."""
 
@@ -72,7 +77,7 @@ class CatalogueSource(ModelBase):
 
 
 type Reference = (
-    ProformaColumn | RoleSource | AxisSource | MeasurementSource | RuleSource | CatalogueSource
+    FixedColumn | RoleSource | AxisSource | MeasurementSource | RuleSource | CatalogueSource
 )
 type Source = Reference | list[Reference]
 """One APB reference, or candidates in order: the first one that resolves is used."""
@@ -154,11 +159,11 @@ class Accessions(EntryBase):
 
 
 class Contaminant(EntryBase):
-    """Whether any protein-group member carries a contaminant marker of the syntax."""
+    """Whether the row is a contaminant: apb2's ``apb_Contaminant``, the contaminants the
+    software flags or adds itself, or apb-fasta's FASTA contaminant match where the result
+    was FASTA-checked."""
 
     how: Literal["contaminant"]
-    inputs: list[Reference] = Field(min_length=1, max_length=1)
-    syntax: str = Field(min_length=1)
 
 
 class Lowercase(EntryBase):

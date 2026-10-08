@@ -27,6 +27,7 @@ from apb_export.export_rules.schema import (
     CatalogueSource,
     ColumnEntry,
     Constant,
+    Contaminant,
     EntryBase,
     LayerEntry,
     SourcedEntry,
@@ -94,6 +95,9 @@ def _bind(
     """Resolve an entry's sources; ``None`` skips an optional entry with nothing to fill."""
     if isinstance(entry, Constant | AnnotationMap):
         return _Bound(entry, (), {"how": entry.how})
+    if isinstance(entry, Contaminant):
+        merged = sources.contaminants()
+        return _Bound(entry, (merged,), {"how": entry.how, "inputs": _describe(merged.provenance)})
     found = (
         [sources.resolve(entry.source)]
         if isinstance(entry, SourcedEntry)
