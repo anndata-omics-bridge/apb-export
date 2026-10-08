@@ -47,7 +47,7 @@ msmu's own layout, as `msmu.read_diann` writes it:
 - `X`: block-diagonal sparse float32, the chosen abundance layer (`--abundance`, APB2's primary layer by default)
 - `var`: `proteins`, `peptide`, `stripped_peptide`, `filename`, `charge`, `peptide_length`, `decoy`, `contaminant`, `PEP`, and `q_value` where reported
 - `varm["search_result"]`: every APB2 feature column and every layer value at that cell
-- `uns`: msmu's reader settings, plus `uns["apb"]` with the export rule, each field's APB source, the parse plan and versions
+- `uns`: msmu's reader settings, plus APB metadata as in an APB2 result: the MuData's `uns["apb"]` holds the result's root records and the `export` record (rule, target, versions); each modality's `uns["apb"]` holds that level's apb2 records unchanged and the `export` record with each field's APB source and a summary
 
 `peptide` is ProForma for every vendor (`AC[UNIMOD:4]K`), not each vendor's own notation. msmu's modification parser reads it, and `to_ptm` takes the tag as written, for example `"[UNIMOD:21]"`.
 

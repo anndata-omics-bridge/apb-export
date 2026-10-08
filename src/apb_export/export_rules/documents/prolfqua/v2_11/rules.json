@@ -147,6 +147,7 @@
                 "is_response_transformed": false,
                 "factor_depth": 1,
                 "hierarchy": {"protein_Id": ["protein_Id"], "peptide_Id": ["peptide_Id"]},
+                "hierarchy_keys": ["protein_Id", "peptide_Id"],
                 "hierarchy_depth": 1,
                 "min_peptides_protein": 2
               }
@@ -246,6 +247,7 @@
                   "peptide_Id": ["peptide_Id"],
                   "precursor_Id": ["precursor_Id"]
                 },
+                "hierarchy_keys": ["protein_Id", "peptide_Id", "precursor_Id"],
                 "hierarchy_depth": 1,
                 "min_peptides_protein": 2
               }

@@ -11,11 +11,11 @@ import copy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from importlib.metadata import version
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import polars as pl
-from apb2.api import ParsedLevels
+from apb2.api import JsonValue, ParsedLevels, UnsJsonCodec
 
 from apb_export.computed import compute, dtype
 from apb_export.container import Index, Matrix, long_anndata, mudata, wide_anndata
@@ -57,6 +57,7 @@ if TYPE_CHECKING:
     import mudata as md
 
 NAMESPACE = "apb"
+EXPORT_SCHEMA_VERSION = "1"
 _OBS_TAKES = (ObsValues, ScalarValue)
 _UNS_TAKES = (ScalarValue,)
 _VAR_TAKES = {
@@ -195,15 +196,17 @@ class _LevelExport:
         cells = select_cells(self._level, x.values, entry.missing_values)
         obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
         var = self._columns(bound["var"], CellRows(cells))
-        return long_anndata(
-            obs_index=self._index(obs, rule.axis.obs_keys[0], rule.columns.obs, "obs"),
-            obs=self._visible(obs, rule.columns.obs),
-            var_index=self._index(var, rule.axis.var_keys[0], rule.columns.var, "var"),
-            var=self._visible(var, rule.columns.var),
-            x=pl.Series(cells.values).cast(dtype("number", entry.width)).to_numpy(),
-            x_obs=cells.obs,
-            varm={table.name: all_values(self._level, cells) for table in rule.columns.varm},
-            uns=self._uns(uns),
+        return self._with_level_part(
+            long_anndata(
+                obs_index=self._index(obs, rule.axis.obs_keys[0], rule.columns.obs, "obs"),
+                obs=self._visible(obs, rule.columns.obs),
+                var_index=self._index(var, rule.axis.var_keys[0], rule.columns.var, "var"),
+                var=self._visible(var, rule.columns.var),
+                x=pl.Series(cells.values).cast(dtype("number", entry.width)).to_numpy(),
+                x_obs=cells.obs,
+                varm={table.name: all_values(self._level, cells) for table in rule.columns.varm},
+                uns=self._uns(uns),
+            )
         )
 
     def wide(self) -> ad.AnnData:
@@ -224,14 +227,16 @@ class _LevelExport:
             if values is not None
         }
         x = matrices.pop(primary)
-        return wide_anndata(
-            obs_index=self._index(obs, rule.axis.obs_keys[0], rule.columns.obs, "obs"),
-            obs=self._visible(obs, rule.columns.obs),
-            var_index=self._index(var, rule.axis.var_keys[0], rule.columns.var, "var"),
-            var=self._visible(var, rule.columns.var),
-            x=x,
-            layers=matrices,
-            uns=self._uns(uns),
+        return self._with_level_part(
+            wide_anndata(
+                obs_index=self._index(obs, rule.axis.obs_keys[0], rule.columns.obs, "obs"),
+                obs=self._visible(obs, rule.columns.obs),
+                var_index=self._index(var, rule.axis.var_keys[0], rule.columns.var, "var"),
+                var=self._visible(var, rule.columns.var),
+                x=x,
+                layers=matrices,
+                uns=self._uns(uns),
+            )
         )
 
     def _layer(self, entry: LayerEntry, *, primary: bool) -> LayerValues | None:
@@ -307,9 +312,7 @@ class _LevelExport:
         for item in bound:
             if isinstance(item, _Bound):
                 values.append((item.entry.name, self._uns_value(item)))
-        uns = _nest(values)
-        uns[NAMESPACE] = self._apb()
-        return uns
+        return _nest(values)
 
     def _uns_value(self, bound: _Bound) -> object:
         entry = bound.entry
@@ -320,21 +323,40 @@ class _LevelExport:
             return copy.deepcopy(entry.value)
         return _series(bound, ScalarRow(), self._rule.rule.accession_syntax).item()
 
-    def _apb(self) -> dict[str, object]:
-        """What wrote the container, from which rule, and each entry's APB source."""
-        rule = self._rule
+    def _with_level_part(self, adata: ad.AnnData) -> ad.AnnData:
+        """Store the level's APB part, built from what the container actually holds."""
+        adata.uns[NAMESPACE] = UnsJsonCodec().encode(self._level_part(adata), {})
+        return adata
+
+    def _level_part(self, adata: ad.AnnData) -> dict[str, JsonValue]:
+        """The exported level's apb2 records, unchanged, and the export's own record."""
+        matrices = (adata.X is not None) + len(adata.layers)
+        absent = sum(source.get("location") == "absent" for source in self._provenance.values())
         return {
-            "package": "apb-export",
-            "package_version": version("apb-export"),
-            "apb2_version": version("apb2"),
-            "target_name": rule.target_name,
-            "target_version_pattern": rule.target_version_pattern,
-            "export_rule": rule.document,
-            "export_rule_file_version": rule.file_version,
-            "source_level": rule.level,
-            "sources": self._provenance,
-            "rule_json": self._level.uns.get("rule_json"),
-            "plan_json": self._level.uns.get("plan_json"),
+            "parse": dict(self._level.uns),
+            **self._level.metadata,
+            "export": {
+                "provenance": {
+                    "source_level": self._rule.level,
+                    "sources": cast(JsonValue, self._provenance),
+                },
+                "summary": [
+                    {
+                        "name": "exported_matrices",
+                        "label": "Exported matrices",
+                        "value": matrices,
+                        "unit": "matrices",
+                        "status": "ok",
+                    },
+                    {
+                        "name": "absent_entries",
+                        "label": "Rule entries the result does not hold",
+                        "value": absent,
+                        "unit": "entries",
+                        "status": "ok",
+                    },
+                ],
+            },
         }
 
 
@@ -409,10 +431,38 @@ class CompiledExport:
             level = _LevelExport(rule, parsed, chosen.get(rule.level))
             built = level.long() if self.output.shape == "long" else level.wide()
             modalities[rule.rule.modality or rule.level] = built
+        root = UnsJsonCodec().encode(self._root_part(parsed), {})
         if self.extension == ".h5ad":
-            (adata,) = modalities.values()
+            # As in an apb2 h5ad: the level part under uns[<name>], the root part in uns["apb"].
+            ((name, adata),) = modalities.items()
+            if name in adata.uns:
+                raise ValueError(f"the export rule writes uns[{name!r}] itself")
+            adata.uns[name] = {NAMESPACE: adata.uns.pop(NAMESPACE)}
+            adata.uns[NAMESPACE] = root
             return adata
-        return mudata(modalities)
+        container = mudata(modalities)
+        container.uns[NAMESPACE] = root
+        return container
+
+    def _root_part(self, parsed: ParsedLevels) -> dict[str, JsonValue]:
+        """The result's root apb2 records, unchanged, and what wrote the container from which rule."""
+        rule = self.rules[0]
+        return {
+            "parse": dict(parsed.uns),
+            **parsed.metadata,
+            "export": {
+                "schema_version": EXPORT_SCHEMA_VERSION,
+                "provenance": {
+                    "package": "apb-export",
+                    "package_version": version("apb-export"),
+                    "apb2_version": version("apb2"),
+                    "target_name": rule.target_name,
+                    "target_version_pattern": rule.target_version_pattern,
+                    "export_rule": rule.document,
+                    "export_rule_file_version": rule.file_version,
+                },
+            },
+        }
 
     def _exported_by(self, parsed: ParsedLevels) -> list[EffectiveRule]:
         """The levels that export this result: those for its software that it holds.

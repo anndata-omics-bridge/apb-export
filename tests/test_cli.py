@@ -217,7 +217,8 @@ def test_proteopy_and_alphapepttools_write_their_files_and_sidecars(
     assert _run("alphapepttools", str(diann.report), str(linked), "--params", str(diann.log)) == 0
     assert "protein_id" in ad.read_h5ad(proteins).var.columns
     assert set(md.read_h5mu(linked).mod) == {"precursors", "proteins"}
-    for path, levels in ((proteins, ["proteins"]), (linked, ["precursors", "proteins"])):
+    # A standalone h5ad names its level by the uns key holding its APB part.
+    for path, levels in ((proteins, ["protein"]), (linked, ["precursors", "proteins"])):
         sidecar = json.loads(sidecar_path(path).read_text(encoding="utf-8"))
         assert [level["name"] for level in sidecar["levels"]] == levels, "Studio's viewer reads it"
 

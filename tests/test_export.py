@@ -15,7 +15,7 @@ from apb2.api import ParsedLevels, ParseRuleCompiler
 from scipy import sparse
 
 from apb_export.api import Exporter
-from conftest import RUNS, DiannInput, write_diann
+from conftest import RUNS, DiannInput, apb_part, export_sources, level_part, write_diann
 
 MSMU_DIANN_COLUMNS = [
     "proteins",
@@ -78,14 +78,14 @@ def test_quantities_and_confidence_come_from_the_report(diann: DiannInput) -> No
     assert _matrix(psm)[run, row] == pytest.approx(6000.0)
     assert var.iloc[row]["q_value"] == pytest.approx(0.006), "Global.Q.Value, not Q.Value"
     assert var.iloc[row]["PEP"] == pytest.approx(0.03)
-    assert psm.uns["apb"]["sources"]["var.q_value"]["kind"] == "global_q_value"
+    assert export_sources(psm)["var.q_value"]["kind"] == "global_q_value"
 
 
 def test_library_q_value_wins_when_match_between_runs_filled_it(tmp_path: Path) -> None:
     diann = write_diann(tmp_path, library_q=0.0005)
     psm = Exporter("msmu").export(_parsed(diann))["psm"]
 
-    assert psm.uns["apb"]["sources"]["var.q_value"]["kind"] == "library_q_value"
+    assert export_sources(psm)["var.q_value"]["kind"] == "library_q_value"
     assert _var(psm).loc["run_A1.PEPTIDEK/2", "q_value"] == pytest.approx(0.0005)
 
 
@@ -141,8 +141,14 @@ def test_written_file_reads_back(diann: DiannInput, tmp_path: Path) -> None:
 
     psm = back["psm"]
     assert psm.shape == mdata["psm"].shape
-    assert psm.uns["apb"]["package"] == "apb-export"
-    assert psm.uns["apb"]["export_rule"] == "msmu/v0_4/rules.json"
+    root = apb_part(back.uns["apb"])["export"]
+    assert root["schema_version"] == "1"
+    assert root["provenance"]["package"] == "apb-export"
+    assert root["provenance"]["export_rule"] == "msmu/v0_4/rules.json"
+    record = level_part(psm)["export"]
+    assert [entry["name"] for entry in record["summary"]] == ["exported_matrices", "absent_entries"]
+    assert record["provenance"]["source_level"] == "ion"
+    assert "parse" in level_part(psm) and "parse" in apb_part(back.uns["apb"])
     assert psm.uns["search_engine"] == "dia-nn"
     assert list(psm.obs.columns) == [], "runs are the index only"
     assert "feature_id" not in _var(psm).columns, "feature ids are the index only"

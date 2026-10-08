@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
+import anndata as ad
+import mudata as md
 import pytest
+from apb2.api import UnsJsonCodec
 
 COLUMNS = (
     "Run",
@@ -251,3 +256,22 @@ def write_maxquant(folder: Path, /, *, peptides: bool = True) -> MaxQuantInput:
     params = folder / "mqpar.xml"
     params.write_text(MQPAR, encoding="utf-8")
     return MaxQuantInput(folder=folder, params=params)
+
+
+def apb_part(namespace: Mapping[str, Any]) -> dict[str, Any]:
+    """One stored APB part, decoded."""
+    codec = UnsJsonCodec()
+    return cast(dict[str, Any], codec.decode(namespace, codec.storage(namespace)))
+
+
+def level_part(adata: ad.AnnData | md.MuData) -> dict[str, Any]:
+    """An exported AnnData's own APB part: ``uns[<name>]["apb"]`` standalone, else ``uns["apb"]``."""
+    owners = [
+        value["apb"] for value in adata.uns.values() if isinstance(value, dict) and "apb" in value
+    ]
+    return apb_part(owners[0] if owners else adata.uns["apb"])
+
+
+def export_sources(adata: ad.AnnData | md.MuData) -> dict[str, Any]:
+    """The APB source of every entry the export wrote into one AnnData."""
+    return cast(dict[str, Any], level_part(adata)["export"]["provenance"]["sources"])

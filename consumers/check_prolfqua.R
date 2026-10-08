@@ -18,3 +18,16 @@ cat(
   "prolfquapp rebuilds LFQData:", nrow(restored$lfqdata$data), "rows,",
   paste(hierarchy, collapse = " > "), "\n"
 )
+
+# prolfquapp's APB reader filters by the q-value layers and sums precursors to peptides.
+samples <- utils::read.delim(file.path(args[[1]], "samples.tsv"))
+annotation <- prolfquapp::read_annotation(
+  data.frame(file = samples$raw_file, group = samples$condition),
+  QC = TRUE
+)
+xd <- prolfquapp::preprocess_APB(file.path(args[[1]], "prolfqua.h5ad"), character(), annotation)
+counts <- xd$lfqdata$hierarchy_counts()
+if (!identical(xd$lfqdata$hierarchy_keys(), c("protein_Id", "peptide_Id")) || counts$protein_Id == 0) {
+  stop("APB reader returned ", paste(xd$lfqdata$hierarchy_keys(), collapse = ", "), " and ", counts$protein_Id, " proteins")
+}
+cat("prolfquapp APB reader:", counts$protein_Id, "proteins,", counts$peptide_Id, "peptides\n")

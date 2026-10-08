@@ -27,6 +27,7 @@ from conftest import (
     RUNS,
     DiannInput,
     MaxQuantInput,
+    level_part,
     observed,
     write_diann,
     write_maxquant,
@@ -104,7 +105,8 @@ def test_prolfquapp_finds_its_configuration_and_columns(diann: DiannInput, tmp_p
     assert set(meta) >= PROLFQUAPP_KEYS
     assert meta["artifact_type"] == "lfqdata"
     assert meta["source_software"] == "DIA-NN"
-    assert set(config["hierarchy"]) == {"protein_Id", "peptide_Id", "precursor_Id"}
+    assert list(config["hierarchy_keys"]) == ["protein_Id", "peptide_Id", "precursor_Id"]
+    assert set(config["hierarchy"]) == set(config["hierarchy_keys"])
     assert set(config["hierarchy"]) <= set(var.columns)
     assert {config["sample_name"], config["file_name"]} <= set(obs.columns)
     assert list(obs[config["sample_name"]]) == list(adata.obs_names)
@@ -192,7 +194,9 @@ def test_prolfquapp_reads_maxquant_from_its_peptide_level(tmp_path: Path) -> Non
     var = _frame(adata.var)
     config = adata.uns["prolfquapp"]["analysis_configuration"]
 
-    assert adata.uns["apb"]["source_level"] == "peptide", "peptides.txt, as prolfquapp reads it"
+    assert level_part(adata)["export"]["provenance"]["source_level"] == "peptide", (
+        "peptides.txt, as prolfquapp reads it"
+    )
     assert list(var.columns) == [
         "protein_Id",
         "IDcolumn",
@@ -201,7 +205,8 @@ def test_prolfquapp_reads_maxquant_from_its_peptide_level(tmp_path: Path) -> Non
         "peptide_Id",
         "nr_children",
     ]
-    assert set(config["hierarchy"]) == {"protein_Id", "peptide_Id"}
+    assert list(config["hierarchy_keys"]) == ["protein_Id", "peptide_Id"]
+    assert set(config["hierarchy"]) == set(config["hierarchy_keys"])
     assert dict(zip(var["peptide_Id"], var["protein_Id"], strict=True)) == {
         sequence: razor for sequence, _, razor in PEPTIDES
     }
@@ -234,7 +239,7 @@ def test_prolfquapp_links_maxquant_peptides_to_the_group_their_razor_protein_lea
 def test_prolfquapp_reads_maxquant_evidence_alone_from_its_ion_level(tmp_path: Path) -> None:
     adata = _maxquant(write_maxquant(tmp_path, peptides=False))
 
-    assert adata.uns["apb"]["source_level"] == "ion"
+    assert level_part(adata)["export"]["provenance"]["source_level"] == "ion"
     assert "precursor_Id" in _frame(adata.var).columns
     assert "pg_qValue_experiment" not in adata.layers
 

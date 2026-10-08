@@ -82,7 +82,8 @@ def _has_values(layer: FinalLayerTable) -> bool:
 
 def rule_field(level: ParsedLevel, name: str) -> object:
     """A top-level field of the apb2 rule stored with a level; ``None`` when it has none."""
-    stored = level.uns.get("rule_json")
+    provenance = level.uns.get("provenance")
+    stored = provenance.get("rule_json") if isinstance(provenance, dict) else None
     rule = json.loads(stored) if isinstance(stored, str) else {}
     return rule.get(name) if isinstance(rule, dict) else None
 

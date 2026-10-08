@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any, cast
 
 import anndata as ad
 import mudata as md
@@ -19,6 +19,7 @@ from apb2.api import (
     ParsedLevels,
     ParseRuleCompiler,
     QuantificationLevel,
+    UnsJsonCodec,
     write_container_representation,
 )
 from apb_catalog.api import UnresolvedField
@@ -147,13 +148,23 @@ def _fasta_checked(parsed: ParsedLevels, fasta: tuple[Path, ...]) -> ParsedLevel
 
 def _summary(adata: ad.AnnData) -> str:
     """Its shape and the APB layer behind each written matrix."""
-    sources = adata.uns["apb"]["sources"]
+    sources = _level_part(adata)["export"]["provenance"]["sources"]
     layers = [
         f"{key.split('.', 1)[1]}={value.get('name', value.get('location'))}"
         for key, value in sources.items()
         if key.startswith("layers.")
     ]
     return f"{adata.n_obs} x {adata.n_vars} ({', '.join(layers)})"
+
+
+def _level_part(adata: ad.AnnData) -> dict[str, Any]:
+    """One exported AnnData's own APB part: ``uns[<level>]["apb"]`` standalone, else ``uns["apb"]``."""
+    parts = [
+        value["apb"] for value in adata.uns.values() if isinstance(value, dict) and "apb" in value
+    ]
+    namespace = parts[0] if parts else adata.uns["apb"]
+    codec = UnsJsonCodec()
+    return cast(dict[str, Any], codec.decode(namespace, codec.storage(namespace)))
 
 
 def _write(result: ad.AnnData | md.MuData | None, output: Path) -> int:
