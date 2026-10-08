@@ -147,11 +147,3 @@ a.button { display: inline-block; padding: 6px 14px; border-radius: 4px; backgro
 .about-body h3, .about-body h4 { margin: 0; }
 .about-body p, .about-body ul { margin: 0; }
 .about-body ul { padding-left: 1.2em; }
-
-.example label.inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3em;
-  margin-left: 0.6em;
-  font-weight: normal;
-}

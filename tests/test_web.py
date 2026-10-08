@@ -393,12 +393,7 @@ def examples(tmp_path: Path) -> list[Example]:
 
 def test_an_example_brings_the_fasta_its_corpus_row_names(tmp_path: Path) -> None:
     root = tmp_path / "data"
-    corpus = _corpus(root)
-    _fasta(root).rename(root / "module.fasta")
-    rows = corpus.read_text(encoding="utf-8").splitlines()
-    corpus.write_text(f"{rows[0]},fasta\n{rows[1]},module.fasta\n", encoding="utf-8")
-
-    (example,) = _load(corpus, root)
+    (example,) = _load(_with_fasta(_corpus(root), root), root)
 
     assert example.fasta == root / "module.fasta"
     assert example.describe()["fasta"] == "module.fasta"
@@ -540,9 +535,17 @@ def test_hints_name_every_offered_software_and_packaged_rule(options: Options) -
     )
 
 
+def _with_fasta(corpus: Path, root: Path) -> Path:
+    """The corpus with its one row naming a module FASTA under ``root``."""
+    _fasta(root).rename(root / "module.fasta")
+    rows = corpus.read_text(encoding="utf-8").splitlines()
+    corpus.write_text(f"{rows[0]},fasta\n{rows[1]},module.fasta\n", encoding="utf-8")
+    return corpus
+
+
 def _run_example(tmp_path: Path, options: Options, files: str) -> tuple[JobStore, str]:
     root = tmp_path / "data"
-    (example,) = _load(_corpus(root), root)
+    (example,) = _load(_with_fasta(_corpus(root), root), root)
     software, outputs = options
     store = JobStore(tmp_path / "store", ttl_seconds=3600)
     worker = Worker(store, timeout_seconds=600)
@@ -572,6 +575,11 @@ def test_a_result_only_example_sends_the_result_and_the_software(
     [
         ("data,params", ["convert", "qc", "package"], ALL_SAMPLES),
         ("data,params,annotation", ["convert", "annotate", "qc", "package"], "condition"),
+        (
+            "data,params,annotation,fasta",
+            ["convert", "annotate", "verify-peptides", "qc", "package"],
+            "condition",
+        ),
     ],
 )
 def test_an_example_adds_params_then_annotation(
