@@ -18,6 +18,7 @@ from apb_catalog.api import Catalog
 from apb_export.export_rules.schema import (
     AxisSource,
     CatalogueSource,
+    FastaSource,
     MeasurementSource,
     Reference,
     RoleSource,
@@ -157,6 +158,15 @@ class LevelSources:
                 return self._rule_field(reference)
             case CatalogueSource():
                 return self._catalogue(reference)
+            case FastaSource():
+                return self._fasta(reference)
+
+    def _fasta(self, reference: FastaSource) -> VarValues | None:
+        fasta = self._level.varm.get(_FASTA_TABLE)
+        if fasta is None or reference.fasta not in fasta.columns:
+            return None
+        provenance: Provenance = {"location": "varm", "name": f"{_FASTA_TABLE}.{reference.fasta}"}
+        return VarValues(fasta.get_column(reference.fasta), provenance)
 
     def _column(self, name: str) -> VarValues | None:
         frame = self._level.var.frame

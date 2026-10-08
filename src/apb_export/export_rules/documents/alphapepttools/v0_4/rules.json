@@ -29,7 +29,11 @@
                 "named_index": true
               },
               {"name": "sequence", "source": "ProForma_peptide"},
-              {"name": "proteins", "source": {"role": "protein_assignment"}}
+              {"name": "proteins", "source": {"role": "protein_assignment"}},
+              {"name": "contaminant", "how": "contaminant", "type": "boolean"},
+              {"name": "in_fasta", "source": {"fasta": "peptide_in_fasta"}, "type": "boolean", "required": false},
+              {"name": "fasta_proteins", "source": {"fasta": "fasta_matching_protein_ids"}, "required": false},
+              {"name": "fasta_organisms", "source": {"fasta": "fasta_matching_organisms"}, "required": false}
             ]
           }
         },
@@ -49,7 +53,11 @@
                 "index_only": true,
                 "named_index": true
               },
-              {"name": "proteins", "source": {"role": "protein_assignment"}, "required": false}
+              {"name": "proteins", "source": {"role": "protein_assignment"}, "required": false},
+              {"name": "contaminant", "how": "contaminant", "type": "boolean"},
+              {"name": "in_fasta", "source": {"fasta": "peptide_in_fasta"}, "type": "boolean", "required": false},
+              {"name": "fasta_proteins", "source": {"fasta": "fasta_matching_protein_ids"}, "required": false},
+              {"name": "fasta_organisms", "source": {"fasta": "fasta_matching_organisms"}, "required": false}
             ]
           }
         },

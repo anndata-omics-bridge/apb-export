@@ -55,6 +55,20 @@ class RuleSource(ModelBase):
     rule: str = Field(min_length=1)
 
 
+class FastaSource(ModelBase):
+    """A column of apb-fasta's per-feature FASTA check; absent unless the result was checked."""
+
+    fasta: Literal[
+        "peptide_in_fasta",
+        "fasta_match_site_count",
+        "fasta_matching_protein_count",
+        "fasta_matching_protein_ids",
+        "fasta_matching_organisms",
+        "fasta_matches_contaminant",
+        "peptide_in_reported_protein",
+    ]
+
+
 class CatalogueSource(ModelBase):
     """A field found by meaning through apb-catalog."""
 
@@ -77,7 +91,13 @@ class CatalogueSource(ModelBase):
 
 
 type Reference = (
-    FixedColumn | RoleSource | AxisSource | MeasurementSource | RuleSource | CatalogueSource
+    FixedColumn
+    | RoleSource
+    | AxisSource
+    | MeasurementSource
+    | RuleSource
+    | CatalogueSource
+    | FastaSource
 )
 type Source = Reference | list[Reference]
 """One APB reference, or candidates in order: the first one that resolves is used."""

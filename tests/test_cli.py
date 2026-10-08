@@ -62,6 +62,34 @@ def test_msmu_flags_the_fasta_contaminants_when_given_a_fasta(
     assert flagged.loc["run_A1.PEPTIDEK/2", "contaminant"] == 0
 
 
+def test_alphapepttools_carries_the_fasta_check_beside_its_columns(
+    diann: DiannInput, tmp_path: Path
+) -> None:
+    fasta = tmp_path / "proteins.fasta"
+    fasta.write_text(
+        ">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE\nMPEPTIDEKAACLLKR\n"
+        ">sp|Cont_P4|FOUR_BOVIN Four OS=Bos taurus OX=9913 GN=FOUR\nMCONTPEPKR\n"
+    )
+    plain, checked = tmp_path / "plain.h5mu", tmp_path / "checked.h5mu"
+    common = ("--params", str(diann.log))
+
+    assert _run("alphapepttools", str(diann.report), str(plain), *common) == 0
+    assert (
+        _run("alphapepttools", str(diann.report), str(checked), *common, "--fasta", str(fasta)) == 0
+    )
+
+    without = md.read_h5mu(plain)["precursors"].var
+    flagged = md.read_h5mu(checked)["precursors"].var
+    assert isinstance(without, pd.DataFrame) and isinstance(flagged, pd.DataFrame)
+    assert "contaminant" in without.columns and "in_fasta" not in without.columns
+    row = flagged.loc["CONTPEPK/2"]
+    assert (bool(row["contaminant"]), bool(row["in_fasta"]), row["fasta_proteins"]) == (
+        True,
+        True,
+        "sp|Cont_P4|FOUR_BOVIN",
+    )
+
+
 def test_refuses_overwrite_wrong_suffix_and_bad_input(diann: DiannInput, tmp_path: Path) -> None:
     existing = tmp_path / "out.h5mu"
     existing.write_text("keep", encoding="utf-8")

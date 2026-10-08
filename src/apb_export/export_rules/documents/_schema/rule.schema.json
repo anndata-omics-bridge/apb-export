@@ -529,6 +529,30 @@
       "title": "Contaminant",
       "type": "object"
     },
+    "FastaSource": {
+      "additionalProperties": false,
+      "description": "A column of apb-fasta's per-feature FASTA check; absent unless the result was checked.",
+      "properties": {
+        "fasta": {
+          "enum": [
+            "peptide_in_fasta",
+            "fasta_match_site_count",
+            "fasta_matching_protein_count",
+            "fasta_matching_protein_ids",
+            "fasta_matching_organisms",
+            "fasta_matches_contaminant",
+            "peptide_in_reported_protein"
+          ],
+          "title": "Fasta",
+          "type": "string"
+        }
+      },
+      "required": [
+        "fasta"
+      ],
+      "title": "FastaSource",
+      "type": "object"
+    },
     "FixedColumn": {
       "enum": [
         "ProForma_peptide",
@@ -867,6 +891,9 @@
         },
         {
           "$ref": "#/$defs/CatalogueSource"
+        },
+        {
+          "$ref": "#/$defs/FastaSource"
         }
       ]
     },
