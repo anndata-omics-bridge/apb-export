@@ -2,6 +2,8 @@
 
 **[Online documentation](https://anndata-omics-bridge.github.io/apb-export/)** or its [source index](docs/index.md).
 
+**Web app: <https://apps-dev.bfabric.org/apb-export/>**: upload a vendor result, check its QC and download the export, without installing anything.
+
 APB2 results exported in the AnnData and MuData flavours downstream tools read: one export rule per target, one subcommand per target. Each file gets APB2's `<file>.apb.json` sidecar, which APB Studio's viewer reads. Each target fixes the APB2 levels it reads; `--abundance` picks which layer of that level becomes X, and `--annotation` attaches an SDRF or prolfquapp-style sample table, as `apb2 annotate` does.
 
 ```bash
