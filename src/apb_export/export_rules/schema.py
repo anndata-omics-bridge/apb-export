@@ -141,8 +141,8 @@ class EntryBase(ModelBase):
     )
     drop_missing: bool = Field(
         default=False,
-        description="A wide var entry: features whose value is missing or empty are left out "
-        "and counted, as prolfquapp needs a protein for every precursor.",
+        description="A var entry: features whose value is missing or empty are left out "
+        "and counted, as prolfquapp and msmu need a protein for every feature.",
     )
 
     @model_validator(mode="after")

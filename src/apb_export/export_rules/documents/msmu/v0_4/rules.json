@@ -46,7 +46,8 @@
                 "name": "proteins",
                 "how": "accessions",
                 "inputs": [{"role": "fasta_accessions"}],
-                "syntax": "msmu"
+                "syntax": "msmu",
+                "drop_missing": true
               },
               {"name": "peptide", "source": "ProForma_peptidoform"},
               {"name": "stripped_peptide", "source": "ProForma_peptide"},

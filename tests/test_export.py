@@ -101,6 +101,28 @@ def test_protein_groups_are_written_as_msmu_writes_them(diann: DiannInput) -> No
     assert (var["decoy"] == 0).all()
 
 
+def test_a_feature_without_proteins_is_left_out_and_counted(diann: DiannInput) -> None:
+    """PEAKS leaves some precursors without an accession; msmu would group them as ""."""
+    parsed = _parsed(diann)
+    level = parsed.levels["ion"]
+    accessions = level.var.roles["fasta_accessions"]
+    unassigned = level.var.frame.get_column("ProForma_ion") == "PEPTIDEK/2"
+    level.var.frame = level.var.frame.with_columns(
+        pl.when(unassigned).then(pl.lit("")).otherwise(pl.col(accessions)).alias(accessions)
+    )
+    full = Exporter("msmu").export(_parsed(diann))["psm"]
+
+    psm = Exporter("msmu").export(parsed)["psm"]
+
+    kept = [index for index, name in enumerate(full.var_names) if not name.endswith(".PEPTIDEK/2")]
+    assert 0 < len(kept) < full.n_vars
+    assert list(psm.var_names) == [full.var_names[index] for index in kept]
+    assert (_var(psm)["proteins"] != "").all()
+    assert list(_search_result(psm).index) == list(psm.var_names)
+    np.testing.assert_array_equal(_matrix(psm).toarray(), _matrix(full)[:, kept].toarray())
+    assert export_sources(psm)["var.proteins"]["dropped"] == str(full.n_vars - len(kept))
+
+
 def test_contaminants_merge_the_vendor_marking_and_the_fasta_match(diann: DiannInput) -> None:
     parsed = _parsed(diann)
     level = parsed.levels["ion"]

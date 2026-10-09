@@ -196,7 +196,11 @@ class _LevelExport:
         uns = self._bind_group("uns", rule.uns, _UNS_TAKES)
         cells = select_cells(self._level, x.values, entry.missing_values)
         obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
-        var = self._columns(bound["var"], CellRows(cells))
+        rows = CellRows(cells)
+        var = self._columns(bound["var"], rows)
+        kept = self._kept(var, rule.columns.var, rows.count())
+        var = [column.filter(kept) for column in var]
+        cells = cells.subset(kept.to_numpy())
         return self._with_level_part(
             long_anndata(
                 obs_index=self._index(obs, rule.axis.obs_keys[0], rule.columns.obs, "obs"),
@@ -221,8 +225,9 @@ class _LevelExport:
         bound = self._bind_columns("wide")
         uns = self._bind_group("uns", rule.uns, _UNS_TAKES)
         obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
-        var = self._columns(bound["var"], FeatureRows(self._level.var.frame.height))
-        kept = self._kept(var, rule.columns.var)
+        rows = FeatureRows(self._level.var.frame.height)
+        var = self._columns(bound["var"], rows)
+        kept = self._kept(var, rule.columns.var, rows.count())
         var = [column.filter(kept) for column in var]
         matrices = {
             entry.name: _matrix(values.values.filter(kept), entry)
@@ -296,10 +301,13 @@ class _LevelExport:
             raise ValueError(f"level {self._rule.level!r} writes columns {repeated} twice")
         return columns
 
-    def _kept(self, columns: list[pl.Series], entries: Entries) -> pl.Series:
-        """Features holding a value in every ``drop_missing`` column; the others are counted."""
+    def _kept(self, columns: list[pl.Series], entries: Entries, count: int) -> pl.Series:
+        """Features holding a value in every ``drop_missing`` column; the others are counted.
+
+        A feature is one of the ``count`` rows written: a variable in wide output, a cell in long.
+        """
         dropping = {e.name for e in entries if not isinstance(e, AllValues) and e.drop_missing}
-        kept = pl.Series([True] * self._level.var.frame.height)
+        kept = pl.Series([True] * count)
         for column in (column for column in columns if column.name in dropping):
             kept &= (column.is_not_null() & (column.cast(pl.String) != "")).fill_null(value=False)
             key = f"var.{column.name}"

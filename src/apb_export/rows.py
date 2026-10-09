@@ -35,6 +35,10 @@ class Cells:
     obs: IndexArray
     values: npt.NDArray[np.float64]
 
+    def subset(self, kept: npt.NDArray[np.bool_]) -> Cells:
+        """The cells ``kept`` marks, in their row order."""
+        return Cells(self.var_rows[kept], self.obs[kept], self.values[kept])
+
 
 def _key_rank(level: ParsedLevel) -> IndexArray:
     """Each variable's position when the level is sorted by its key columns."""

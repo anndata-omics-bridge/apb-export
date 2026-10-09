@@ -59,7 +59,7 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 
 | Target | File | APB2 levels | Layout |
 | --- | --- | --- | --- |
-| [msmu](src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | ion | long `psm` modality, one feature per run and precursor |
+| [msmu](src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | ion | long `psm` modality, one feature per run and precursor; a feature without a protein is left out and counted in the export record |
 | [prolfquapp](src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | ion, or peptide for MaxQuant; reading protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata`, factors from `apb2 annotate` columns; confidence layers `qValue` (precursor, per run), `pg_qValue` (protein group, per run), `pg_qValue_experiment` (protein group, library or experiment-wide) and `pep`, each where the vendor reports it; a feature without a protein is left out and counted in the export record; with `--fasta`, the leading protein's `fasta.id`, `description`, `IDcolumn` (accession), `gene_name`, `protein_length` and `nr_tryptic_peptides`, as prolfquapp's own FASTA annotation writes them; without one, `fasta.id`, `description` and `IDcolumn` repeat `protein_Id` |
 | [ProteoPy](src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes; with `--fasta`, apb-fasta annotates the protein groups and adds `in_fasta`, `gene_id`, `description` and `fasta_organisms`, which ProteoPy does not read |
 | [AlphaPeptTools](src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | ion, peptide, protein | one wide modality per level, linked by id columns for `mulink_from_anndatas`; ion and peptide modalities carry `contaminant` and, with `--fasta`, `in_fasta`, `fasta_proteins` and `fasta_organisms`, which AlphaPeptTools does not read |
@@ -89,7 +89,7 @@ The page asks for the software first, then shows which files it writes (result a
 
 Each upload becomes a job folder; one worker runs the `apb-export` or `apb2` command in its own process and writes `status.json`, `qc.json` and the downloads, which the server only serves. Finished jobs are deleted after `--ttl-hours`. The page is a Lit/Vite project in [web](web); `make web` rebuilds its bundle into `src/apb_export/web/static`, which the wheel ships, so no Node runs in production.
 
-To deploy, `make image` builds `ghcr.io/anndata-omics-bridge/apb-export:local` from this checkout and its apb2 and apb-catalog siblings ([Dockerfile](Dockerfile), build context `..`), and the `publish` workflow pushes `:vX.Y.Z` for each version tag. `make web-examples` copies the routine corpus, the dataset folders its rows read, the extra rows of [scripts/web_examples.csv](scripts/web_examples.csv) (ProteoBench submissions for the software routine lacks, apb2's committed Custom format and MetaMorpheus samples, and SDRFs from [scripts/web_sdrf](scripts/web_sdrf) for tools that name samples otherwise than raw files) and the module SDRFs into `build/web-examples`, one folder with one `examples.csv` that a server mounts read-only. The public instance runs behind the FGCZ portal; its descriptor is `portal/apb-export` in the [web-apps repository](https://gitlab.bfabric.org/proteomics/web-apps).
+Releasing, staging the examples and running the container are in [docs/deploy.md](docs/deploy.md); the public instance is https://apps-dev.bfabric.org/apb-export/.
 
 ## Limits
 

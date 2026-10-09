@@ -36,6 +36,4 @@ The page is a Lit/Vite project in `web/`; `make web` rebuilds its bundle into `s
 
 ## Deploy
 
-- `make image` builds `ghcr.io/anndata-omics-bridge/apb-export:local` from this checkout and its sibling packages, with build context `..`
-- The `publish` workflow pushes `:vX.Y.Z` for each version tag
-- `make web-examples` collects the example corpus, its dataset folders and module SDRFs into `build/web-examples`, one folder a server mounts read-only
+Releasing the image, staging the examples and running the container: [Deployment](deploy.md).

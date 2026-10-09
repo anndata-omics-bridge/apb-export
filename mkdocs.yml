@@ -18,6 +18,7 @@ nav:
   - Guides:
       - Targets and layouts: targets.md
       - Web app: web.md
+      - Deployment: deploy.md
   - Reference:
       - Command-line interface: cli.md
       - Python API: api.md
