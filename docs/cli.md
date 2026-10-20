@@ -31,7 +31,6 @@ apb-export TARGET DATA OUTPUT [OPTIONS]
 | `--abundance` | `msmu`, `prolfqua`, `proteopy` | Layer of the target's level to become X; APB2's primary layer by default |
 | `--annotation` | `prolfqua`, `proteopy`, `alphapepttools` | SDRF or prolfquapp-style CSV/TSV sample annotation, as `apb2 annotate` reads |
 | `--strict` | all | Promote APB2 layer-contract warnings to errors |
-| `--fasta` | all | FASTA files, or their protein-fasta database: check the peptides and annotate the protein groups first |
 
 `--abundance` applies only to targets that write one level, so `alphapepttools` has none. With `--fasta`, msmu also flags the FASTA's contaminants.
 

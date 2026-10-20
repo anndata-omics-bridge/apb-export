@@ -67,6 +67,8 @@ class FastaSource(ModelBase):
         "fasta_matching_organisms",
         "fasta_matches_contaminant",
         "peptide_in_reported_protein",
+        "is_protein_group_specific",
+        "is_proteotypic",
         "reported_leading_id",
         "reported_leading_accession",
         "reported_leading_description",
@@ -100,6 +102,18 @@ class CatalogueSource(ModelBase):
         description="nonzero rejects a layer holding no finite nonzero value, such as "
         "DIA-NN's library q-value without match-between-runs.",
     )
+    qualifiers: dict[str, str] = Field(
+        default_factory=dict,
+        description="Further qualifiers of the request, such as an origin when the vendor and "
+        "apb-fasta both answer one kind.",
+    )
+
+
+class ObsSource(ModelBase):
+    """An observation annotation column, by its name in the result, such as an SDRF column
+    apb2's sample annotation added; absent when the result was not annotated with it."""
+
+    obs: str = Field(min_length=1)
 
 
 type Reference = (
@@ -110,6 +124,7 @@ type Reference = (
     | RuleSource
     | CatalogueSource
     | FastaSource
+    | ObsSource
 )
 type Source = Reference | list[Reference]
 """One APB reference, or candidates in order: the first one that resolves is used."""
@@ -371,12 +386,37 @@ class Output(ModelBase):
     extensions: list[Literal[".h5mu", ".h5ad"]] = Field(min_length=1, max_length=1)
 
 
+class FeatureLink(ModelBase):
+    """A ``.h5mu`` relation between modalities, written to the container's ``varp``.
+
+    Each feature of a modality holding ``column`` relates to the ``target`` modality's feature
+    whose index equals its value; the matrix is boolean, symmetric and spans every modality.
+    """
+
+    name: str = Field(min_length=1)
+    column: str = Field(min_length=1)
+    target: str = Field(min_length=1)
+
+
 class Table(ModelBase):
     """One output and the levels it reads; each level's block overrides ``base``."""
 
     output: Output
     base: dict[str, JsonValue] = Field(default_factory=dict)
     levels: dict[str, dict[str, JsonValue]] = Field(min_length=1)
+    uns: list[ColumnEntry] = Field(
+        default_factory=list,
+        description="Dataset entries: the container's own uns beside each level's, from "
+        "constants and the stored apb2 rule of the first level written.",
+    )
+    feature_links: list[FeatureLink] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _dataset_entries(self) -> Self:
+        _unique("uns", self.uns)
+        if self.feature_links and ".h5mu" not in self.output.extensions:
+            raise ValueError("feature_links relate the modalities of an .h5mu output")
+        return self
 
 
 class ExportRuleDocument(ModelBase):

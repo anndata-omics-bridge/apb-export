@@ -19,7 +19,14 @@ from apb2.api import JsonValue, ParsedLevels, UnsJsonCodec
 from loguru import logger
 
 from apb_export.computed import compute, dtype
-from apb_export.container import Index, Matrix, long_anndata, mudata, wide_anndata
+from apb_export.container import (
+    Index,
+    Matrix,
+    link_features,
+    long_anndata,
+    mudata,
+    wide_anndata,
+)
 from apb_export.export_rules.loader import EffectiveRule
 from apb_export.export_rules.schema import (
     AccessionSyntax,
@@ -162,6 +169,16 @@ def _repeated(values: VarValues, runs: int) -> LayerValues:
     return LayerValues(frame, values.provenance)
 
 
+def _merge_dataset_uns(
+    uns: dict[str, object] | Mapping[str, object], values: dict[str, object]
+) -> None:
+    """Write the table's own uns entries beside the APB part, refusing to replace a key."""
+    taken = sorted(set(values) & set(uns))
+    if taken:
+        raise ValueError(f"the export rule's dataset uns entries {taken} are already written")
+    cast(dict[str, object], uns).update(values)
+
+
 def _software(parsed: ParsedLevels) -> set[str]:
     """The software apb2's rules name for the result's levels."""
     names = (rule_field(level, "software_name") for level in parsed.levels.values())
@@ -212,6 +229,14 @@ class _LevelExport:
                 varm={table.name: all_values(self._level, cells) for table in rule.columns.varm},
                 uns=self._uns(uns),
             )
+        )
+
+    def has_index(self) -> bool:
+        """Whether the result carries the source of the level's variable index."""
+        key = self._rule.rule.axis.var_keys[0]
+        (entry,) = [entry for entry in self._rule.rule.columns.var if entry.name == key]
+        return (
+            not isinstance(entry, SourcedEntry) or self._sources.resolve(entry.source) is not None
         )
 
     def wide(self) -> ad.AnnData:
@@ -452,41 +477,89 @@ class CompiledExport:
         if unknown:
             raise ValueError(f"abundance names levels the rule does not write: {unknown}")
         modalities: dict[str, ad.AnnData] = {}
+        written: list[str] = []
+        skipped: list[str] = []
         for rule in self._exported_by(parsed):
             level = _LevelExport(rule, parsed, chosen.get(rule.level))
+            if not rule.rule.required and not level.has_index():
+                logger.info(f"level {rule.level}: the result carries no index for it; left out")
+                skipped.append(rule.level)
+                continue
             built = level.long() if self.output.shape == "long" else level.wide()
             modalities[rule.rule.modality or rule.level] = built
-        root = UnsJsonCodec().encode(self._root_part(parsed), {})
+            written.append(rule.level)
+        if not modalities:
+            raise ValueError(f"no level of this result carries its index: {skipped}")
+        dataset, dataset_sources = self._dataset_uns(parsed, written[0])
+        export = self._export_record(dataset_sources, skipped)
         if self.extension == ".h5ad":
             # As in an apb2 h5ad: the level part under uns[<name>], the root part in uns["apb"].
             ((name, adata),) = modalities.items()
             if name in adata.uns:
                 raise ValueError(f"the export rule writes uns[{name!r}] itself")
             adata.uns[name] = {NAMESPACE: adata.uns.pop(NAMESPACE)}
-            adata.uns[NAMESPACE] = root
+            adata.uns[NAMESPACE] = UnsJsonCodec().encode(self._root_part(parsed, export), {})
+            _merge_dataset_uns(adata.uns, dataset)
             return adata
         container = mudata(modalities)
-        container.uns[NAMESPACE] = root
+        links: list[JsonValue] = []
+        for link in self.rules[0].feature_links:
+            linked, unlinked = link_features(container, link.name, link.column, link.target)
+            links.append({"name": link.name, "linked": linked, "unlinked": unlinked})
+        if links:
+            export["feature_links"] = links
+        container.uns[NAMESPACE] = UnsJsonCodec().encode(self._root_part(parsed, export), {})
+        _merge_dataset_uns(container.uns, dataset)
         return container
 
-    def _root_part(self, parsed: ParsedLevels) -> dict[str, JsonValue]:
-        """The result's root apb2 records, unchanged, and what wrote the container from which rule."""
+    def _dataset_uns(
+        self, parsed: ParsedLevels, level: str
+    ) -> tuple[dict[str, object], dict[str, Provenance]]:
+        """The table's own uns entries, rule fields read from the first level written."""
+        sources = LevelSources(parsed, level, None)
+        values: list[tuple[str, object]] = []
+        provenance: dict[str, Provenance] = {}
+        for entry in self.rules[0].dataset_uns:
+            bound = _bind(entry, sources, "uns", _UNS_TAKES)
+            provenance[f"uns.{entry.name}"] = (
+                {"location": "absent"} if bound is None else bound.provenance
+            )
+            if bound is None:
+                continue
+            if isinstance(entry, Constant) and isinstance(entry.value, dict | list):
+                values.append((entry.name, copy.deepcopy(entry.value)))
+            else:
+                values.append((entry.name, _series(bound, ScalarRow(), {}).item()))
+        return _nest(values), provenance
+
+    def _export_record(
+        self, sources: dict[str, Provenance], skipped: list[str]
+    ) -> dict[str, JsonValue]:
+        """What wrote the container from which rule, its own uns sources and left-out levels."""
         rule = self.rules[0]
+        record: dict[str, JsonValue] = {
+            "package": "apb-export",
+            "package_version": version("apb-export"),
+            "apb2_version": version("apb2"),
+            "target_name": rule.target_name,
+            "target_version_pattern": rule.target_version_pattern,
+            "export_rule": rule.document,
+            "export_rule_file_version": rule.file_version,
+        }
+        if sources:
+            record["sources"] = cast(JsonValue, sources)
+        if skipped:
+            record["skipped_levels"] = cast(JsonValue, skipped)
+        return record
+
+    def _root_part(
+        self, parsed: ParsedLevels, provenance: dict[str, JsonValue]
+    ) -> dict[str, JsonValue]:
+        """The result's root apb2 records, unchanged, and the export's own record."""
         return {
             "parse": dict(parsed.uns),
             **parsed.metadata,
-            "export": {
-                "schema_version": EXPORT_SCHEMA_VERSION,
-                "provenance": {
-                    "package": "apb-export",
-                    "package_version": version("apb-export"),
-                    "apb2_version": version("apb2"),
-                    "target_name": rule.target_name,
-                    "target_version_pattern": rule.target_version_pattern,
-                    "export_rule": rule.document,
-                    "export_rule_file_version": rule.file_version,
-                },
-            },
+            "export": {"schema_version": EXPORT_SCHEMA_VERSION, "provenance": provenance},
         }
 
     def _exported_by(self, parsed: ParsedLevels) -> list[EffectiveRule]:

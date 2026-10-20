@@ -302,6 +302,14 @@
           ],
           "title": "Accept",
           "type": "string"
+        },
+        "qualifiers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Further qualifiers of the request, such as an origin when the vendor and apb-fasta both answer one kind.",
+          "title": "Qualifiers",
+          "type": "object"
         }
       },
       "required": [
@@ -566,6 +574,8 @@
             "fasta_matching_organisms",
             "fasta_matches_contaminant",
             "peptide_in_reported_protein",
+            "is_protein_group_specific",
+            "is_proteotypic",
             "reported_leading_id",
             "reported_leading_accession",
             "reported_leading_description",
@@ -847,6 +857,22 @@
       "title": "Measurements",
       "type": "object"
     },
+    "ObsSource": {
+      "additionalProperties": false,
+      "description": "An observation annotation column, by its name in the result, such as an SDRF column\napb2's sample annotation added; absent when the result was not annotated with it.",
+      "properties": {
+        "obs": {
+          "minLength": 1,
+          "title": "Obs",
+          "type": "string"
+        }
+      },
+      "required": [
+        "obs"
+      ],
+      "title": "ObsSource",
+      "type": "object"
+    },
     "ProformaCharge": {
       "additionalProperties": false,
       "description": "The charge of a ProForma ion, ``SEQ/2`` giving 2.",
@@ -947,6 +973,9 @@
         },
         {
           "$ref": "#/$defs/FastaSource"
+        },
+        {
+          "$ref": "#/$defs/ObsSource"
         }
       ]
     },

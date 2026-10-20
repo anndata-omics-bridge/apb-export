@@ -15,6 +15,7 @@ from apb_export.api import Exporter
 from apb_export.web.exports import load_hints
 from apb_export.web.store import Output, write_json
 
+
 # apb2's --format values and what each writes.
 _APB2_FORMATS = (
     ("hdf5", "APB2 result: h5ad or h5mu"),
@@ -65,6 +66,7 @@ def outputs() -> list[Output]:
             fasta=_accepts(target, "--fasta"),
         )
         for target in Exporter.targets()
+        if target not in _NOT_OFFERED
     ]
     formats = [
         Output(

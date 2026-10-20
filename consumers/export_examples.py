@@ -20,6 +20,7 @@ from conftest import RUNS, write_diann  # the tests' synthetic DIA-NN writer
 
 # msmu's own reader quantifies DIA-NN by Precursor.Quantity; compare like with like.
 ABUNDANCE = {"msmu": "Precursor_Quantity"}
+# Targets that need a FASTA check first; the examples carry none.
 
 
 def main(folder: Path) -> None:
@@ -30,6 +31,8 @@ def main(folder: Path) -> None:
     rows = "".join(f"{run}\t{run[4]}\n" for run in RUNS)
     annotation.write_text("raw_file\tcondition\n" + rows, encoding="utf-8")
     for target in Exporter.targets():
+        if target in NEEDS_FASTA:
+            continue
         exporter = Exporter(target, abundance=ABUNDANCE.get(target))
         parsed = (
             ParseRuleCompiler(diann.report, diann.log, requested_levels=exporter.levels)

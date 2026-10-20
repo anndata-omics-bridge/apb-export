@@ -1,8 +1,7 @@
 """``apb-export``: vendor output in, the AnnData or MuData a downstream tool opens.
 
 One subcommand per target, each reading the APB2 levels its export rule names: APB2 converts
-the vendor files, apb2's sample annotation attaches ``--annotation``, apb-fasta checks the
-peptides and protein groups against an optional ``--fasta``, and
+the vendor files, apb2's sample annotation attaches ``--annotation`` or ``--sdrf``, apb-fasta
 :class:`~apb_export.api.Exporter` builds the file. Existing files are never overwritten.
 """
 
@@ -19,6 +18,7 @@ from apb2.api import (
     ParsedLevels,
     ParseRuleCompiler,
     QuantificationLevel,
+    SdrfSource,
     UnsJsonCodec,
     write_container_representation,
 )
@@ -46,6 +46,13 @@ Abundance = Annotated[
 SampleAnnotation = Annotated[
     Path | None,
     Parameter(help="SDRF or prolfquapp-style CSV/TSV sample annotation, as apb2 annotate reads"),
+]
+Sdrf = Annotated[
+    Path | None,
+    Parameter(
+        help="SDRF-Proteomics sample table: every run must match one of its rows, whose columns "
+        "fill the sample metadata"
+    ),
 ]
 Strict = Annotated[
     bool, Parameter(negative=False, help="Promote APB2 layer-contract warnings to errors")
@@ -94,6 +101,7 @@ def _exported(
     annotation: Path | None,
     strict: bool,
     fasta: tuple[Path, ...] = (),
+    sdrf: Path | None = None,
 ) -> ad.AnnData | md.MuData | None:
     """Convert, annotate, FASTA-check and export; ``None`` after logging why not."""
     exporter = Exporter(target, abundance)
@@ -107,6 +115,10 @@ def _exported(
         parsed = _parse(data, params, exporter.levels, software=software, strict=strict)
         if annotation is not None:
             parsed = AnnotationCompiler().compile(annotation).parse(parsed).annotate().parsed
+        if sdrf is not None:
+            SdrfSource.read(sdrf)  # refuses a table that is no SDRF before matching its rows
+            compiled = AnnotationCompiler(unmatched="error").compile(sdrf)
+            parsed = compiled.parse(parsed).annotate().parsed
         if fasta:
             parsed = _fasta_checked(parsed, fasta)
         return exporter.export(parsed)
@@ -304,6 +316,41 @@ def alphapepttools(
             annotation=annotation,
             strict=strict,
             fasta=fasta,
+        ),
+        output,
+    )
+
+
+@app.command
+    data: Data,
+    /,
+    *,
+    fasta: Annotated[
+        tuple[Path, ...],
+        Parameter(
+            negative=False,
+            help="FASTA files, or their protein-fasta database; required: apb-fasta supplies "
+            "is_unique and the FASTA's contaminants",
+        ),
+    ],
+    params: Params = None,
+    software: Software = None,
+    sdrf: Sdrf = None,
+    strict: Strict = False,
+) -> int:
+
+    """
+    return _write(
+        _exported(
+            data,
+            output,
+            params=params,
+            software=software,
+            abundance=None,
+            annotation=None,
+            strict=strict,
+            fasta=fasta,
+            sdrf=sdrf,
         ),
         output,
     )

@@ -8,7 +8,13 @@ from importlib.resources.abc import Traversable
 
 from pydantic import JsonValue
 
-from apb_export.export_rules.schema import ExportRuleDocument, LevelRule, Output
+from apb_export.export_rules.schema import (
+    ColumnEntry,
+    ExportRuleDocument,
+    FeatureLink,
+    LevelRule,
+    Output,
+)
 
 _DOCUMENTS = resources.files("apb_export.export_rules").joinpath("documents")
 _RULES_FILE = "rules.json"
@@ -26,6 +32,8 @@ class EffectiveRule:
         output: What the table writes.
         level: The APB2 level it reads.
         rule: The level's validated declarations.
+        dataset_uns: The table's own uns entries, for the whole container.
+        feature_links: The table's relations between modalities.
     """
 
     document: str
@@ -35,6 +43,8 @@ class EffectiveRule:
     output: Output
     level: str
     rule: LevelRule
+    dataset_uns: tuple[ColumnEntry, ...] = ()
+    feature_links: tuple[FeatureLink, ...] = ()
 
 
 def _merge(base: dict[str, JsonValue], level: dict[str, JsonValue]) -> dict[str, JsonValue]:
@@ -77,6 +87,8 @@ def effective_rules(document: ExportRuleDocument, name: str) -> tuple[EffectiveR
                     output=table.output,
                     level=level,
                     rule=rule,
+                    dataset_uns=tuple(table.uns),
+                    feature_links=tuple(table.feature_links),
                 )
             )
         unnamed = [rule.level for rule in rules[:-1] if rule.rule.software is None]

@@ -20,6 +20,7 @@ from apb_export.export_rules.schema import (
     CatalogueSource,
     FastaSource,
     MeasurementSource,
+    ObsSource,
     Reference,
     RoleSource,
     RuleSource,
@@ -162,6 +163,14 @@ class LevelSources:
                 return self._catalogue(reference)
             case FastaSource():
                 return self._fasta(reference)
+            case ObsSource():
+                return self._obs(reference)
+
+    def _obs(self, reference: ObsSource) -> ObsValues | None:
+        if reference.obs not in self.annotations():
+            return None
+        values = self.annotation(reference.obs)
+        return ObsValues(values, {"location": "obs", "name": reference.obs})
 
     def _fasta(self, reference: FastaSource) -> VarValues | None:
         for table in (_FASTA_TABLE, _FASTA_PROTEIN_TABLE):
@@ -223,13 +232,18 @@ class LevelSources:
         if reference.level is not None:
             return self._through_protein_group(reference, reference.level)
         catalog = self._catalog(reference.catalogue)
-        found: Provenance = {"catalogue": reference.catalogue, "kind": reference.kind}
+        qualifiers = reference.qualifiers
+        found: Provenance = {"catalogue": reference.catalogue, "kind": reference.kind, **qualifiers}
         if reference.location == "var":
-            column = catalog.var(self._name, concept=reference.concept, kind=reference.kind)
+            column = catalog.var(
+                self._name, concept=reference.concept, kind=reference.kind, **qualifiers
+            )
             if column is None:
                 return None
             return VarValues(column, {"location": "var", "name": column.name, **found})
-        layer = catalog.layer(self._name, concept=reference.concept, kind=reference.kind)
+        layer = catalog.layer(
+            self._name, concept=reference.concept, kind=reference.kind, **qualifiers
+        )
         if layer is None or (reference.accept == "nonzero" and not _has_values(layer)):
             return None
         provenance = {"location": "layers", "name": layer.layer_name, **found}
