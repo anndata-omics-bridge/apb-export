@@ -47,7 +47,7 @@ from apb2.api import ParseRuleCompiler
 from apb_export.api import Exporter
 
 exporter = Exporter("msmu")
-parsed = ParseRuleCompiler(
+parsed = ParseRuleCompiler.detect(
     Path("report.tsv"), Path("report.log.txt"), requested_levels=exporter.levels
 ).compile().parse()
 exporter.export(parsed).write_h5mu("result.h5mu")

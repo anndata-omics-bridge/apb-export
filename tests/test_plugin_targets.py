@@ -264,7 +264,7 @@ def test_an_optional_level_without_its_index_is_left_out(diann: DiannInput, tmp_
     document = _document()
     document["tables"][0]["levels"]["protein"]["columns"]["var"][0]["source"] = "ProForma_fragment"
     compiled = _compiled(document)
-    parsed = ParseRuleCompiler(diann.report, diann.log, compiled.levels).compile().parse()
+    parsed = ParseRuleCompiler.detect(diann.report, diann.log, compiled.levels).compile().parse()
     checked = FastaAnnotator.read((_fasta(tmp_path),)).verify_peptides(parsed).parsed
 
     container = compiled.export(checked)
@@ -281,7 +281,7 @@ def test_a_required_layer_the_result_lacks_stops_the_export(diann: DiannInput) -
     layers = document["tables"][0]["base"]["measurements"]["layers"]
     layers[1]["source"]["kind"] = "global_q_value"
     compiled = _compiled(document)
-    parsed = ParseRuleCompiler(diann.report, diann.log, compiled.levels).compile().parse()
+    parsed = ParseRuleCompiler.detect(diann.report, diann.log, compiled.levels).compile().parse()
 
     with pytest.raises(ValueError, match="layer 'q_value': the result carries no layer"):
         compiled.export(parsed)

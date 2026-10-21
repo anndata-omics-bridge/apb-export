@@ -32,7 +32,7 @@ def main(folder: Path) -> None:
     for target in Exporter.targets():
         exporter = Exporter(target, abundance=ABUNDANCE.get(target))
         parsed = (
-            ParseRuleCompiler(diann.report, diann.log, requested_levels=exporter.levels)
+            ParseRuleCompiler.detect(diann.report, diann.log, requested_levels=exporter.levels)
             .compile()
             .parse()
         )

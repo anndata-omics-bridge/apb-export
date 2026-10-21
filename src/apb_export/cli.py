@@ -88,7 +88,7 @@ def _parse(
     compiler = (
         ParseRuleCompiler.from_software(data, software, levels, checks)
         if params is None and software is not None
-        else ParseRuleCompiler(data, params, levels, checks, software)
+        else ParseRuleCompiler.detect(data, params, levels, checks, software)
     )
     return compiler.compile().parse()
 

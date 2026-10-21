@@ -45,7 +45,7 @@ PROLFQUAPP_KEYS = {
 
 def _parsed(diann: DiannInput) -> ParsedLevels:
     return (
-        ParseRuleCompiler(diann.report, diann.log, requested_levels=("ion", "protein"))
+        ParseRuleCompiler.detect(diann.report, diann.log, requested_levels=("ion", "protein"))
         .compile()
         .parse()
     )
@@ -168,7 +168,7 @@ def test_prolfquapp_prefers_the_library_q_value_with_match_between_runs(tmp_path
 def test_prolfquapp_without_a_protein_level_has_no_protein_group_q_values(
     diann: DiannInput,
 ) -> None:
-    ion_only = ParseRuleCompiler(diann.report, diann.log, requested_levels=("ion",))
+    ion_only = ParseRuleCompiler.detect(diann.report, diann.log, requested_levels=("ion",))
     adata = _anndata(Exporter("prolfqua").export(ion_only.compile().parse()))
 
     assert {"pg_qValue", "pg_qValue_experiment"}.isdisjoint(adata.layers)
@@ -185,7 +185,7 @@ def test_prolfquapp_reads_each_precursors_pep(diann: DiannInput) -> None:
 def _maxquant(maxquant: MaxQuantInput) -> ad.AnnData:
     """The prolfqua export of a MaxQuant folder, parsed into the levels prolfqua reads."""
     levels = Exporter("prolfqua").levels
-    compiler = ParseRuleCompiler(maxquant.folder, maxquant.params, requested_levels=levels)
+    compiler = ParseRuleCompiler.detect(maxquant.folder, maxquant.params, requested_levels=levels)
     return _anndata(Exporter("prolfqua").export(compiler.compile().parse()))
 
 
@@ -251,7 +251,7 @@ def test_precursors_without_a_protein_are_left_out(
     """prolfquapp needs a protein per feature; PEAKS and DIA-NN leave some without."""
     maxquant = write_maxquant(tmp_path, peptides=False)
     levels = Exporter(target).levels
-    compiler = ParseRuleCompiler(maxquant.folder, maxquant.params, requested_levels=levels)
+    compiler = ParseRuleCompiler.detect(maxquant.folder, maxquant.params, requested_levels=levels)
     parsed = compiler.compile().parse()
     ion = parsed.levels["ion"]
     column = ion.var.roles["protein_assignment"]

@@ -31,7 +31,7 @@ RUN_Q_VALUE = {"catalogue": "identification_confidence", "concept": "confidence"
 
 
 def _parsed(diann: DiannInput) -> ParsedLevels:
-    return ParseRuleCompiler(diann.report, diann.log, requested_levels=("ion",)).compile().parse()
+    return ParseRuleCompiler.detect(diann.report, diann.log, ("ion",)).compile().parse()
 
 
 def _msmu_document() -> dict[str, Any]:

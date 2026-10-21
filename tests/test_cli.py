@@ -223,6 +223,22 @@ def test_proteopy_and_alphapepttools_write_their_files_and_sidecars(
         assert [level["name"] for level in sidecar["levels"]] == levels, "Studio's viewer reads it"
 
 
+@pytest.mark.parametrize("target", Exporter.targets())
+def test_every_target_writes_its_sidecar(target: str, diann: DiannInput, tmp_path: Path) -> None:
+    fasta = tmp_path / "proteins.fasta"
+    fasta.write_text(">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE\nMPEPTIDEKAACLLKR\n")
+    output = tmp_path / f"out{Exporter(target).extension}"
+    common = ("--params", str(diann.log), "--fasta", str(fasta))
+
+    assert _run(target, str(diann.report), str(output), *common) == 0
+    # APB2 checks each sidecar against its published schema before writing it.
+    sidecar = json.loads(sidecar_path(output).read_text(encoding="utf-8"))
+    assert (sidecar["format"], sidecar["artifact"]["name"]) == (
+        "apb2-result-representation",
+        output.name,
+    )
+
+
 def test_a_target_refuses_the_other_file_type(diann: DiannInput, tmp_path: Path) -> None:
     wrong = str(tmp_path / "out.h5mu")
 
