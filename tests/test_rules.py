@@ -68,7 +68,7 @@ def test_base_blocks_reach_every_level() -> None:
 
 
 def test_an_unknown_target_is_refused() -> None:
-    with pytest.raises(ValueError, match="expected one packaged export rule for 'nope'"):
+    with pytest.raises(ValueError, match="expected one export rule for 'nope'"):
         packaged_rules("nope")
 
 

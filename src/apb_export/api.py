@@ -4,6 +4,8 @@ APB2 owns conversion and persistence: ``ParseRuleCompiler`` reads vendor files i
 ``ParsedLevels``, ``read_parsed_levels`` loads a stored result. Each target's packaged export
 rule declares what that tool reads; ``Exporter`` applies one and returns the AnnData or MuData
 the tool opens. The ``apb-export`` command composes conversion, annotation and export.
+
+A plugin package adds a target through the `apb_export.targets` entry-point group.
 """
 
 from __future__ import annotations
@@ -29,8 +31,8 @@ class Exporter:
             abundance: A layer of the target's level; APB2's primary layer when ``None``.
 
         Raises:
-            ValueError: The target is not packaged, or ``abundance`` is given for a target that
-                writes several levels.
+            ValueError: The target is neither packaged nor installed by a plugin, or ``abundance``
+                is given for a target that writes several levels.
         """
         if target not in self.targets():
             raise ValueError(f"unknown export target {target!r}; packaged: {list(self.targets())}")
@@ -44,7 +46,7 @@ class Exporter:
 
     @staticmethod
     def targets() -> tuple[str, ...]:
-        """The packaged targets, by name."""
+        """The packaged targets and those of installed plugins, by name."""
         return tuple(dict.fromkeys(name.split("/", 1)[0] for name in packaged_documents()))
 
     @property

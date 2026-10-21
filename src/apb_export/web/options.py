@@ -15,7 +15,6 @@ from apb_export.api import Exporter
 from apb_export.web.exports import load_hints
 from apb_export.web.store import Output, write_json
 
-
 # apb2's --format values and what each writes.
 _APB2_FORMATS = (
     ("hdf5", "APB2 result: h5ad or h5mu"),
@@ -54,7 +53,11 @@ def _accepts(target: str, option: str) -> bool:
 
 
 def outputs() -> list[Output]:
-    """apb-export's targets first, then APB2's own result formats."""
+    """apb-export's targets ``outputs.json`` describes first, then APB2's own result formats.
+
+    A target an installed plugin adds is not offered: the page describes only its own.
+    """
+    described = about()
     targets = [
         Output(
             id=f"apb-export:{target}",
@@ -66,7 +69,7 @@ def outputs() -> list[Output]:
             fasta=_accepts(target, "--fasta"),
         )
         for target in Exporter.targets()
-        if target not in _NOT_OFFERED
+        if f"apb-export:{target}" in described
     ]
     formats = [
         Output(

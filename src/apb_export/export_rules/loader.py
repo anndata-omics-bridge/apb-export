@@ -1,9 +1,12 @@
-"""Packaged export rules and their effective levels."""
+"""Packaged and plugin export rules and their effective levels."""
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
+from functools import cache
 from importlib import resources
+from importlib.metadata import EntryPoints, entry_points
 from importlib.resources.abc import Traversable
 
 from pydantic import JsonValue
@@ -18,6 +21,9 @@ from apb_export.export_rules.schema import (
 
 _DOCUMENTS = resources.files("apb_export.export_rules").joinpath("documents")
 _RULES_FILE = "rules.json"
+
+PLUGIN_GROUP = "apb_export.targets"
+"""The entry-point group through which installed packages add export targets."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,31 +103,68 @@ def effective_rules(document: ExportRuleDocument, name: str) -> tuple[EffectiveR
     return tuple(rules)
 
 
+def _versions(target: str, folder: Traversable) -> dict[str, Traversable]:
+    """Each ``<version>/rules.json`` under one target's folder, keyed as its document name."""
+    files: dict[str, Traversable] = {}
+    for version in sorted(folder.iterdir(), key=lambda entry: entry.name):
+        candidate = version.joinpath(_RULES_FILE)
+        if version.is_dir() and candidate.is_file():
+            files[f"{target}/{version.name}/{_RULES_FILE}"] = candidate
+    return files
+
+
+def plugin_folders(points: EntryPoints) -> dict[str, Traversable]:
+    """The rule folder each entry point names, by target.
+
+    Raises:
+        ValueError: Two entry points name one target.
+    """
+    repeated = sorted(
+        name for name, count in Counter(point.name for point in points).items() if count > 1
+    )
+    if repeated:
+        raise ValueError(f"several installed plugins name the export targets {repeated}")
+    return {point.name: resources.files(point.value) for point in points}
+
+
+@cache
+def _plugin_folders() -> dict[str, Traversable]:
+    """Every installed plugin's rule folder, by target."""
+    return plugin_folders(entry_points(group=PLUGIN_GROUP))
+
+
 def _rule_files() -> dict[str, Traversable]:
+    """Packaged rule files, then those of installed plugins.
+
+    Raises:
+        ValueError: A plugin target has a packaged target's name.
+    """
     files: dict[str, Traversable] = {}
     for target in sorted(_DOCUMENTS.iterdir(), key=lambda entry: entry.name):
-        if not target.is_dir() or target.name.startswith("_"):
-            continue
-        for version in sorted(target.iterdir(), key=lambda entry: entry.name):
-            candidate = version.joinpath(_RULES_FILE)
-            if candidate.is_file():
-                files[f"{target.name}/{version.name}/{_RULES_FILE}"] = candidate
+        if target.is_dir() and not target.name.startswith("_"):
+            files |= _versions(target.name, target)
+    plugins = _plugin_folders()
+    clashing = sorted({name.split("/", 1)[0] for name in files} & set(plugins))
+    if clashing:
+        raise ValueError(f"plugin export targets {clashing} have the names of packaged targets")
+    for target, folder in sorted(plugins.items()):
+        files |= _versions(target, folder)
     return files
 
 
 def packaged_documents() -> tuple[str, ...]:
-    """Every packaged rule file, as ``<target>/<version>/rules.json``."""
+    """Every packaged and plugin rule file, as ``<target>/<version>/rules.json``."""
     return tuple(_rule_files())
 
 
 def packaged_rules(target: str) -> tuple[EffectiveRule, ...]:
-    """The effective rules of one target's packaged rule file.
+    """The effective rules of one target's packaged or plugin rule file.
 
     Raises:
-        ValueError: No rule, or more than one rule file, is packaged for the target.
+        ValueError: No rule, or more than one rule file, is packaged or installed for the target.
     """
     names = [name for name in _rule_files() if name.split("/", 1)[0] == target]
     if len(names) != 1:
-        raise ValueError(f"expected one packaged export rule for {target!r}, found {names}")
+        raise ValueError(f"expected one export rule for {target!r}, found {names}")
     text = _rule_files()[names[0]].read_text(encoding="utf-8")
     return effective_rules(ExportRuleDocument.model_validate_json(text), names[0])

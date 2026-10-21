@@ -49,6 +49,21 @@ msmu's own layout, as `msmu.read_diann` writes it:
 - AlphaPeptTools: ion and peptide modalities carry `contaminant`; with `--fasta` also `in_fasta`, `fasta_proteins` and `fasta_organisms`
 - Neither tool reads these FASTA columns; they are kept for inspection
 
+## Plugin targets
+
+An installed package adds a target without changing apb-export: it names a package holding the target's export rule under the `apb_export.targets` entry-point group.
+
+```toml
+[project.entry-points."apb_export.targets"]
+toy = "toy_plugin.export_rule"
+```
+
+- Layout: `<package>/<version>/rules.json`, one version per target, the same schema as the packaged documents
+- `Exporter.targets()` lists the target and `Exporter("toy")` applies it; a target named like a packaged one, or by two plugins, is refused
+- Command: `apb-export toy DATA OUTPUT` with `--params`, `--software`, `--fasta`, `--sdrf` and `--strict`; no `--abundance`, so the rule's primary layers become X
+- Rule features no packaged target uses yet: `qualifiers` on a catalogued source, `obs` sources naming SDRF or annotation columns, the table's own `uns` entries, and `feature_links` written to `varp`
+- The web app offers only the packaged targets it describes
+
 ## Confidence, by meaning
 
 - `q_value`: library q-value when match-between-runs filled it, else experiment-wide, else per run; the order msmu's DIA-NN reader uses

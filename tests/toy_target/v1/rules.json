@@ -1,0 +1,329 @@
+{
+  "schema_version": "0.1",
+  "file_version": "1",
+  "target_name": "Toy",
+  "target_version_pattern": "^1\\.",
+  "tables": [
+    {
+      "output": {
+        "shape": "wide",
+        "extensions": [
+          ".h5mu"
+        ]
+      },
+      "base": {
+        "measurements": {
+          "primary_layer": "X",
+          "layers": [
+            {
+              "name": "X",
+              "source": {
+                "measurements": "primary_layer"
+              }
+            },
+            {
+              "name": "q_value",
+              "source": {
+                "catalogue": "identification_confidence",
+                "concept": "confidence",
+                "kind": "q_value",
+                "qualifiers": {
+                  "stage": "identification"
+                }
+              },
+              "required": true
+            },
+            {
+              "name": "ms1_q_value",
+              "source": {
+                "catalogue": "identification_confidence",
+                "concept": "confidence",
+                "kind": "q_value",
+                "qualifiers": {
+                  "stage": "quantification"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "uns": [
+        {
+          "name": "toy_version",
+          "how": "constant",
+          "value": "1"
+        },
+        {
+          "name": "toy_modalities",
+          "how": "constant",
+          "value": [
+            "protein",
+            "ion"
+          ]
+        },
+        {
+          "name": "search_engine",
+          "source": {
+            "rule": "software_name"
+          }
+        }
+      ],
+      "feature_links": [
+        {
+          "name": "feature_mapping",
+          "column": "protein_group",
+          "target": "protein"
+        }
+      ],
+      "levels": {
+        "protein": {
+          "modality": "protein",
+          "required": false,
+          "axis": {
+            "obs_keys": [
+              "assay_id"
+            ],
+            "var_keys": [
+              "protein_group"
+            ]
+          },
+          "measurements": {
+            "primary_layer": "X",
+            "layers": [
+              {
+                "name": "X",
+                "source": {
+                  "measurements": "primary_layer"
+                }
+              }
+            ]
+          },
+          "columns": {
+            "obs": [
+              {
+                "name": "assay_id",
+                "source": [
+                  {
+                    "obs": "assay_name"
+                  },
+                  {
+                    "axis": "obs_keys"
+                  }
+                ]
+              },
+              {
+                "name": "raw_file",
+                "source": {
+                  "axis": "obs_keys"
+                }
+              },
+              {
+                "name": "sample_id",
+                "source": {
+                  "obs": "source_name"
+                },
+                "required": false
+              },
+              {
+                "name": "condition",
+                "source": {
+                  "obs": "factor_value_spiked_compound"
+                },
+                "required": false
+              },
+              {
+                "name": "organism",
+                "source": {
+                  "obs": "characteristics_organism"
+                },
+                "required": false
+              },
+              {
+                "name": "label",
+                "source": {
+                  "obs": "comment_label"
+                },
+                "required": false
+              }
+            ],
+            "var": [
+              {
+                "name": "protein_group",
+                "source": {
+                  "role": "protein_assignment"
+                }
+              }
+            ]
+          }
+        },
+        "peptidoform": {
+          "modality": "peptidoform",
+          "required": false,
+          "axis": {
+            "obs_keys": [
+              "assay_id"
+            ],
+            "var_keys": [
+              "peptidoform"
+            ]
+          },
+          "measurements": {
+            "primary_layer": "X",
+            "layers": [
+              {
+                "name": "X",
+                "source": {
+                  "measurements": "primary_layer"
+                }
+              }
+            ]
+          },
+          "columns": {
+            "obs": [
+              {
+                "name": "assay_id",
+                "source": [
+                  {
+                    "obs": "assay_name"
+                  },
+                  {
+                    "axis": "obs_keys"
+                  }
+                ]
+              },
+              {
+                "name": "raw_file",
+                "source": {
+                  "axis": "obs_keys"
+                }
+              },
+              {
+                "name": "sample_id",
+                "source": {
+                  "obs": "source_name"
+                },
+                "required": false
+              },
+              {
+                "name": "condition",
+                "source": {
+                  "obs": "factor_value_spiked_compound"
+                },
+                "required": false
+              },
+              {
+                "name": "organism",
+                "source": {
+                  "obs": "characteristics_organism"
+                },
+                "required": false
+              },
+              {
+                "name": "label",
+                "source": {
+                  "obs": "comment_label"
+                },
+                "required": false
+              }
+            ],
+            "var": [
+              {
+                "name": "peptidoform",
+                "source": "ProForma_peptidoform"
+              }
+            ]
+          }
+        },
+        "ion": {
+          "modality": "ion",
+          "required": false,
+          "axis": {
+            "obs_keys": [
+              "assay_id"
+            ],
+            "var_keys": [
+              "precursor"
+            ]
+          },
+          "columns": {
+            "obs": [
+              {
+                "name": "assay_id",
+                "source": [
+                  {
+                    "obs": "assay_name"
+                  },
+                  {
+                    "axis": "obs_keys"
+                  }
+                ]
+              },
+              {
+                "name": "raw_file",
+                "source": {
+                  "axis": "obs_keys"
+                }
+              },
+              {
+                "name": "sample_id",
+                "source": {
+                  "obs": "source_name"
+                },
+                "required": false
+              },
+              {
+                "name": "condition",
+                "source": {
+                  "obs": "factor_value_spiked_compound"
+                },
+                "required": false
+              },
+              {
+                "name": "organism",
+                "source": {
+                  "obs": "characteristics_organism"
+                },
+                "required": false
+              },
+              {
+                "name": "label",
+                "source": {
+                  "obs": "comment_label"
+                },
+                "required": false
+              }
+            ],
+            "var": [
+              {
+                "name": "precursor",
+                "source": "ProForma_ion"
+              },
+              {
+                "name": "protein_group",
+                "source": {
+                  "role": "protein_assignment"
+                },
+                "required": false
+              },
+              {
+                "name": "group_specific",
+                "source": {
+                  "fasta": "is_protein_group_specific"
+                },
+                "type": "boolean",
+                "required": false
+              }
+            ]
+          },
+          "uns": [
+            {
+              "name": "level",
+              "how": "constant",
+              "value": "ion"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

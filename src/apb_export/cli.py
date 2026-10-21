@@ -2,12 +2,15 @@
 
 One subcommand per target, each reading the APB2 levels its export rule names: APB2 converts
 the vendor files, apb2's sample annotation attaches ``--annotation`` or ``--sdrf``, apb-fasta
-:class:`~apb_export.api.Exporter` builds the file. Existing files are never overwritten.
+checks the peptides and protein groups against ``--fasta``, and
+:class:`~apb_export.api.Exporter` builds the file. Existing files are never overwritten. A target
+an installed plugin adds gets a generated subcommand.
 """
 
 from __future__ import annotations
 
 import sys
+from functools import partial
 from pathlib import Path
 from typing import Annotated, Any, cast
 
@@ -125,11 +128,12 @@ def _exported(
     except (OSError, ValueError) as error:
         logger.error(str(error))
     except UnresolvedField as error:
-        # Unknown is not missing: the catalogue has not reviewed this exact vendor rule, so it
-        # cannot say whether a q-value or PEP exists. Guessing would export a silent gap.
+        # Unknown is not missing: a step that writes the field has not run, and the error names
+        # it, or the catalogue has not reviewed this exact vendor rule. Guessing would export a
+        # silent gap.
         logger.error(
-            f"apb-catalog cannot answer for this vendor rule ({error}); re-review the "
-            "catalogues against this APB2 revision"
+            f"apb-catalog cannot answer for this vendor rule ({error}); unless it names a step "
+            "to run, re-review the catalogues against this APB2 revision"
         )
     return None
 
@@ -321,27 +325,22 @@ def alphapepttools(
     )
 
 
-@app.command
+def _plugin_command(
+    target: str,
     data: Data,
+    output: Annotated[Path, Parameter(help="New file in the plugin target's layout")],
     /,
     *,
-    fasta: Annotated[
-        tuple[Path, ...],
-        Parameter(
-            negative=False,
-            help="FASTA files, or their protein-fasta database; required: apb-fasta supplies "
-            "is_unique and the FASTA's contaminants",
-        ),
-    ],
     params: Params = None,
     software: Software = None,
+    fasta: Fasta = (),
     sdrf: Sdrf = None,
     strict: Strict = False,
 ) -> int:
-
-    """
+    """APB2's levels as an installed plugin target's export rule declares them."""
     return _write(
         _exported(
+            target,
             data,
             output,
             params=params,
@@ -354,6 +353,21 @@ def alphapepttools(
         ),
         output,
     )
+
+
+def add_plugin_commands() -> None:
+    """Give each installed plugin target without a command of its own a generated one."""
+    for target in Exporter.targets():
+        if target not in app:
+            app.command(
+                partial(_plugin_command, target),
+                name=target,
+                help=f"APB2's levels as the installed plugin target {target} declares them; each "
+                "level's primary layer becomes X.",
+            )
+
+
+add_plugin_commands()
 
 
 def main() -> None:
