@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import anndata as ad
+import mudata as md
 import pandas as pd
 import polars as pl
 import pytest
@@ -57,7 +58,13 @@ def _with_var(replacements: dict[str, dict[str, Any]]) -> CompiledExport:
 
 
 def _psm(compiled: CompiledExport, diann: DiannInput) -> ad.AnnData:
-    psm = compiled.export(_parsed(diann))["psm"]
+    return _modality(compiled.export(_parsed(diann)))
+
+
+def _modality(exported: object) -> ad.AnnData:
+    """msmu's psm modality; msmu's export is a MuData."""
+    assert isinstance(exported, md.MuData)
+    psm = exported["psm"]
     assert isinstance(psm, ad.AnnData)
     return psm
 
@@ -71,7 +78,7 @@ def _var(psm: object) -> pd.DataFrame:
 
 def test_zero_global_q_values_stay_selected(tmp_path: Path) -> None:
     diann = write_diann(tmp_path, global_q=0.0)
-    psm = Exporter("msmu").export(_parsed(diann))["psm"]
+    psm = _modality(Exporter("msmu").export(_parsed(diann)))
 
     assert export_sources(psm)["var.q_value"]["kind"] == "global_q_value"
     assert (_var(psm)["q_value"] == 0).all(), "zero is a value; only the library needs nonzero"

@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import pytest
-from apb2.api import ParsedLevels, ParseRuleCompiler
+from apb2.api import ParsedLevels, ParseRuleCompiler, read_parsed_levels, write_parsed_levels
 
 from apb_export.api import Exporter
 from conftest import (
@@ -66,6 +66,9 @@ def _written(target: str, parsed: ParsedLevels, folder: Path) -> ad.AnnData | md
     export = Exporter(target)
     result = export.export(parsed)
     path = folder / f"{target}{export.extension}"
+    if isinstance(result, ParsedLevels):
+        write_parsed_levels(result, path)
+        return ad.read_h5ad(path)
     if isinstance(result, md.MuData):
         result.write_h5mu(path)
         return md.read_h5mu(path)
@@ -95,6 +98,25 @@ def test_proteopy_gets_proteins_by_sample(diann: DiannInput, tmp_path: Path) -> 
     assert "peptide_id" not in var.columns, "a peptide_id column would make it peptide data"
     assert list(obs.columns) == ["sample_id", "condition"], "apb2 annotate's columns pass"
     assert not np.isinf(np.asarray(adata.X)).any()
+
+
+def test_proteopy_is_written_by_apb2_and_reads_back(diann: DiannInput, tmp_path: Path) -> None:
+    exported = Exporter("proteopy").export(_annotated(_parsed(diann)))
+    assert isinstance(exported, ParsedLevels), "ProteoPy's export is a result APB2 writes"
+    first, again = tmp_path / "first.h5ad", tmp_path / "again.h5ad"
+
+    write_parsed_levels(exported, first)
+    back = read_parsed_levels(first)
+    write_parsed_levels(back, again)
+
+    a, b = ad.read_h5ad(first), ad.read_h5ad(again)
+    assert _frame(a.obs).equals(_frame(b.obs)) and _frame(a.var).equals(_frame(b.var))
+    np.testing.assert_array_equal(np.asarray(a.X), np.asarray(b.X))
+    assert (_frame(a.obs).index.name, _frame(a.var).index.name) == ("sample_id", "protein_id")
+    record = back.levels["protein"].metadata["export"]
+    assert isinstance(record, dict) and isinstance(record["provenance"], dict)
+    assert record["provenance"]["source_level"] == "protein", "the export's record survives"
+    assert "export" in back.metadata
 
 
 def test_prolfquapp_finds_its_configuration_and_columns(diann: DiannInput, tmp_path: Path) -> None:

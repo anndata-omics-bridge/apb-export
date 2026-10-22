@@ -11,7 +11,7 @@ from pathlib import Path
 
 import anndata as ad
 import mudata as md
-from apb2.api import AnnotationCompiler, ParseRuleCompiler
+from apb2.api import AnnotationCompiler, ParsedLevels, ParseRuleCompiler, write_parsed_levels
 
 from apb_export.api import Exporter
 
@@ -40,7 +40,9 @@ def main(folder: Path) -> None:
             parsed = AnnotationCompiler().compile(annotation).parse(parsed).annotate().parsed
         result = exporter.export(parsed)
         path = folder / f"{target}{exporter.extension}"
-        if isinstance(result, md.MuData):
+        if isinstance(result, ParsedLevels):
+            write_parsed_levels(result, path)
+        elif isinstance(result, md.MuData):
             result.write_h5mu(path)
         elif isinstance(result, ad.AnnData):
             result.write_h5ad(path)

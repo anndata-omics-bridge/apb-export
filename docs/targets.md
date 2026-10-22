@@ -46,6 +46,7 @@ msmu's own layout, as `msmu.read_diann` writes it:
 
 ## ProteoPy and AlphaPeptTools
 
+- ProteoPy's file is written by APB2's `write_parsed_levels`, sidecar included; `sample_id` and `protein_id` name the indices and stay columns
 - ProteoPy with `--fasta`: apb-fasta annotates the protein groups and adds `in_fasta`, `gene_id`, `description` and `fasta_organisms`
 - AlphaPeptTools: ion and peptide modalities carry `contaminant`; with `--fasta` also `in_fasta`, `fasta_proteins` and `fasta_organisms`
 - Neither tool reads these FASTA columns; they are kept for inspection

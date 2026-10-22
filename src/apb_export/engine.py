@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import polars as pl
-from apb2.api import JsonValue, ParsedLevels, UnsJsonCodec
+from apb2.api import JsonValue, ParsedLevel, ParsedLevels, UnsJsonCodec
 from loguru import logger
 
 from apb_export.computed import compute, dtype
@@ -196,6 +196,15 @@ def _matrix(values: pl.DataFrame, entry: LayerEntry) -> Matrix:
     return matrix.astype(np.float32 if entry.width == 32 else np.float64)
 
 
+def _layer_frame(values: pl.DataFrame, entry: LayerEntry) -> pl.DataFrame:
+    """A layer as APB2 keeps it, features by observations, declared missing values blanked."""
+    numbers = values.select(pl.all().cast(pl.Float64))
+    if entry.missing_values:
+        absent = pl.all().is_in(entry.missing_values)
+        numbers = numbers.select(pl.when(absent).then(None).otherwise(pl.all()).name.keep())
+    return numbers.cast(pl.Float32 if entry.width == 32 else pl.Float64)
+
+
 class _LevelExport:
     """One level of one result, exported by one effective rule."""
 
@@ -275,6 +284,41 @@ class _LevelExport:
             )
         )
 
+    def parsed_level(self) -> ParsedLevel:
+        """APB2's samples-by-features level for APB2's writer; key columns stay columns."""
+        rule = self._rule.rule
+        primary = rule.measurements.primary_layer
+        found = [
+            (entry, self._layer(entry, primary=entry.name == primary))
+            for entry in rule.measurements.layers
+        ]
+        bound = self._bind_columns("wide")
+        obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
+        rows = FeatureRows(self._level.var.frame.height)
+        var = self._columns(bound["var"], rows)
+        kept = self._kept(var, rule.columns.var, rows.count())
+        var = [column.filter(kept) for column in var]
+        obs_key, var_key = rule.axis.obs_keys[0], rule.axis.var_keys[0]
+        self._key(obs, obs_key, "obs")
+        self._key(var, var_key, "var")
+        layers = {
+            entry.name: _layer_frame(values.values.filter(kept), entry)
+            for entry, values in found
+            if values is not None
+        }
+        return ParsedLevel.build(
+            obs=pl.DataFrame(obs),
+            obs_keys=[obs_key],
+            var=pl.DataFrame(var),
+            var_keys=[var_key],
+            var_roles={},
+            primary_layer=primary,
+            abundance={primary: layers.pop(primary)},
+            auxiliary=layers,
+            uns=dict(self._level.uns),
+            metadata={**self._level.metadata, "export": self._export_part(len(layers) + 1)},
+        )
+
     def _layer(self, entry: LayerEntry, *, primary: bool) -> LayerValues | None:
         """Resolve a layer; ``None`` for an absent optional one. A caller's abundance layer
         replaces the rule's source of the primary layer."""
@@ -349,10 +393,15 @@ class _LevelExport:
         return kept
 
     @staticmethod
-    def _index(columns: list[pl.Series], key: str, entries: Entries, group: str) -> Index:
+    def _key(columns: list[pl.Series], key: str, group: str) -> pl.Series:
         (values,) = [column for column in columns if column.name == key]
         if values.is_duplicated().any():
             raise ValueError(f"{group} index {key!r} repeats values")
+        return values
+
+    @staticmethod
+    def _index(columns: list[pl.Series], key: str, entries: Entries, group: str) -> Index:
+        values = _LevelExport._key(columns, key, group)
         (entry,) = [e for e in entries if not isinstance(e, AllValues) and e.name == key]
         named = not isinstance(entry, AllValues) and entry.named_index
         return Index([str(value) for value in values.to_list()], key if named else None)
@@ -385,33 +434,36 @@ class _LevelExport:
 
     def _level_part(self, adata: ad.AnnData) -> dict[str, JsonValue]:
         """The exported level's apb2 records, unchanged, and the export's own record."""
-        matrices = (adata.X is not None) + len(adata.layers)
-        absent = sum(source.get("location") == "absent" for source in self._provenance.values())
         return {
             "parse": dict(self._level.uns),
             **self._level.metadata,
-            "export": {
-                "provenance": {
-                    "source_level": self._rule.level,
-                    "sources": cast(JsonValue, self._provenance),
-                },
-                "summary": [
-                    {
-                        "name": "exported_matrices",
-                        "label": "Exported matrices",
-                        "value": matrices,
-                        "unit": "matrices",
-                        "status": "ok",
-                    },
-                    {
-                        "name": "absent_entries",
-                        "label": "Rule entries the result does not hold",
-                        "value": absent,
-                        "unit": "entries",
-                        "status": "ok",
-                    },
-                ],
+            "export": self._export_part((adata.X is not None) + len(adata.layers)),
+        }
+
+    def _export_part(self, matrices: int) -> dict[str, JsonValue]:
+        """The export's own record of one level: where each entry came from, and a summary."""
+        absent = sum(source.get("location") == "absent" for source in self._provenance.values())
+        return {
+            "provenance": {
+                "source_level": self._rule.level,
+                "sources": cast(JsonValue, self._provenance),
             },
+            "summary": [
+                {
+                    "name": "exported_matrices",
+                    "label": "Exported matrices",
+                    "value": matrices,
+                    "unit": "matrices",
+                    "status": "ok",
+                },
+                {
+                    "name": "absent_entries",
+                    "label": "Rule entries the result does not hold",
+                    "value": absent,
+                    "unit": "entries",
+                    "status": "ok",
+                },
+            ],
         }
 
 
@@ -463,14 +515,37 @@ class CompiledExport:
         """The file the target reads: ``.h5ad`` for one AnnData, ``.h5mu`` for a MuData."""
         return self.output.extensions[0]
 
+    @property
+    def _apb2_writes(self) -> bool:
+        """Whether the export is a ``ParsedLevels`` for APB2's writer: so far a wide ``.h5ad``
+        level without ``uns`` entries, links or index flags; the others still build AnnData."""
+        rule = self.rules[0]
+        flags = any(
+            getattr(entry, flag, False)
+            for entry in (*rule.rule.columns.obs, *rule.rule.columns.var)
+            for flag in ("index_only", "named_index")
+        )
+        return (
+            self.output.shape == "wide"
+            and self.extension == ".h5ad"
+            and not rule.dataset_uns
+            and not rule.feature_links
+            and not any(level.rule.uns for level in self.rules)
+            and not flags
+        )
+
     def export(
         self, parsed: ParsedLevels, abundance: Mapping[str, str] | None = None
-    ) -> ad.AnnData | md.MuData:
+    ) -> ad.AnnData | md.MuData | ParsedLevels:
         """Write the target's container from one APB2 result.
 
         Args:
             parsed: An APB2 result holding the rule's required levels.
             abundance: Per level, the layer that becomes X; APB2's primary layer otherwise.
+
+        Returns:
+            A ``ParsedLevels`` for APB2's writer where the target has moved to it; otherwise one
+            AnnData for an ``.h5ad`` target, or a MuData with one modality per level.
 
         Raises:
             ValueError: The result lacks a required level or source, a source cannot be taken
@@ -481,6 +556,8 @@ class CompiledExport:
         unknown = sorted(set(chosen) - set(self.written))
         if unknown:
             raise ValueError(f"abundance names levels the rule does not write: {unknown}")
+        if self._apb2_writes:
+            return self._parsed_levels(parsed, chosen)
         modalities: dict[str, ad.AnnData] = {}
         written: list[str] = []
         skipped: list[str] = []
@@ -516,6 +593,20 @@ class CompiledExport:
         container.uns[NAMESPACE] = UnsJsonCodec().encode(self._root_part(parsed, export), {})
         _merge_dataset_uns(container.uns, dataset)
         return container
+
+    def _parsed_levels(self, parsed: ParsedLevels, chosen: Mapping[str, str]) -> ParsedLevels:
+        """The one level an ``.h5ad`` export writes, with the source's records and the export's."""
+        (rule,) = self._exported_by(parsed)
+        level = _LevelExport(rule, parsed, chosen.get(rule.level)).parsed_level()
+        export: dict[str, JsonValue] = {
+            "schema_version": EXPORT_SCHEMA_VERSION,
+            "provenance": self._export_record({}, []),
+        }
+        return ParsedLevels(
+            levels={rule.rule.modality or rule.level: level},
+            uns=dict(parsed.uns),
+            metadata={**parsed.metadata, "export": export},
+        )
 
     def _dataset_uns(
         self, parsed: ParsedLevels, level: str

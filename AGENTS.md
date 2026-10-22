@@ -22,7 +22,7 @@ Export rules declare what each target reads; one engine applies them. Packaged t
 
 - `cli`: one subcommand per target; APB2's `ParseRuleCompiler` reads the target's levels, apb2's `AnnotationCompiler` applies `--annotation`, then `Exporter` exports; refuses overwrite and the wrong file type, reports unreviewed catalogue answers
 - `api`: `Exporter(target, abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; `targets()`, `levels` and `extension` describe the packaged rules
-- `engine`: `CompiledExport`, one target's level rules checked once; picks the levels for the result's software, binds every entry's sources before building one AnnData per level, combined into a MuData for `.h5mu`
+- `engine`: `CompiledExport`, one target's level rules checked once; picks the levels for the result's software, binds every entry's sources before building one AnnData per level, combined into a MuData for `.h5mu`; ProteoPy's export is already a `ParsedLevels` that APB2's `write_parsed_levels` writes, the first target of the move planned in the workspace TODO `exports as ParsedLevels`
 - `rows`: Polars only; selects long rows and aligns sources to cell, feature, observation and `uns` rows
 - `computed`: the conversions a computed entry's `how` names
 - `sources`: APB references resolved against one level, catalogue lookups through apb-catalog, and catalogued protein-level fields read through each variable's protein group, named whole or by its leading protein

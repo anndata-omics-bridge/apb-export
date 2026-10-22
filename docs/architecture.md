@@ -10,7 +10,7 @@ Modules compose downward only:
 | --- | --- |
 | `cli` | One subcommand per target: APB2 reads the target's levels, `--annotation` is applied, then `Exporter` exports |
 | `api` | `Exporter(target, abundance=...).export(parsed)`; `targets()`, `levels` and `extension` describe the packaged rules |
-| `engine` | `CompiledExport`: one target's rules checked once; picks the levels for the result's software and builds one AnnData per level |
+| `engine` | `CompiledExport`: one target's rules checked once; picks the levels for the result's software and builds one AnnData per level, or for ProteoPy so far a `ParsedLevels` that APB2's `write_parsed_levels` writes |
 | `rows` | Polars only; aligns sources to cell, feature, observation and `uns` rows |
 | `computed` | The conversions a computed entry's `how` names |
 | `sources` | APB references resolved against one level; catalogue lookups through apb-catalog; protein-level fields read through each protein group |

@@ -10,6 +10,7 @@ an installed plugin adds gets a generated subcommand.
 from __future__ import annotations
 
 import sys
+from collections.abc import Mapping
 from functools import partial
 from pathlib import Path
 from typing import Annotated, Any, cast
@@ -18,12 +19,14 @@ import anndata as ad
 import mudata as md
 from apb2.api import (
     AnnotationCompiler,
+    ParsedLevel,
     ParsedLevels,
     ParseRuleCompiler,
     QuantificationLevel,
     SdrfSource,
     UnsJsonCodec,
     write_container_representation,
+    write_parsed_levels,
 )
 from apb_catalog.api import UnresolvedField
 from apb_fasta.api import FastaAnnotator
@@ -105,7 +108,7 @@ def _exported(
     strict: bool,
     fasta: tuple[Path, ...] = (),
     sdrf: Path | None = None,
-) -> ad.AnnData | md.MuData | None:
+) -> ad.AnnData | md.MuData | ParsedLevels | None:
     """Convert, annotate, FASTA-check and export; ``None`` after logging why not."""
     exporter = Exporter(target, abundance)
     if output.suffix != exporter.extension:
@@ -168,13 +171,23 @@ def _fasta_checked(parsed: ParsedLevels, fasta: tuple[Path, ...]) -> ParsedLevel
 
 def _summary(adata: ad.AnnData) -> str:
     """Its shape and the APB layer behind each written matrix."""
-    sources = _level_part(adata)["export"]["provenance"]["sources"]
+    return _shape(adata.n_obs, adata.n_vars, _level_part(adata)["export"])
+
+
+def _shape(n_obs: int, n_vars: int, export: Mapping[str, Any]) -> str:
+    """A level's shape and, from the export's record, the APB layer behind each matrix."""
+    sources = export["provenance"]["sources"]
     layers = [
         f"{key.split('.', 1)[1]}={value.get('name', value.get('location'))}"
         for key, value in sources.items()
         if key.startswith("layers.")
     ]
-    return f"{adata.n_obs} x {adata.n_vars} ({', '.join(layers)})"
+    return f"{n_obs} x {n_vars} ({', '.join(layers)})"
+
+
+def _record(level: ParsedLevel) -> dict[str, Any]:
+    """The export's own record of one level of a ``ParsedLevels`` export."""
+    return cast(dict[str, Any], level.metadata["export"])
 
 
 def _level_part(adata: ad.AnnData) -> dict[str, Any]:
@@ -187,10 +200,19 @@ def _level_part(adata: ad.AnnData) -> dict[str, Any]:
     return cast(dict[str, Any], codec.decode(namespace, codec.storage(namespace)))
 
 
-def _write(result: ad.AnnData | md.MuData | None, output: Path) -> int:
+def _write(result: ad.AnnData | md.MuData | ParsedLevels | None, output: Path) -> int:
     if result is None:
         return 1
     output.parent.mkdir(parents=True, exist_ok=True)
+    if isinstance(result, ParsedLevels):
+        # APB2's writer writes the file and its sidecar.
+        write_parsed_levels(result, output)
+        shapes = "; ".join(
+            f"{name} {_shape(level.obs.frame.height, level.var.frame.height, _record(level))}"
+            for name, level in result.levels.items()
+        )
+        logger.info(f"wrote {output} and its sidecar: {shapes}")
+        return 0
     if isinstance(result, md.MuData):
         result.write_h5mu(output)
         shapes = "; ".join(

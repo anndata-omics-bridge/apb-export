@@ -35,6 +35,14 @@ def _parsed(diann: DiannInput) -> ParsedLevels:
     return ParseRuleCompiler.detect(diann.report, diann.log, ("ion",)).compile().parse()
 
 
+def _psm(exported: object) -> ad.AnnData:
+    """msmu's psm modality; msmu's export is a MuData."""
+    assert isinstance(exported, md.MuData)
+    psm = exported["psm"]
+    assert isinstance(psm, ad.AnnData)
+    return psm
+
+
 def _var(psm: object) -> pd.DataFrame:
     """The psm ``var`` frame; MuData and AnnData type modalities and frames as unions."""
     assert isinstance(psm, ad.AnnData)
@@ -56,7 +64,7 @@ def _matrix(psm: object) -> sparse.csr_matrix:
 
 
 def test_one_feature_per_observed_cell(diann: DiannInput) -> None:
-    psm = Exporter("msmu", abundance="Precursor_Quantity").export(_parsed(diann))["psm"]
+    psm = _psm(Exporter("msmu", abundance="Precursor_Quantity").export(_parsed(diann)))
 
     assert list(psm.obs_names) == sorted(RUNS)
     assert psm.n_vars == diann.cells
@@ -69,7 +77,7 @@ def test_one_feature_per_observed_cell(diann: DiannInput) -> None:
 
 
 def test_quantities_and_confidence_come_from_the_report(diann: DiannInput) -> None:
-    psm = Exporter("msmu", abundance="Precursor_Quantity").export(_parsed(diann))["psm"]
+    psm = _psm(Exporter("msmu", abundance="Precursor_Quantity").export(_parsed(diann)))
     var = _var(psm)
     row = var.index.get_loc("run_A2.YEASTPEPK/2")
     run = list(psm.obs_names).index("run_A2")
@@ -83,14 +91,14 @@ def test_quantities_and_confidence_come_from_the_report(diann: DiannInput) -> No
 
 def test_library_q_value_wins_when_match_between_runs_filled_it(tmp_path: Path) -> None:
     diann = write_diann(tmp_path, library_q=0.0005)
-    psm = Exporter("msmu").export(_parsed(diann))["psm"]
+    psm = _psm(Exporter("msmu").export(_parsed(diann)))
 
     assert export_sources(psm)["var.q_value"]["kind"] == "library_q_value"
     assert _var(psm).loc["run_A1.PEPTIDEK/2", "q_value"] == pytest.approx(0.0005)
 
 
 def test_protein_groups_are_written_as_msmu_writes_them(diann: DiannInput) -> None:
-    var = _var(Exporter("msmu").export(_parsed(diann))["psm"])
+    var = _var(_psm(Exporter("msmu").export(_parsed(diann))))
 
     assert var.loc["run_A1.AAC[UNIMOD:4]LLK/2", "proteins"] == "P2"
     assert var.loc["run_A1.CONTPEPK/2", "proteins"] == "Cont_P4"
@@ -110,9 +118,9 @@ def test_a_feature_without_proteins_is_left_out_and_counted(diann: DiannInput) -
     level.var.frame = level.var.frame.with_columns(
         pl.when(unassigned).then(pl.lit("")).otherwise(pl.col(accessions)).alias(accessions)
     )
-    full = Exporter("msmu").export(_parsed(diann))["psm"]
+    full = _psm(Exporter("msmu").export(_parsed(diann)))
 
-    psm = Exporter("msmu").export(parsed)["psm"]
+    psm = _psm(Exporter("msmu").export(parsed))
 
     kept = [index for index, name in enumerate(full.var_names) if not name.endswith(".PEPTIDEK/2")]
     assert 0 < len(kept) < full.n_vars
@@ -135,7 +143,7 @@ def test_contaminants_merge_the_vendor_marking_and_the_fasta_match(diann: DiannI
         {"fasta_matches_contaminant": (ions == "CONTPEPK/2").to_list()}
     )
 
-    var = _var(Exporter("msmu").export(parsed)["psm"])
+    var = _var(_psm(Exporter("msmu").export(parsed)))
 
     assert var.loc["run_A1.CONTPEPK/2", "contaminant"] == 1
     assert var.loc["run_A2.SHAREDK/2", "contaminant"] == 1
@@ -145,7 +153,7 @@ def test_contaminants_merge_the_vendor_marking_and_the_fasta_match(diann: DiannI
 
 
 def test_every_source_value_is_kept_in_search_result(diann: DiannInput) -> None:
-    psm = Exporter("msmu").export(_parsed(diann))["psm"]
+    psm = _psm(Exporter("msmu").export(_parsed(diann)))
     source = _search_result(psm)
 
     assert list(source.index) == list(psm.var_names)

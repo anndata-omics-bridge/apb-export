@@ -59,14 +59,16 @@ class Exporter:
         """The file the target opens: ``.h5ad`` or ``.h5mu``."""
         return self._compiled.extension
 
-    def export(self, parsed: ParsedLevels) -> ad.AnnData | md.MuData:
-        """Build the target's AnnData or MuData from an APB2 result.
+    def export(self, parsed: ParsedLevels) -> ad.AnnData | md.MuData | ParsedLevels:
+        """Build the target's export from an APB2 result.
 
         Args:
             parsed: An APB2 result holding the levels the target requires.
 
         Returns:
-            One AnnData for an ``.h5ad`` target; a MuData with one modality per level otherwise.
+            A ``ParsedLevels`` for APB2's ``write_parsed_levels`` where the target has moved to
+            it, so far ProteoPy; otherwise one AnnData for an ``.h5ad`` target, or a MuData with
+            one modality per level.
 
         Raises:
             ValueError: The result lacks a level or field the target requires.
