@@ -11,7 +11,8 @@ import anndata as ad
 import mudata as md
 import pandas as pd
 import pytest
-from apb2.api import UnsJsonCodec
+from apb2.api import ParsedLevels, UnsJsonCodec, read_parsed_levels, write_parsed_levels
+from polars.testing import assert_frame_equal
 
 COLUMNS = (
     "Run",
@@ -283,3 +284,37 @@ def column(frame: pd.DataFrame, name: str) -> pd.Series:
     values = frame[name]
     assert isinstance(values, pd.Series)
     return values
+
+
+def read_back(exported: ParsedLevels | md.MuData, path: Path) -> ad.AnnData | md.MuData:
+    """An export as its tool opens it: written as ``Exporter.write`` writes it, then read."""
+    if isinstance(exported, ParsedLevels):
+        write_parsed_levels(exported, path, var_name_prefix=False)
+    else:
+        exported.write_h5mu(path)
+    return md.read_h5mu(path) if path.suffix == ".h5mu" else ad.read_h5ad(path)
+
+
+def assert_rewrite_identical(written: Path, again: Path) -> None:
+    """An export read by APB2 and written again holds the same result, APB2's bar for its own."""
+    first = read_parsed_levels(written)
+    write_parsed_levels(first, again, var_name_prefix=False)
+    second = read_parsed_levels(again)
+    assert (second.uns, second.metadata, second.export_uns) == (
+        first.uns,
+        first.metadata,
+        first.export_uns,
+    )
+    assert list(second.levels) == list(first.levels)
+    for name, level in first.levels.items():
+        other = second.levels[name]
+        assert (other.uns, other.metadata, other.export_uns) == (
+            level.uns,
+            level.metadata,
+            level.export_uns,
+        )
+        assert_frame_equal(other.obs.frame, level.obs.frame)
+        assert_frame_equal(other.var.frame, level.var.frame)
+        assert list(other.layers) == list(level.layers)
+        for layer, table in level.layers.items():
+            assert_frame_equal(other.layers[layer].values, table.values)

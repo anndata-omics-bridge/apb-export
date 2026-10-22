@@ -10,7 +10,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
-type SchemaVersion = Literal["0.2"]
+type SchemaVersion = Literal["0.3"]
 type ColumnType = Literal["string", "integer", "number", "boolean"]
 type FloatWidth = Literal[32, 64]
 type Scalar = str | int | float | bool | None
@@ -145,14 +145,6 @@ class EntryBase(ModelBase):
     fill_value: Scalar = Field(
         default=None,
         description='Written when an optional source is absent; "NaN" for numbers.',
-    )
-    index_only: bool = Field(
-        default=False,
-        description="An axis entry that becomes the index without being written as a column.",
-    )
-    named_index: bool = Field(
-        default=False,
-        description="The index takes this axis entry's name, as AlphaPeptTools' levels need.",
     )
     drop_missing: bool = Field(
         default=False,
@@ -325,13 +317,6 @@ def _unique(group: str, entries: Entries) -> set[str]:
     return set(names)
 
 
-def _check_axis_flags(group: str, entries: Entries, keys: list[str]) -> None:
-    for entry in entries:
-        for flag in ("index_only", "named_index"):
-            if getattr(entry, flag, False) and entry.name not in keys:
-                raise ValueError(f"{group} entry {entry.name!r} is {flag} but no axis key")
-
-
 def _check_uns_only(group: str, entries: Entries) -> None:
     for entry in entries:
         if isinstance(entry, AnnotationMap) or (
@@ -366,9 +351,6 @@ class LevelRule(ModelBase):
             raise ValueError(f"axis.obs_keys={self.axis.obs_keys} matches no columns.obs entry")
         if self.axis.var_keys[0] not in var:
             raise ValueError(f"axis.var_keys={self.axis.var_keys} matches no columns.var entry")
-        _check_axis_flags("columns.obs", self.columns.obs, self.axis.obs_keys)
-        _check_axis_flags("columns.var", self.columns.var, self.axis.var_keys)
-        _check_axis_flags("uns", self.uns, [])
         _check_uns_only("columns.obs", self.columns.obs)
         _check_uns_only("columns.var", self.columns.var)
         for entry in (*self.columns.obs, *self.columns.var, *self.uns):

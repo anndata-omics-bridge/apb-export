@@ -50,10 +50,10 @@ exporter = Exporter("msmu")
 parsed = ParseRuleCompiler.detect(
     Path("report.tsv"), Path("report.log.txt"), requested_levels=exporter.levels
 ).compile().parse()
-exporter.export(parsed).write_h5mu("result.h5mu")
+exporter.write(exporter.export(parsed), Path("result.h5mu"))
 ```
 
-An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file each opens.
+`write` writes the file through APB2's `write_parsed_levels`, with its `.apb.json` sidecar. An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file each opens.
 
 ## Install
 

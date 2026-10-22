@@ -27,6 +27,8 @@ from conftest import (
     RUNS,
     DiannInput,
     MaxQuantInput,
+    apb_part,
+    assert_rewrite_identical,
     export_sources,
     level_part,
     observed,
@@ -61,19 +63,14 @@ def _annotated(parsed: ParsedLevels, column: str = "condition") -> ParsedLevels:
     return replace(parsed, levels=levels)
 
 
-def _written(target: str, parsed: ParsedLevels, folder: Path) -> ad.AnnData | md.MuData:
-    """Export, write the file the target reads, and read it back."""
-    export = Exporter(target)
-    result = export.export(parsed)
+def _written(
+    target: str, parsed: ParsedLevels, folder: Path, abundance: str | None = None
+) -> ad.AnnData | md.MuData:
+    """Export, write the file the target reads, and read it back as the tool does."""
+    export = Exporter(target, abundance)
     path = folder / f"{target}{export.extension}"
-    if isinstance(result, ParsedLevels):
-        write_parsed_levels(result, path)
-        return ad.read_h5ad(path)
-    if isinstance(result, md.MuData):
-        result.write_h5mu(path)
-        return md.read_h5mu(path)
-    result.write_h5ad(path)
-    return ad.read_h5ad(path)
+    export.write(export.export(parsed), path)
+    return md.read_h5mu(path) if path.suffix == ".h5mu" else ad.read_h5ad(path)
 
 
 def _anndata(value: object) -> ad.AnnData:
@@ -153,7 +150,9 @@ def test_prolfquapp_factors_come_from_each_result_alone(diann: DiannInput) -> No
     parsed = _parsed(diann)
     export.export(_annotated(parsed))
 
-    again = _anndata(export.export(parsed))
+    path = diann.report.with_name("again.h5ad")
+    export.write(export.export(parsed), path)
+    again = ad.read_h5ad(path)
 
     assert again.uns["prolfquapp"]["analysis_configuration"]["factors"] == {}
 
@@ -169,7 +168,7 @@ def _per_cell(adata: ad.AnnData, value: Callable[[int, int], float]) -> np.ndarr
 def test_prolfquapp_reads_protein_group_q_values_through_each_precursors_group(
     diann: DiannInput,
 ) -> None:
-    adata = _anndata(Exporter("prolfqua").export(_parsed(diann)))
+    adata = _anndata(_written("prolfqua", _parsed(diann), diann.report.parent))
 
     run_wise = _per_cell(adata, lambda run, precursor: 0.0001 * (precursor + 1) * (run + 1))
     experiment = _per_cell(adata, lambda run, precursor: 0.002 * (precursor + 1) / 2)
@@ -182,7 +181,9 @@ def test_prolfquapp_reads_protein_group_q_values_through_each_precursors_group(
 
 
 def test_prolfquapp_prefers_the_library_q_value_with_match_between_runs(tmp_path: Path) -> None:
-    adata = _anndata(Exporter("prolfqua").export(_parsed(write_diann(tmp_path, library_q=0.003))))
+    adata = _anndata(
+        _written("prolfqua", _parsed(write_diann(tmp_path, library_q=0.003)), tmp_path)
+    )
 
     library = _per_cell(adata, lambda run, precursor: 0.003 * (precursor + 1) / 2)
     np.testing.assert_allclose(np.asarray(adata.layers["pg_qValue_experiment"]), library)
@@ -192,21 +193,21 @@ def test_prolfquapp_without_a_protein_level_has_no_protein_group_q_values(
     diann: DiannInput,
 ) -> None:
     ion_only = ParseRuleCompiler.detect(diann.report, diann.log, requested_levels=("ion",))
-    adata = _anndata(Exporter("prolfqua").export(ion_only.compile().parse()))
+    adata = _anndata(_written("prolfqua", ion_only.compile().parse(), diann.report.parent))
 
     assert {"pg_qValue", "pg_qValue_experiment"}.isdisjoint(adata.layers)
     assert "qValue" in adata.layers
 
 
 def test_prolfquapp_reads_each_precursors_pep(diann: DiannInput) -> None:
-    adata = _anndata(Exporter("prolfqua").export(_parsed(diann)))
+    adata = _anndata(_written("prolfqua", _parsed(diann), diann.report.parent))
 
     pep = _per_cell(adata, lambda _run, precursor: 0.01 * (precursor + 1))
     np.testing.assert_allclose(np.asarray(adata.layers["pep"]), pep)
 
 
 def test_prolfquapp_reads_the_intensity_without_normalisation(diann: DiannInput) -> None:
-    adata = _anndata(Exporter("prolfqua").export(_parsed(diann)))
+    adata = _anndata(_written("prolfqua", _parsed(diann), diann.report.parent))
 
     assert export_sources(adata)["layers.intensity"] == {
         "location": "layers",
@@ -218,7 +219,9 @@ def test_prolfquapp_reads_the_intensity_without_normalisation(diann: DiannInput)
 
 
 def test_a_named_abundance_layer_replaces_the_rules_intensity(diann: DiannInput) -> None:
-    adata = _anndata(Exporter("prolfqua", "Precursor_Normalised").export(_parsed(diann)))
+    adata = _anndata(
+        _written("prolfqua", _parsed(diann), diann.report.parent, "Precursor_Normalised")
+    )
 
     assert export_sources(adata)["layers.intensity"] == {
         "location": "layers",
@@ -230,7 +233,7 @@ def _maxquant(maxquant: MaxQuantInput) -> ad.AnnData:
     """The prolfqua export of a MaxQuant folder, parsed into the levels prolfqua reads."""
     levels = Exporter("prolfqua").levels
     compiler = ParseRuleCompiler.detect(maxquant.folder, maxquant.params, requested_levels=levels)
-    return _anndata(Exporter("prolfqua").export(compiler.compile().parse()))
+    return _anndata(_written("prolfqua", compiler.compile().parse(), maxquant.folder.parent))
 
 
 def test_prolfquapp_reads_maxquant_from_its_peptide_level(tmp_path: Path) -> None:
@@ -242,6 +245,7 @@ def test_prolfquapp_reads_maxquant_from_its_peptide_level(tmp_path: Path) -> Non
         "peptides.txt, as prolfquapp reads it"
     )
     assert list(var.columns) == [
+        "feature_id",
         "protein_Id",
         "IDcolumn",
         "fasta.id",
@@ -303,7 +307,7 @@ def test_precursors_without_a_protein_are_left_out(
     var = replace(ion.var, frame=ion.var.frame.with_columns(unassigned.alias(column)))
     result = replace(parsed, levels={**parsed.levels, "ion": replace(ion, var=var)})
 
-    adata = _anndata(Exporter(target).export(result))
+    adata = _anndata(_written(target, result, tmp_path))
 
     assert adata.n_vars == ion.var.frame.height - 1
     assert adata.X is not None and adata.X.shape == (adata.n_obs, adata.n_vars)
@@ -322,6 +326,48 @@ def test_alphapepttools_levels_link_by_their_ids(diann: DiannInput, tmp_path: Pa
     assert _frame(proteins.var).index.name == "proteins"
     assert {"sequence", "proteins"} <= set(precursor_var.columns)
     assert set(precursor_var["proteins"]) <= set(proteins.var_names), "every precursor links"
+
+
+def _maxquant_levels(maxquant: MaxQuantInput, target: str) -> ParsedLevels:
+    levels = Exporter(target).levels
+    compiler = ParseRuleCompiler.detect(maxquant.folder, maxquant.params, requested_levels=levels)
+    return compiler.compile().parse()
+
+
+def test_alphapepttools_aligns_maxquant_levels_on_the_raw_files(tmp_path: Path) -> None:
+    """evidence.txt keys runs by raw file, peptides.txt by experiment; one maps to the other."""
+    parsed = _maxquant_levels(write_maxquant(tmp_path), "alphapepttools")
+    mdata = _written("alphapepttools", parsed, tmp_path)
+
+    assert isinstance(mdata, md.MuData)
+    assert set(mdata.mod) == {"precursors", "peptides", "proteins"}
+    raw_files = [f"raw_{name}" for name in EXPERIMENTS]
+    assert list(mdata.obs_names) == raw_files, "one axis of four runs, not eight"
+    for name in mdata.mod:
+        assert list(_frame(mdata[name].obs)["raw_name"]) == raw_files
+    assert_rewrite_identical(tmp_path / "alphapepttools.h5mu", tmp_path / "again.h5mu")
+
+
+def test_alphapepttools_leaves_out_levels_it_cannot_align(tmp_path: Path) -> None:
+    """Two raw files per experiment, as with fractions: only the evidence's precursors remain."""
+    parsed = _maxquant_levels(write_maxquant(tmp_path), "alphapepttools")
+    ion = parsed.levels["ion"]
+    fractions = ion.obs.frame.with_columns(pl.Series("Experiment", ["S1", "S1", "S2", "S2"]))
+    ion = replace(ion, obs=replace(ion.obs, frame=fractions))
+    mdata = _written(
+        "alphapepttools", replace(parsed, levels={**parsed.levels, "ion": ion}), tmp_path
+    )
+
+    assert isinstance(mdata, md.MuData)
+    assert set(mdata.mod) == {"precursors"}
+    record = apb_part(mdata.uns["apb"])["export"]["provenance"]
+    assert record["skipped_levels"] == ["peptide", "protein"]
+
+
+def test_prolfquapp_file_is_written_again_unchanged(diann: DiannInput, tmp_path: Path) -> None:
+    _written("prolfqua", _annotated(_parsed(diann)), tmp_path)
+
+    assert_rewrite_identical(tmp_path / "prolfqua.h5ad", tmp_path / "again.h5ad")
 
 
 def test_an_annotation_named_like_a_declared_column_is_refused(diann: DiannInput) -> None:

@@ -92,10 +92,6 @@ def _width_on_text(document: dict[str, Any]) -> None:
     _var(document, "peptide")["width"] = 32
 
 
-def _index_only_column(document: dict[str, Any]) -> None:
-    _var(document, "peptide")["index_only"] = True
-
-
 def _no_modality(document: dict[str, Any]) -> None:
     del _ion(document)["modality"]
 
@@ -110,10 +106,6 @@ def _map_in_columns(document: dict[str, Any]) -> None:
 
 def _mapping_constant_in_columns(document: dict[str, Any]) -> None:
     _ion(document)["columns"]["var"].append({"name": "x", "how": "constant", "value": {"a": 1}})
-
-
-def _named_column(document: dict[str, Any]) -> None:
-    _var(document, "peptide")["named_index"] = True
 
 
 def _two_tables(document: dict[str, Any]) -> None:
@@ -134,12 +126,10 @@ def _h5ad_with_two_levels(document: dict[str, Any]) -> None:
         (_undeclared_axis, r"axis.var_keys=\['nope'\] matches no columns.var entry"),
         (_undeclared_syntax, "names no accession_syntax 'msmu'"),
         (_width_on_text, "width applies only to type number"),
-        (_index_only_column, "'peptide' is index_only but no axis key"),
         (_no_modality, "writes .h5mu but names no modality"),
         (_repeated_name, "columns.var entry names must be unique"),
         (_map_in_columns, "'factors' can only be written to uns"),
         (_mapping_constant_in_columns, "'x' can only be written to uns"),
-        (_named_column, "'peptide' is named_index but no axis key"),
         (_two_tables, "an export rule writes one table, not 2"),
         (_h5ad_with_two_levels, r"\.h5ad levels \['ion'\] precede another but name no software"),
     ],

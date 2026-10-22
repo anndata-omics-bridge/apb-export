@@ -1,7 +1,7 @@
-"""AnnData and MuData assembly: the only module that builds them.
+"""MuData assembly for rules that link levels, until APB2's writer stores such links.
 
 Each level keeps APB2's samples-by-features matrices. Several levels become one MuData, one
-modality each, whose features a ``varp`` relation may link across modalities.
+modality each, whose features a ``varp`` relation links across modalities.
 """
 
 from __future__ import annotations

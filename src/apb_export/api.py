@@ -1,18 +1,25 @@
 """Exports of APB2 results in the formats downstream tools read.
 
 APB2 owns conversion and persistence: ``ParseRuleCompiler`` reads vendor files into
-``ParsedLevels``, ``read_parsed_levels`` loads a stored result. Each target's packaged export
-rule declares what that tool reads; ``Exporter`` applies one and returns the AnnData or MuData
-the tool opens. The ``apb-export`` command composes conversion, annotation and export.
+``ParsedLevels``, ``read_parsed_levels`` loads a stored result, ``write_parsed_levels`` writes
+one. Each target's packaged export rule declares what that tool reads; ``Exporter`` applies one
+and writes the file the tool opens through APB2's writer. The ``apb-export`` command composes
+conversion, annotation and export.
 
 A plugin package adds a target through the `apb_export.targets` entry-point group.
 """
 
 from __future__ import annotations
 
-import anndata as ad
+from pathlib import Path
+
 import mudata as md
-from apb2.api import ParsedLevels, QuantificationLevel
+from apb2.api import (
+    ParsedLevels,
+    QuantificationLevel,
+    write_container_representation,
+    write_parsed_levels,
+)
 
 from apb_export.engine import CompiledExport
 from apb_export.export_rules.loader import packaged_documents, packaged_rules
@@ -59,16 +66,15 @@ class Exporter:
         """The file the target opens: ``.h5ad`` or ``.h5mu``."""
         return self._compiled.extension
 
-    def export(self, parsed: ParsedLevels) -> ad.AnnData | md.MuData | ParsedLevels:
+    def export(self, parsed: ParsedLevels) -> ParsedLevels | md.MuData:
         """Build the target's export from an APB2 result.
 
         Args:
             parsed: An APB2 result holding the levels the target requires.
 
         Returns:
-            A ``ParsedLevels`` for APB2's ``write_parsed_levels`` where the target has moved to
-            it, so far ProteoPy; otherwise one AnnData for an ``.h5ad`` target, or a MuData with
-            one modality per level.
+            A ``ParsedLevels`` for APB2's writer, one level per level the target reads; a MuData
+            for a target that links its levels, which APB2's writer cannot store yet.
 
         Raises:
             ValueError: The result lacks a level or field the target requires.
@@ -77,6 +83,22 @@ class Exporter:
         written = self._compiled.written
         chosen = None if self._abundance is None else dict.fromkeys(written, self._abundance)
         return self._compiled.export(parsed, abundance=chosen)
+
+    def write(self, exported: ParsedLevels | md.MuData, output: Path) -> None:
+        """Write an export and its APB2 sidecar.
+
+        A ``ParsedLevels`` goes through APB2's ``write_parsed_levels`` with var names as the
+        target reads them, unprefixed; a linked MuData through mudata's writer.
+
+        Args:
+            exported: What :meth:`export` returned.
+            output: The new ``.h5ad`` or ``.h5mu`` file.
+        """
+        if isinstance(exported, ParsedLevels):
+            write_parsed_levels(exported, output, var_name_prefix=False)
+            return
+        exported.write_h5mu(output)
+        write_container_representation(exported, output)
 
 
 __all__ = ["Exporter"]

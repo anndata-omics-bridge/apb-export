@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.2",
+  "schema_version": "0.3",
   "file_version": "1",
   "target_name": "ProteoPy",
   "target_version_pattern": "^0\\.1\\.",

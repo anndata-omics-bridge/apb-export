@@ -19,7 +19,7 @@ from apb_export.api import Exporter
 from apb_export.engine import CompiledExport
 from apb_export.export_rules.loader import effective_rules
 from apb_export.export_rules.schema import ExportRuleDocument
-from conftest import DiannInput, column, export_sources, write_diann
+from conftest import DiannInput, column, export_sources, read_back, write_diann
 
 # identification_confidence catalogues no library q-value, so this candidate never resolves.
 UNOFFERED = {
@@ -56,13 +56,14 @@ def _with_var(replacements: dict[str, dict[str, Any]]) -> CompiledExport:
 
 
 def _psm(compiled: CompiledExport, diann: DiannInput) -> ad.AnnData:
-    return _modality(compiled.export(_parsed(diann)))
+    return _modality(compiled.export(_parsed(diann)), diann.report.with_name("psm.h5mu"))
 
 
-def _modality(exported: object) -> ad.AnnData:
-    """msmu's psm modality; msmu's export is a MuData."""
-    assert isinstance(exported, md.MuData)
-    psm = exported["psm"]
+def _modality(exported: ParsedLevels | md.MuData, path: Path) -> ad.AnnData:
+    """msmu's psm modality, as msmu reads it from the written file."""
+    container = read_back(exported, path)
+    assert isinstance(container, md.MuData)
+    psm = container["psm"]
     assert isinstance(psm, ad.AnnData)
     return psm
 
@@ -76,7 +77,7 @@ def _var(psm: object) -> pd.DataFrame:
 
 def test_zero_global_q_values_stay_selected(tmp_path: Path) -> None:
     diann = write_diann(tmp_path, global_q=0.0)
-    psm = _modality(Exporter("msmu").export(_parsed(diann)))
+    psm = _modality(Exporter("msmu").export(_parsed(diann)), tmp_path / "psm.h5mu")
 
     assert export_sources(psm)["var.q_value"]["kind"] == "global_q_value"
     assert (column(_var(psm), "q_value") == 0).all(), (
@@ -159,7 +160,7 @@ def test_a_layer_cannot_fill_a_uns_entry(diann: DiannInput) -> None:
 
 
 def test_an_index_must_not_repeat(diann: DiannInput) -> None:
-    same = {"name": "precursor", "how": "constant", "value": "same", "index_only": True}
+    same = {"name": "precursor", "how": "constant", "value": "same"}
 
     with pytest.raises(ValueError, match="var index 'precursor' repeats values"):
         _with_var({"precursor": same}).export(_parsed(diann))

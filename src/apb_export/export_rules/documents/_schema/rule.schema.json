@@ -65,18 +65,6 @@
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
         },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
-        },
         "drop_missing": {
           "default": false,
           "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
@@ -170,18 +158,6 @@
           "$ref": "#/$defs/Scalar",
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
-        },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
         },
         "drop_missing": {
           "default": false,
@@ -454,18 +430,6 @@
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
         },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
-        },
         "drop_missing": {
           "default": false,
           "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
@@ -526,18 +490,6 @@
           "$ref": "#/$defs/Scalar",
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
-        },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
         },
         "drop_missing": {
           "default": false,
@@ -650,18 +602,6 @@
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
         },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
-        },
         "drop_missing": {
           "default": false,
           "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
@@ -773,18 +713,6 @@
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
         },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
-        },
         "drop_missing": {
           "default": false,
           "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
@@ -845,18 +773,6 @@
           "$ref": "#/$defs/Scalar",
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
-        },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
         },
         "drop_missing": {
           "default": false,
@@ -979,18 +895,6 @@
           "$ref": "#/$defs/Scalar",
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
-        },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
         },
         "drop_missing": {
           "default": false,
@@ -1140,18 +1044,6 @@
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
         },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
-        },
         "drop_missing": {
           "default": false,
           "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
@@ -1230,18 +1122,6 @@
           "$ref": "#/$defs/Scalar",
           "default": null,
           "description": "Written when an optional source is absent; \"NaN\" for numbers."
-        },
-        "index_only": {
-          "default": false,
-          "description": "An axis entry that becomes the index without being written as a column.",
-          "title": "Index Only",
-          "type": "boolean"
-        },
-        "named_index": {
-          "default": false,
-          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
-          "title": "Named Index",
-          "type": "boolean"
         },
         "drop_missing": {
           "default": false,

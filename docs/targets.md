@@ -14,6 +14,14 @@ Rules follow APB2's rule schema read in reverse:
 
 The published [JSON Schemas](https://github.com/anndata-omics-bridge/apb-export/tree/main/src/apb_export/export_rules/documents/_schema) describe the documents.
 
+Every packaged target's file is written by APB2's `write_parsed_levels`, `.apb.json` sidecar included:
+
+- each key stays a column and names its index, a String key as written
+- var names carry no level prefix
+- several levels share one observation axis; MaxQuant's experiments are aligned onto its raw files when each experiment is one raw file
+- a rule's `uns` entries are written beside APB's `uns["apb"]`
+- a rule with `feature_links` still builds its MuData here, until APB2 stores links between levels
+
 | Target | Rule | File | APB2 levels | Layout |
 | --- | --- | --- | --- | --- |
 | msmu | [v0_4](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | ion | `psm` modality, precursors by runs, experimental |
@@ -25,7 +33,7 @@ The published [JSON Schemas](https://github.com/anndata-omics-bridge/apb-export/
 
 msmu's `psm` modality, written wide. Experimental: msmu's own readers write one feature per run and precursor, and msmu's tools may expect that.
 
-- One `psm` modality; runs are observations, precursors are features, id `<ProForma precursor>`
+- One `psm` modality; runs are observations, precursors are features, id `<ProForma precursor>`; the keys `filename` and `precursor` stay columns and name the indices
 - `X`: dense float32, the chosen abundance layer; APB2's primary layer by default; a precursor absent from a run is NaN
 - `layers`: each run's `q_value` and `PEP`, where the vendor reports them
 - `var`: `proteins`, `peptide`, `stripped_peptide`, `charge`, `peptide_length`, `decoy`, `contaminant`, and `PEP` and `q_value` where reported, each the precursor's lowest value across runs (`how: "layer_minimum"`)
@@ -45,9 +53,10 @@ msmu's `psm` modality, written wide. Experimental: msmu's own readers write one 
 
 ## ProteoPy and AlphaPeptTools
 
-- ProteoPy's file is written by APB2's `write_parsed_levels`, sidecar included; `sample_id` and `protein_id` name the indices and stay columns
+- ProteoPy: `sample_id` and `protein_id` name the indices and stay columns
 - ProteoPy with `--fasta`: apb-fasta annotates the protein groups and adds `in_fasta`, `gene_id`, `description` and `fasta_organisms`
 - AlphaPeptTools: ion and peptide modalities carry `contaminant`; with `--fasta` also `in_fasta`, `fasta_proteins` and `fasta_organisms`
+- AlphaPeptTools on MaxQuant: runs named by raw file; with fractions, several raw files per experiment, only precursors are written and the export record lists the other levels as skipped
 - Neither tool reads these FASTA columns; they are kept for inspection
 
 ## Plugin targets

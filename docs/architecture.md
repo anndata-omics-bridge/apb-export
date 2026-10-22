@@ -9,12 +9,12 @@ Modules compose downward only:
 | Module | Role |
 | --- | --- |
 | `cli` | One subcommand per target: APB2 reads the target's levels, `--annotation` is applied, then `Exporter` exports |
-| `api` | `Exporter(target, abundance=...).export(parsed)`; `targets()`, `levels` and `extension` describe the packaged rules |
-| `engine` | `CompiledExport`: one target's rules checked once; picks the levels for the result's software and builds one AnnData per level, or for ProteoPy so far a `ParsedLevels` that APB2's `write_parsed_levels` writes |
+| `api` | `Exporter(target, abundance=...).export(parsed)` and `.write(exported, path)` through APB2's writer; `targets()`, `levels` and `extension` describe the packaged rules |
+| `engine` | `CompiledExport`: one target's rules checked once; picks the levels for the result's software, aligns several on one observation axis, and builds a `ParsedLevels` for APB2's `write_parsed_levels`; a rule that links levels still gets a MuData |
 | `rows` | Polars only; aligns sources to cell, feature, observation and `uns` rows |
 | `computed` | The conversions a computed entry's `how` names |
 | `sources` | APB references resolved against one level; catalogue lookups through apb-catalog; protein-level fields read through each protein group |
-| `container` | AnnData/MuData assembly; the only module that builds them |
+| `container` | MuData assembly for rules that link levels, until APB2's writer stores such links |
 | `web` | `apb-export-web`: FastAPI server and job runner; reaches the package only through `apb_export.api` |
 | `export_rules` | Schema models, loader, and the packaged `documents/<target>/<version>/rules.json` |
 

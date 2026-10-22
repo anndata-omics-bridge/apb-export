@@ -37,16 +37,16 @@ exporter = Exporter("msmu")
 parsed = ParseRuleCompiler.detect(
     Path("report.tsv"), Path("report.log.txt"), requested_levels=exporter.levels
 ).compile().parse()
-exporter.export(parsed).write_h5mu("result.h5mu")
+exporter.write(exporter.export(parsed), Path("result.h5mu"))
 ```
 
-An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file each opens.
+`write` writes the file through APB2's `write_parsed_levels`, with its `.apb.json` sidecar. An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file each opens.
 
 ## What it writes
 
 msmu's `psm` modality, written wide. Experimental: msmu's own readers write one feature per run and precursor, and msmu's tools may expect that.
 
-- one `psm` modality; runs are observations, precursors are features, id `<ProForma precursor>`
+- one `psm` modality; runs are observations, precursors are features, id `<ProForma precursor>`; the keys `filename` and `precursor` stay columns and name the indices, as APB2 writes them
 - `X`: dense float32, the chosen abundance layer (`--abundance`, APB2's primary layer by default); a precursor absent from a run is NaN
 - `layers`: each run's `q_value` and `PEP`, where the vendor reports them
 - `var`: `proteins`, `peptide`, `stripped_peptide`, `charge`, `peptide_length`, `decoy`, `contaminant`, and `PEP` and `q_value` where reported, each the precursor's lowest value across runs

@@ -21,18 +21,18 @@ The closest `AGENTS.md` wins. Explicit user instructions override this file.
 Export rules declare what each target reads; one engine applies them. Packaged targets: msmu, prolfqua, ProteoPy and AlphaPeptTools; installed plugins add more through the `apb_export.targets` entry-point group. Modules compose downward only:
 
 - `cli`: one subcommand per target; APB2's `ParseRuleCompiler` reads the target's levels, apb2's `AnnotationCompiler` applies `--annotation`, then `Exporter` exports; refuses overwrite and the wrong file type, reports unreviewed catalogue answers
-- `api`: `Exporter(target, abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; `targets()`, `levels` and `extension` describe the packaged rules
-- `engine`: `CompiledExport`, one target's level rules checked once; picks the levels for the result's software, binds every entry's sources before building one AnnData per level, combined into a MuData for `.h5mu`; ProteoPy's export is already a `ParsedLevels` that APB2's `write_parsed_levels` writes, the first target of the move planned in the workspace TODO `exports as ParsedLevels`
+- `api`: `Exporter(target, abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; `write(exported, path)` hands the result to APB2's `write_parsed_levels` with unprefixed var names; `targets()`, `levels` and `extension` describe the packaged rules
+- `engine`: `CompiledExport`, one target's level rules checked once; picks the levels for the result's software, aligns several on one observation axis with APB2's `observation_groups()`, binds every entry's sources, and builds a `ParsedLevels`; a rule with `feature_links` still builds a MuData until APB2 stores links between levels (workspace TODO `exports as ParsedLevels`, step 2b)
 - `rows`: Polars only; aligns sources to feature, observation and `uns` rows
 - `computed`: the conversions a computed entry's `how` names
 - `sources`: APB references resolved against one level, catalogue lookups through apb-catalog, and catalogued protein-level fields read through each variable's protein group, named whole or by its leading protein
-- `container`: AnnData/MuData assembly; the only module that builds them
+- `container`: MuData assembly for rules with `feature_links`; goes once APB2 writes them
 - `web`: `apb-export-web`, a FastAPI server and job runner; jobs run the `apb-export` and `apb2` commands as subprocesses and write every answer as a file; reaches this package only through `apb_export.api`; its page is the Lit/Vite project in `web/`, built into `web/static` by `make web`
 - `export_rules`: schema models, loader and the packaged `documents/<target>/<version>/rules.json`; `make schema` rewrites `documents/_schema`
 
 Rules for this package:
 
-- **APB2 owns conversion and persistence.** Never define a `convert`, reader or writer here; use `ParseRuleCompiler`, `read_parsed_levels` and `write_parsed_levels`.
+- **APB2 owns conversion and persistence.** Never define a `convert`, reader or writer here; use `ParseRuleCompiler`, `read_parsed_levels` and `write_parsed_levels`. `Exporter.write` only chooses APB2's writer settings; keys stay columns, as APB2 writes them.
 
 - **Export rules read apb2's rule schema in reverse.** Keep apb2's key names; an entry's `name` is the target field and its `source` an APB reference every vendor shares.
 - **Meanings come from apb-catalog, never vendor column names.** A vendor without a catalogued field gets no column (q-value) or NaN (PEP); an unreviewed rule is an error, not a guess. In a candidate list, a catalogue candidate the catalogue reviewed but cannot pick (ambiguous, or a requested qualifier unknown) passes to the next candidate and is recorded as `passed`; the last candidate still raises.

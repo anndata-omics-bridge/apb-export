@@ -2,14 +2,16 @@
 
 Every entry's sources are resolved and checked against what its group can take before any
 row is built, so a result the rule cannot export fails without a partial container. Each
-level the rule reads becomes one AnnData; several become one MuData, one modality each.
+level the rule writes becomes one level of a ``ParsedLevels`` for APB2's writer. A rule that
+links levels still builds a MuData, one modality per level: APB2's writer cannot store links
+between levels yet.
 """
 
 from __future__ import annotations
 
 import copy
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from importlib.metadata import version
 from typing import TYPE_CHECKING, cast
 
@@ -230,7 +232,7 @@ class _LevelExport:
         )
 
     def wide(self) -> ad.AnnData:
-        """APB2's samples-by-features matrices; the primary layer becomes X."""
+        """APB2's samples-by-features matrices for a linked MuData; the primary layer becomes X."""
         rule = self._rule.rule
         primary = rule.measurements.primary_layer
         found = [
@@ -252,10 +254,10 @@ class _LevelExport:
         x = matrices.pop(primary)
         return self._with_level_part(
             wide_anndata(
-                obs_index=self._index(obs, rule.axis.obs_keys[0], rule.columns.obs, "obs"),
-                obs=self._visible(obs, rule.columns.obs),
-                var_index=self._index(var, rule.axis.var_keys[0], rule.columns.var, "var"),
-                var=self._visible(var, rule.columns.var),
+                obs_index=self._index(obs, rule.axis.obs_keys[0], "obs"),
+                obs=pl.DataFrame(obs),
+                var_index=self._index(var, rule.axis.var_keys[0], "var"),
+                var=pl.DataFrame(var),
                 x=x,
                 layers=matrices,
                 uns=self._uns(uns),
@@ -271,6 +273,7 @@ class _LevelExport:
             for entry in rule.measurements.layers
         ]
         bound = self._bind_columns()
+        uns = self._bind_group("uns", rule.uns, _UNS_TAKES)
         obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
         rows = FeatureRows(self._level.var.frame.height)
         var = self._columns(bound["var"], rows)
@@ -295,6 +298,7 @@ class _LevelExport:
             auxiliary=layers,
             uns=dict(self._level.uns),
             metadata={**self._level.metadata, "export": self._export_part(len(layers) + 1)},
+            export_uns=cast(dict[str, JsonValue], self._uns(uns)),
         )
 
     def _layer(self, entry: LayerEntry, *, primary: bool) -> LayerValues | None:
@@ -378,16 +382,9 @@ class _LevelExport:
         return values
 
     @staticmethod
-    def _index(columns: list[pl.Series], key: str, entries: Entries, group: str) -> Index:
+    def _index(columns: list[pl.Series], key: str, group: str) -> Index:
         values = _LevelExport._key(columns, key, group)
-        (entry,) = [e for e in entries if not isinstance(e, AllValues) and e.name == key]
-        named = not isinstance(entry, AllValues) and entry.named_index
-        return Index([str(value) for value in values.to_list()], key if named else None)
-
-    @staticmethod
-    def _visible(columns: list[pl.Series], entries: Entries) -> pl.DataFrame:
-        hidden = {e.name for e in entries if not isinstance(e, AllValues) and e.index_only}
-        return pl.DataFrame([column for column in columns if column.name not in hidden])
+        return Index([str(value) for value in values.to_list()], None)
 
     def _uns(self, bound: Sequence[_Bound | AllValues]) -> dict[str, object]:
         values: list[tuple[str, object]] = []
@@ -486,73 +483,60 @@ class CompiledExport:
         """The file the target reads: ``.h5ad`` for one AnnData, ``.h5mu`` for a MuData."""
         return self.output.extensions[0]
 
-    @property
-    def _apb2_writes(self) -> bool:
-        """Whether the export is a ``ParsedLevels`` for APB2's writer: so far an ``.h5ad`` level
-        without ``uns`` entries, links or index flags; the others still build AnnData."""
-        rule = self.rules[0]
-        flags = any(
-            getattr(entry, flag, False)
-            for entry in (*rule.rule.columns.obs, *rule.rule.columns.var)
-            for flag in ("index_only", "named_index")
-        )
-        return (
-            self.extension == ".h5ad"
-            and not rule.dataset_uns
-            and not rule.feature_links
-            and not any(level.rule.uns for level in self.rules)
-            and not flags
-        )
-
     def export(
         self, parsed: ParsedLevels, abundance: Mapping[str, str] | None = None
-    ) -> ad.AnnData | md.MuData | ParsedLevels:
-        """Write the target's container from one APB2 result.
+    ) -> ParsedLevels | md.MuData:
+        """Build the target's export from one APB2 result.
 
         Args:
             parsed: An APB2 result holding the rule's required levels.
             abundance: Per level, the layer that becomes X; APB2's primary layer otherwise.
 
         Returns:
-            A ``ParsedLevels`` for APB2's writer where the target has moved to it; otherwise one
-            AnnData for an ``.h5ad`` target, or a MuData with one modality per level.
+            A ``ParsedLevels`` for APB2's writer, one level per level written; a MuData with one
+            modality per level for a rule that links levels.
 
         Raises:
             ValueError: The result lacks a required level or source, a source cannot be taken
-                where the rule puts it, or ``abundance`` names a level the rule does not read.
+                where the rule puts it, the levels share no observations, or ``abundance`` names
+                a level the rule does not read.
             UnresolvedField: apb-catalog finds an answer ambiguous or the rule unreviewed.
         """
         chosen = dict(abundance or {})
         unknown = sorted(set(chosen) - set(self.written))
         if unknown:
             raise ValueError(f"abundance names levels the rule does not write: {unknown}")
-        if self._apb2_writes:
-            return self._parsed_levels(parsed, chosen)
-        modalities: dict[str, ad.AnnData] = {}
-        written: list[str] = []
-        skipped: list[str] = []
-        for rule in self._exported_by(parsed):
-            level = _LevelExport(rule, parsed, chosen.get(rule.level))
-            if not rule.rule.required and not level.has_index():
-                logger.info(f"level {rule.level}: the result carries no index for it; left out")
-                skipped.append(rule.level)
-                continue
-            built = level.wide()
-            modalities[rule.rule.modality or rule.level] = built
-            written.append(rule.level)
-        if not modalities:
-            raise ValueError(f"no level of this result carries its index: {skipped}")
-        dataset, dataset_sources = self._dataset_uns(parsed, written[0])
+        if self.rules[0].feature_links:
+            return self._linked(parsed, chosen)
+        return self._parsed_levels(parsed, chosen)
+
+    def _parsed_levels(self, parsed: ParsedLevels, chosen: Mapping[str, str]) -> ParsedLevels:
+        """The levels written, on one observation axis, with the source's records and the
+        export's; the table's own uns entries go to the root."""
+        rules = self._exported_by(parsed)
+        aligned = self._aligned(parsed, rules)
+        exports, skipped = self._held(aligned, rules, chosen)
+        dataset, dataset_sources = self._dataset_uns(aligned, exports[0][0].level)
+        export: dict[str, JsonValue] = {
+            "schema_version": EXPORT_SCHEMA_VERSION,
+            "provenance": self._export_record(dataset_sources, skipped),
+        }
+        return ParsedLevels(
+            levels={
+                rule.rule.modality or rule.level: level.parsed_level() for rule, level in exports
+            },
+            uns=dict(aligned.uns),
+            metadata={**aligned.metadata, "export": export},
+            export_uns=cast(dict[str, JsonValue], dataset),
+        )
+
+    def _linked(self, parsed: ParsedLevels, chosen: Mapping[str, str]) -> md.MuData:
+        """A MuData whose levels the rule links, built here until APB2's writer stores links
+        between levels."""
+        exports, skipped = self._held(parsed, self._exported_by(parsed), chosen)
+        modalities = {rule.rule.modality or rule.level: level.wide() for rule, level in exports}
+        dataset, dataset_sources = self._dataset_uns(parsed, exports[0][0].level)
         export = self._export_record(dataset_sources, skipped)
-        if self.extension == ".h5ad":
-            # As in an apb2 h5ad: the level part under uns[<name>], the root part in uns["apb"].
-            ((name, adata),) = modalities.items()
-            if name in adata.uns:
-                raise ValueError(f"the export rule writes uns[{name!r}] itself")
-            adata.uns[name] = {NAMESPACE: adata.uns.pop(NAMESPACE)}
-            adata.uns[NAMESPACE] = UnsJsonCodec().encode(self._root_part(parsed, export), {})
-            _merge_dataset_uns(adata.uns, dataset)
-            return adata
         container = mudata(modalities)
         links: list[JsonValue] = []
         for link in self.rules[0].feature_links:
@@ -564,19 +548,46 @@ class CompiledExport:
         _merge_dataset_uns(container.uns, dataset)
         return container
 
-    def _parsed_levels(self, parsed: ParsedLevels, chosen: Mapping[str, str]) -> ParsedLevels:
-        """The one level an ``.h5ad`` export writes, with the source's records and the export's."""
-        (rule,) = self._exported_by(parsed)
-        level = _LevelExport(rule, parsed, chosen.get(rule.level)).parsed_level()
-        export: dict[str, JsonValue] = {
-            "schema_version": EXPORT_SCHEMA_VERSION,
-            "provenance": self._export_record({}, []),
-        }
-        return ParsedLevels(
-            levels={rule.rule.modality or rule.level: level},
-            uns=dict(parsed.uns),
-            metadata={**parsed.metadata, "export": export},
-        )
+    def _aligned(self, parsed: ParsedLevels, rules: Sequence[EffectiveRule]) -> ParsedLevels:
+        """Several levels written, with the levels their layers reach into, on one observation
+        axis, as APB2's writer stores them; one level written stays as it is.
+
+        APB2 relabels levels keyed by experiment onto the raw files when the two map one to one,
+        as in MaxQuant; the group holding the first level written is kept.
+        """
+        if len(rules) == 1:
+            return parsed
+        names = dict.fromkeys([*(rule.level for rule in rules), *self.levels])
+        levels = {name: parsed.levels[name] for name in names if name in parsed.levels}
+        groups = replace(parsed, levels=levels).observation_groups()
+        return next(group for group in groups if rules[0].level in group.levels)
+
+    def _held(
+        self, parsed: ParsedLevels, rules: Sequence[EffectiveRule], chosen: Mapping[str, str]
+    ) -> tuple[list[tuple[EffectiveRule, _LevelExport]], list[str]]:
+        """Each level's export; an optional level left out when the result carries no index for
+        it, or when its observations cannot be aligned with the first level's."""
+        exports: list[tuple[EffectiveRule, _LevelExport]] = []
+        skipped: list[str] = []
+        for rule in rules:
+            if rule.level not in parsed.levels:
+                if rule.rule.required:
+                    raise ValueError(
+                        f"level {rule.level!r} does not share the observations of "
+                        f"{sorted(parsed.levels)}"
+                    )
+                logger.info(f"level {rule.level}: its observations are not aligned; left out")
+                skipped.append(rule.level)
+                continue
+            level = _LevelExport(rule, parsed, chosen.get(rule.level))
+            if not rule.rule.required and not level.has_index():
+                logger.info(f"level {rule.level}: the result carries no index for it; left out")
+                skipped.append(rule.level)
+                continue
+            exports.append((rule, level))
+        if not exports:
+            raise ValueError(f"no level of this result carries its index: {skipped}")
+        return exports, skipped
 
     def _dataset_uns(
         self, parsed: ParsedLevels, level: str

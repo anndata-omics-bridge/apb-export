@@ -25,8 +25,6 @@ from apb2.api import (
     QuantificationLevel,
     SdrfSource,
     UnsJsonCodec,
-    write_container_representation,
-    write_parsed_levels,
 )
 from apb_catalog.api import UnresolvedField
 from apb_fasta.api import FastaAnnotator
@@ -108,7 +106,7 @@ def _exported(
     strict: bool,
     fasta: tuple[Path, ...] = (),
     sdrf: Path | None = None,
-) -> ad.AnnData | md.MuData | ParsedLevels | None:
+) -> ParsedLevels | md.MuData | None:
     """Convert, annotate, FASTA-check and export; ``None`` after logging why not."""
     exporter = Exporter(target, abundance)
     if output.suffix != exporter.extension:
@@ -200,30 +198,22 @@ def _level_part(adata: ad.AnnData) -> dict[str, Any]:
     return cast(dict[str, Any], codec.decode(namespace, codec.storage(namespace)))
 
 
-def _write(result: ad.AnnData | md.MuData | ParsedLevels | None, output: Path) -> int:
+def _write(target: str, result: ParsedLevels | md.MuData | None, output: Path) -> int:
     if result is None:
         return 1
     output.parent.mkdir(parents=True, exist_ok=True)
+    Exporter(target).write(result, output)
     if isinstance(result, ParsedLevels):
-        # APB2's writer writes the file and its sidecar.
-        write_parsed_levels(result, output)
         shapes = "; ".join(
             f"{name} {_shape(level.obs.frame.height, level.var.frame.height, _record(level))}"
             for name, level in result.levels.items()
         )
-        logger.info(f"wrote {output} and its sidecar: {shapes}")
-        return 0
-    if isinstance(result, md.MuData):
-        result.write_h5mu(output)
+    else:
         shapes = "; ".join(
             f"{name} {_summary(modality)}"
             for name, modality in result.mod.items()
             if isinstance(modality, ad.AnnData)
         )
-    else:
-        result.write_h5ad(output)
-        shapes = _summary(result)
-    write_container_representation(result, output)
     logger.info(f"wrote {output} and its sidecar: {shapes}")
     return 0
 
@@ -252,10 +242,10 @@ def msmu(
         strict=strict,
         fasta=fasta,
     )
-    if isinstance(result, md.MuData):
+    if isinstance(result, ParsedLevels):
         # An APB2 result does not record its source files; this command read them.
-        result["psm"].uns["identification_file"] = str(data)
-    return _write(result, output)
+        result.levels["psm"].export_uns["identification_file"] = str(data)
+    return _write("msmu", result, output)
 
 
 @app.command
@@ -273,6 +263,7 @@ def prolfqua(
 ) -> int:
     """APB2's ion level for prolfquapp; the annotation's columns become its factors."""
     return _write(
+        "prolfqua",
         _exported(
             "prolfqua",
             data,
@@ -303,6 +294,7 @@ def proteopy(
 ) -> int:
     """APB2's protein level for ProteoPy, with sample_id and protein_id."""
     return _write(
+        "proteopy",
         _exported(
             "proteopy",
             data,
@@ -332,6 +324,7 @@ def alphapepttools(
 ) -> int:
     """APB2's ion, peptide and protein levels as AlphaPeptTools modalities, each primary layer."""
     return _write(
+        "alphapepttools",
         _exported(
             "alphapepttools",
             data,
@@ -361,6 +354,7 @@ def _plugin_command(
 ) -> int:
     """APB2's levels as an installed plugin target's export rule declares them."""
     return _write(
+        target,
         _exported(
             target,
             data,

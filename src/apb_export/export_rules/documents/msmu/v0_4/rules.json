@@ -1,6 +1,6 @@
 {
-  "schema_version": "0.2",
-  "file_version": "2",
+  "schema_version": "0.3",
+  "file_version": "3",
   "target_name": "msmu",
   "target_version_pattern": "^0\\.4\\.",
   "tables": [
@@ -63,10 +63,10 @@
           },
           "columns": {
             "obs": [
-              {"name": "filename", "source": {"axis": "obs_keys"}, "index_only": true}
+              {"name": "filename", "source": {"axis": "obs_keys"}}
             ],
             "var": [
-              {"name": "precursor", "source": "ProForma_ion", "index_only": true},
+              {"name": "precursor", "source": "ProForma_ion"},
               {
                 "name": "proteins",
                 "how": "accessions",
@@ -99,7 +99,6 @@
                   "kind": "pep"
                 },
                 "type": "number",
-                "width": 32,
                 "required": false,
                 "fill_value": "NaN"
               },
@@ -125,7 +124,6 @@
                   }
                 ],
                 "type": "number",
-                "width": 32,
                 "required": false
               }
             ]

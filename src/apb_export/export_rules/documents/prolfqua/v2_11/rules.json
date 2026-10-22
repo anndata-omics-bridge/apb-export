@@ -1,6 +1,6 @@
 {
-  "schema_version": "0.2",
-  "file_version": "1",
+  "schema_version": "0.3",
+  "file_version": "2",
   "target_name": "prolfquapp",
   "target_version_pattern": "^2\\.11\\.",
   "tables": [
@@ -93,8 +93,7 @@
                 "name": "feature_id",
                 "how": "join_nonempty",
                 "inputs": [{"role": "protein_assignment"}, "ProForma_peptide"],
-                "separator": "~",
-                "index_only": true
+                "separator": "~"
               },
               {"name": "protein_Id", "source": {"role": "protein_assignment"}, "drop_missing": true},
               {
@@ -188,8 +187,7 @@
                 "name": "feature_id",
                 "how": "join_nonempty",
                 "inputs": [{"role": "protein_assignment"}, "ProForma_peptide", "ProForma_ion"],
-                "separator": "~",
-                "index_only": true
+                "separator": "~"
               },
               {"name": "protein_Id", "source": {"role": "protein_assignment"}, "drop_missing": true},
               {
