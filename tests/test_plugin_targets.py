@@ -15,21 +15,27 @@ from typing import Any
 
 import anndata as ad
 import mudata as md
-import numpy as np
 import pandas as pd
+import polars as pl
 import pytest
-from apb2.api import ParseRuleCompiler
+from apb2.api import ParsedLevel, ParseRuleCompiler, read_parsed_levels
 from apb_fasta.api import FastaAnnotator
 
 from apb_export.api import Exporter
 from apb_export.cli import add_plugin_commands, app
-from apb_export.container import link_features
-from apb_export.engine import CompiledExport
+from apb_export.engine import CompiledExport, FeatureLinks
 from apb_export.export_rules import loader
 from apb_export.export_rules.loader import PLUGIN_GROUP, effective_rules, plugin_folders
-from apb_export.export_rules.schema import ExportRuleDocument
+from apb_export.export_rules.schema import ExportRuleDocument, FeatureLink
 from apb_export.web import options
-from conftest import RUNS, DiannInput, apb_part, export_sources
+from conftest import (
+    PRECURSORS,
+    RUNS,
+    DiannInput,
+    apb_part,
+    assert_rewrite_identical,
+    export_sources,
+)
 
 TOY = Path(__file__).parent / "toy_target"
 # Each synthetic precursor's FASTA proteins: PEPTIDEK also occurs in P8, outside its group P1;
@@ -237,22 +243,22 @@ def test_apb_fasta_supplies_group_specificity(toy: str, diann: DiannInput, tmp_p
     assert found == GROUP_SPECIFIC
 
 
-def test_ions_link_to_the_protein_group_they_name(
+def test_ions_map_to_the_protein_group_they_name(
     toy: str, diann: DiannInput, tmp_path: Path
 ) -> None:
-    """feature_mapping is symmetric over every feature and joins each ion to its group."""
+    """feature_mapping is directed, as mulink reads it: ion rows, protein group columns."""
     container = _export(diann, tmp_path)
-    protein, ion = _modality(container, "protein"), _modality(container, "ion")
-    links = container.varp["feature_mapping"]
+    ion = _modality(container, "ion")
+    links = container.varp["feature_mapping"].tocoo()
+    names = list(container.var_names)
 
-    assert links.shape == (protein.n_vars + ion.n_vars,) * 2
-    assert (links != links.T).nnz == 0
-    rows, columns = links[protein.n_vars :, : protein.n_vars].nonzero()
-    pairs = {
-        (ion.var_names[row], protein.var_names[column])
-        for row, column in zip(rows, columns, strict=True)
-    }
+    assert list(container.mod) == ["protein", "ion"]
+    pairs = {(names[row], names[column]) for row, column in zip(links.row, links.col, strict=True)}
     assert pairs == {(name, group) for name, group in _var(ion)["protein_group"].items()}
+    assert set(links.data) == {1.0}
+    relation = read_parsed_levels(tmp_path / "toy.h5mu").feature_relations["feature_mapping"]
+    assert relation.coordinates.select("source", "target").unique().rows() == [("ion", "protein")]
+    assert_rewrite_identical(tmp_path / "toy.h5mu", tmp_path / "again.h5mu")
 
 
 def _compiled(document: dict[str, Any]) -> CompiledExport:
@@ -267,12 +273,13 @@ def test_an_optional_level_without_its_index_is_left_out(diann: DiannInput, tmp_
     parsed = ParseRuleCompiler.detect(diann.report, diann.log, compiled.levels).compile().parse()
     checked = FastaAnnotator.read((_fasta(tmp_path),)).verify_peptides(parsed).parsed
 
-    container = compiled.export(checked)
+    exported = compiled.export(checked)
 
-    assert isinstance(container, md.MuData)
-    assert list(container.mod) == ["ion"]
-    assert apb_part(container.uns["apb"])["export"]["provenance"]["skipped_levels"] == ["protein"]
-    assert "feature_mapping" not in container.varp
+    assert list(exported.levels) == ["ion"]
+    record = exported.metadata["export"]
+    assert isinstance(record, dict) and isinstance(record["provenance"], dict)
+    assert record["provenance"]["skipped_levels"] == ["protein"]
+    assert exported.feature_relations == {}, "no protein level to map the ions to"
 
 
 def test_a_required_layer_the_result_lacks_stops_the_export(diann: DiannInput) -> None:
@@ -287,14 +294,76 @@ def test_a_required_layer_the_result_lacks_stops_the_export(diann: DiannInput) -
         compiled.export(parsed)
 
 
-def test_links_skip_empty_groups_and_count_unknown_ones() -> None:
+def test_links_skip_empty_groups_and_count_unknown_ones(diann: DiannInput) -> None:
     """An empty group links nowhere; a group the target lacks is counted, not guessed."""
-    proteins = ad.AnnData(np.zeros((1, 2)), var=pd.DataFrame(index=["P1", "P2"]))
-    ions = ad.AnnData(
-        np.zeros((1, 4)),
-        var=pd.DataFrame({"protein_group": ["P1", "", None, "P9"]}, index=["a", "b", "c", "d"]),
+    compiled = _compiled(_document())
+    parsed = ParseRuleCompiler.detect(diann.report, diann.log, compiled.levels).compile().parse()
+    ion = parsed.levels["ion"]
+    groups, precursor = ion.var.roles["protein_assignment"], pl.col("ProForma_ion")
+    ion.var.frame = ion.var.frame.with_columns(
+        pl.when(precursor == "PEPTIDEK/2")
+        .then(pl.lit(""))
+        .when(precursor == "LASTPEPK/2")
+        .then(pl.lit("P9"))
+        .otherwise(pl.col(groups))
+        .alias(groups)
     )
-    container = md.MuData({"protein": proteins, "ion": ions})
 
-    assert link_features(container, "feature_mapping", "protein_group", "protein") == (1, 1)
-    assert container.varp["feature_mapping"].nnz == 2
+    exported = compiled.export(parsed)
+
+    record = exported.metadata["export"]
+    assert isinstance(record, dict) and isinstance(record["provenance"], dict)
+    linked = len(PRECURSORS) - 2
+    assert record["provenance"]["feature_links"] == [
+        {"name": "feature_mapping", "linked": linked, "unlinked": 1}
+    ]
+    assert exported.feature_relations["feature_mapping"].coordinates.height == linked
+
+
+def _level(var: pl.DataFrame) -> ParsedLevel:
+    """A one-run level keyed by its first var column."""
+    return ParsedLevel.build(
+        obs=pl.DataFrame({"run": ["r1"]}),
+        obs_keys=("run",),
+        var=var,
+        var_keys=(var.columns[0],),
+        var_roles={},
+        primary_layer="Intensity",
+        abundance={"Intensity": pl.DataFrame({"r1": [1.0] * var.height})},
+    )
+
+
+def test_every_level_holding_the_column_maps_to_the_target() -> None:
+    """One relation, a block per source level; null, empty and NaN values link nowhere."""
+    levels = {
+        "protein": _level(pl.DataFrame({"protein_group": ["P1", "P2"]})),
+        "peptide": _level(
+            pl.DataFrame({"peptide": ["A", "B", "C"], "protein_group": ["P2", None, "P9"]})
+        ),
+        "ion": _level(pl.DataFrame({"ion": ["a", "b", "c"], "protein_group": ["P1", "", "P1"]})),
+        "site": _level(pl.DataFrame({"site": ["s"], "protein_group": [float("nan")]})),
+        "fragment": _level(pl.DataFrame({"fragment": ["f"]})),
+    }
+    link = FeatureLink(name="feature_mapping", column="protein_group", target="protein")
+
+    links = FeatureLinks(link, levels)
+
+    assert links.coordinates is not None
+    assert links.coordinates.rows() == [
+        ("peptide", 0, "protein", 1, 1.0),
+        ("ion", 0, "protein", 0, 1.0),
+        ("ion", 2, "protein", 0, 1.0),
+    ]
+    assert links.counts() == {"name": "feature_mapping", "linked": 3, "unlinked": 1}
+    absent = FeatureLinks(link, {name: levels[name] for name in ("peptide", "ion")})
+    assert absent.coordinates is None, "no target level, no relation"
+
+
+def test_two_links_of_one_name_are_refused() -> None:
+    """Each name is one relation; a second link would silently replace the first."""
+    document = _document()
+    links = document["tables"][0]["feature_links"]
+    links.append({**links[0], "column": "peptidoform"})
+
+    with pytest.raises(ValueError, match="feature_links names must be unique"):
+        ExportRuleDocument.model_validate(document)

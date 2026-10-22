@@ -59,7 +59,7 @@ def _psm(compiled: CompiledExport, diann: DiannInput) -> ad.AnnData:
     return _modality(compiled.export(_parsed(diann)), diann.report.with_name("psm.h5mu"))
 
 
-def _modality(exported: ParsedLevels | md.MuData, path: Path) -> ad.AnnData:
+def _modality(exported: ParsedLevels, path: Path) -> ad.AnnData:
     """msmu's psm modality, as msmu reads it from the written file."""
     container = read_back(exported, path)
     assert isinstance(container, md.MuData)

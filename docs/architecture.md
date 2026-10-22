@@ -10,11 +10,10 @@ Modules compose downward only:
 | --- | --- |
 | `cli` | One subcommand per target: APB2 reads the target's levels, `--annotation` is applied, then `Exporter` exports |
 | `api` | `Exporter(target, abundance=...).export(parsed)` and `.write(exported, path)` through APB2's writer; `targets()`, `levels` and `extension` describe the packaged rules |
-| `engine` | `CompiledExport`: one target's rules checked once; picks the levels for the result's software, aligns several on one observation axis, and builds a `ParsedLevels` for APB2's `write_parsed_levels`; a rule that links levels still gets a MuData |
+| `engine` | `CompiledExport`: one target's rules checked once; picks the levels for the result's software, aligns several on one observation axis, and builds a `ParsedLevels` for APB2's `write_parsed_levels`, a rule's feature links as one of its directed feature relations |
 | `rows` | Polars only; aligns sources to cell, feature, observation and `uns` rows |
 | `computed` | The conversions a computed entry's `how` names |
 | `sources` | APB references resolved against one level; catalogue lookups through apb-catalog; protein-level fields read through each protein group |
-| `container` | MuData assembly for rules that link levels, until APB2's writer stores such links |
 | `web` | `apb-export-web`: FastAPI server and job runner; reaches the package only through `apb_export.api` |
 | `export_rules` | Schema models, loader, and the packaged `documents/<target>/<version>/rules.json` |
 

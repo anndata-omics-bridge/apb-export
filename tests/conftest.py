@@ -286,12 +286,9 @@ def column(frame: pd.DataFrame, name: str) -> pd.Series:
     return values
 
 
-def read_back(exported: ParsedLevels | md.MuData, path: Path) -> ad.AnnData | md.MuData:
+def read_back(exported: ParsedLevels, path: Path) -> ad.AnnData | md.MuData:
     """An export as its tool opens it: written as ``Exporter.write`` writes it, then read."""
-    if isinstance(exported, ParsedLevels):
-        write_parsed_levels(exported, path, var_name_prefix=False)
-    else:
-        exported.write_h5mu(path)
+    write_parsed_levels(exported, path, var_name_prefix=False)
     return md.read_h5mu(path) if path.suffix == ".h5mu" else ad.read_h5ad(path)
 
 
@@ -305,6 +302,10 @@ def assert_rewrite_identical(written: Path, again: Path) -> None:
         first.metadata,
         first.export_uns,
     )
+    assert list(second.feature_relations) == list(first.feature_relations)
+    for name, relation in first.feature_relations.items():
+        assert second.feature_relations[name].metadata == relation.metadata
+        assert_frame_equal(second.feature_relations[name].coordinates, relation.coordinates)
     assert list(second.levels) == list(first.levels)
     for name, level in first.levels.items():
         other = second.levels[name]

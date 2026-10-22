@@ -2,9 +2,8 @@
 
 Every entry's sources are resolved and checked against what its group can take before any
 row is built, so a result the rule cannot export fails without a partial container. Each
-level the rule writes becomes one level of a ``ParsedLevels`` for APB2's writer. A rule that
-links levels still builds a MuData, one modality per level: APB2's writer cannot store links
-between levels yet.
+level the rule writes becomes one level of a ``ParsedLevels`` for APB2's writer, and a rule's
+feature links become one of its directed feature relations.
 """
 
 from __future__ import annotations
@@ -13,21 +12,13 @@ import copy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from importlib.metadata import version
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
-import numpy as np
 import polars as pl
-from apb2.api import JsonValue, ParsedLevel, ParsedLevels, UnsJsonCodec
+from apb2.api import JsonValue, ParsedLevel, ParsedLevels
 from loguru import logger
 
 from apb_export.computed import compute, dtype
-from apb_export.container import (
-    Index,
-    Matrix,
-    link_features,
-    mudata,
-    wide_anndata,
-)
 from apb_export.export_rules.loader import EffectiveRule
 from apb_export.export_rules.schema import (
     AccessionSyntax,
@@ -38,6 +29,7 @@ from apb_export.export_rules.schema import (
     Constant,
     Contaminant,
     EntryBase,
+    FeatureLink,
     LayerEntry,
     LayerMinimum,
     MeasurementSource,
@@ -55,17 +47,21 @@ from apb_export.sources import (
     rule_field,
 )
 
-if TYPE_CHECKING:
-    import anndata as ad
-    import mudata as md
-
-NAMESPACE = "apb"
 EXPORT_SCHEMA_VERSION = "1"
 _CALLERS_LAYER = MeasurementSource(measurements="primary_layer")
 """The primary layer's source when the caller names the abundance layer."""
 _OBS_TAKES = (ObsValues, ScalarValue)
 _UNS_TAKES = (ScalarValue,)
 _VAR_TAKES = (VarValues, ScalarValue)
+_LINKS = pl.Schema(
+    {
+        "source": pl.String,
+        "row": pl.Int64,
+        "target": pl.String,
+        "column": pl.Int64,
+        "value": pl.Float64,
+    }
+)
 
 type Entries = Sequence[ColumnEntry] | Sequence[ColumnEntry | AllValues]
 
@@ -181,28 +177,10 @@ def _repeated(values: VarValues, runs: int) -> LayerValues:
     return LayerValues(frame, values.provenance)
 
 
-def _merge_dataset_uns(
-    uns: dict[str, object] | Mapping[str, object], values: dict[str, object]
-) -> None:
-    """Write the table's own uns entries beside the APB part, refusing to replace a key."""
-    taken = sorted(set(values) & set(uns))
-    if taken:
-        raise ValueError(f"the export rule's dataset uns entries {taken} are already written")
-    cast(dict[str, object], uns).update(values)
-
-
 def _software(parsed: ParsedLevels) -> set[str]:
     """The software apb2's rules name for the result's levels."""
     names = (rule_field(level, "software_name") for level in parsed.levels.values())
     return {name for name in names if isinstance(name, str)}
-
-
-def _matrix(values: pl.DataFrame, entry: LayerEntry) -> Matrix:
-    """A layer as observations by features, declared missing values blanked."""
-    matrix = values.select(pl.all().cast(pl.Float64)).to_numpy().T.copy()
-    if entry.missing_values:
-        matrix[np.isin(matrix, np.asarray(entry.missing_values, dtype=np.float64))] = np.nan
-    return matrix.astype(np.float32 if entry.width == 32 else np.float64)
 
 
 def _layer_frame(values: pl.DataFrame, entry: LayerEntry) -> pl.DataFrame:
@@ -229,39 +207,6 @@ class _LevelExport:
         (entry,) = [entry for entry in self._rule.rule.columns.var if entry.name == key]
         return (
             not isinstance(entry, SourcedEntry) or self._sources.resolve(entry.source) is not None
-        )
-
-    def wide(self) -> ad.AnnData:
-        """APB2's samples-by-features matrices for a linked MuData; the primary layer becomes X."""
-        rule = self._rule.rule
-        primary = rule.measurements.primary_layer
-        found = [
-            (entry, self._layer(entry, primary=entry.name == primary))
-            for entry in rule.measurements.layers
-        ]
-        bound = self._bind_columns()
-        uns = self._bind_group("uns", rule.uns, _UNS_TAKES)
-        obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
-        rows = FeatureRows(self._level.var.frame.height)
-        var = self._columns(bound["var"], rows)
-        kept = self._kept(var, rule.columns.var, rows.count())
-        var = [column.filter(kept) for column in var]
-        matrices = {
-            entry.name: _matrix(values.values.filter(kept), entry)
-            for entry, values in found
-            if values is not None
-        }
-        x = matrices.pop(primary)
-        return self._with_level_part(
-            wide_anndata(
-                obs_index=self._index(obs, rule.axis.obs_keys[0], "obs"),
-                obs=pl.DataFrame(obs),
-                var_index=self._index(var, rule.axis.var_keys[0], "var"),
-                var=pl.DataFrame(var),
-                x=x,
-                layers=matrices,
-                uns=self._uns(uns),
-            )
         )
 
     def parsed_level(self) -> ParsedLevel:
@@ -381,11 +326,6 @@ class _LevelExport:
             raise ValueError(f"{group} index {key!r} repeats values")
         return values
 
-    @staticmethod
-    def _index(columns: list[pl.Series], key: str, group: str) -> Index:
-        values = _LevelExport._key(columns, key, group)
-        return Index([str(value) for value in values.to_list()], None)
-
     def _uns(self, bound: Sequence[_Bound | AllValues]) -> dict[str, object]:
         values: list[tuple[str, object]] = []
         for item in bound:
@@ -401,19 +341,6 @@ class _LevelExport:
             # A copy: nested entries are written into it, and the rule is reused.
             return copy.deepcopy(entry.value)
         return _series(bound, ScalarRow(), self._rule.rule.accession_syntax).item()
-
-    def _with_level_part(self, adata: ad.AnnData) -> ad.AnnData:
-        """Store the level's APB part, built from what the container actually holds."""
-        adata.uns[NAMESPACE] = UnsJsonCodec().encode(self._level_part(adata), {})
-        return adata
-
-    def _level_part(self, adata: ad.AnnData) -> dict[str, JsonValue]:
-        """The exported level's apb2 records, unchanged, and the export's own record."""
-        return {
-            "parse": dict(self._level.uns),
-            **self._level.metadata,
-            "export": self._export_part((adata.X is not None) + len(adata.layers)),
-        }
 
     def _export_part(self, matrices: int) -> dict[str, JsonValue]:
         """The export's own record of one level: where each entry came from, and a summary."""
@@ -440,6 +367,58 @@ class _LevelExport:
                 },
             ],
         }
+
+
+def _labels(values: pl.Series) -> pl.Series:
+    """Values as the labels links match on; null, NaN and empty text match nothing."""
+    if values.dtype.is_float():
+        values = values.fill_nan(None)
+    return values.cast(pl.String).replace("", None)
+
+
+class FeatureLinks:
+    """One feature link of the written levels, as a directed feature relation.
+
+    Every written level with a var column ``column`` maps each feature to the target level's
+    feature whose key equals that value; a value matching no key is counted as unlinked.
+    """
+
+    def __init__(self, link: FeatureLink, levels: Mapping[str, ParsedLevel]) -> None:
+        """Match each level's ``column`` against the target level's keys.
+
+        ``coordinates`` is ``None`` when the target level is not written.
+        """
+        self._name = link.name
+        self.coordinates: pl.DataFrame | None = None
+        self._unlinked = 0
+        if link.target not in levels:
+            return
+        target = levels[link.target].var
+        keys = _labels(target.frame.get_column(target.key_columns[0])).to_frame("label")
+        keys = keys.with_row_index("column")
+        blocks: list[pl.DataFrame] = []
+        for name, level in levels.items():
+            if name == link.target or link.column not in level.var.frame.columns:
+                continue
+            values = _labels(level.var.frame.get_column(link.column)).to_frame("label")
+            values = values.with_row_index("row").drop_nulls("label")
+            matched = values.join(keys, on="label", how="left", maintain_order="left")
+            self._unlinked += matched.get_column("column").null_count()
+            blocks.append(
+                matched.drop_nulls("column").select(
+                    source=pl.lit(name),
+                    row="row",
+                    target=pl.lit(link.target),
+                    column="column",
+                    value=pl.lit(1.0),
+                )
+            )
+        self.coordinates = pl.concat(blocks).cast(_LINKS) if blocks else pl.DataFrame(schema=_LINKS)
+
+    def counts(self) -> JsonValue:
+        """The export record's entry: features linked and values matching no target feature."""
+        linked = 0 if self.coordinates is None else self.coordinates.height
+        return {"name": self._name, "linked": linked, "unlinked": self._unlinked}
 
 
 class CompiledExport:
@@ -485,7 +464,7 @@ class CompiledExport:
 
     def export(
         self, parsed: ParsedLevels, abundance: Mapping[str, str] | None = None
-    ) -> ParsedLevels | md.MuData:
+    ) -> ParsedLevels:
         """Build the target's export from one APB2 result.
 
         Args:
@@ -493,8 +472,8 @@ class CompiledExport:
             abundance: Per level, the layer that becomes X; APB2's primary layer otherwise.
 
         Returns:
-            A ``ParsedLevels`` for APB2's writer, one level per level written; a MuData with one
-            modality per level for a rule that links levels.
+            A ``ParsedLevels`` for APB2's writer, one level per level written, and one feature
+            relation per feature link.
 
         Raises:
             ValueError: The result lacks a required level or source, a source cannot be taken
@@ -506,47 +485,30 @@ class CompiledExport:
         unknown = sorted(set(chosen) - set(self.written))
         if unknown:
             raise ValueError(f"abundance names levels the rule does not write: {unknown}")
-        if self.rules[0].feature_links:
-            return self._linked(parsed, chosen)
-        return self._parsed_levels(parsed, chosen)
-
-    def _parsed_levels(self, parsed: ParsedLevels, chosen: Mapping[str, str]) -> ParsedLevels:
-        """The levels written, on one observation axis, with the source's records and the
-        export's; the table's own uns entries go to the root."""
         rules = self._exported_by(parsed)
         aligned = self._aligned(parsed, rules)
         exports, skipped = self._held(aligned, rules, chosen)
         dataset, dataset_sources = self._dataset_uns(aligned, exports[0][0].level)
-        export: dict[str, JsonValue] = {
-            "schema_version": EXPORT_SCHEMA_VERSION,
-            "provenance": self._export_record(dataset_sources, skipped),
-        }
-        return ParsedLevels(
-            levels={
-                rule.rule.modality or rule.level: level.parsed_level() for rule, level in exports
-            },
+        levels = {rule.rule.modality or rule.level: level.parsed_level() for rule, level in exports}
+        record = self._export_record(dataset_sources, skipped)
+        relations = {link.name: FeatureLinks(link, levels) for link in self.rules[0].feature_links}
+        if relations:
+            record["feature_links"] = [links.counts() for links in relations.values()]
+        result = ParsedLevels(
+            levels=levels,
             uns=dict(aligned.uns),
-            metadata={**aligned.metadata, "export": export},
+            metadata={
+                **aligned.metadata,
+                "export": {"schema_version": EXPORT_SCHEMA_VERSION, "provenance": record},
+            },
             export_uns=cast(dict[str, JsonValue], dataset),
         )
-
-    def _linked(self, parsed: ParsedLevels, chosen: Mapping[str, str]) -> md.MuData:
-        """A MuData whose levels the rule links, built here until APB2's writer stores links
-        between levels."""
-        exports, skipped = self._held(parsed, self._exported_by(parsed), chosen)
-        modalities = {rule.rule.modality or rule.level: level.wide() for rule, level in exports}
-        dataset, dataset_sources = self._dataset_uns(parsed, exports[0][0].level)
-        export = self._export_record(dataset_sources, skipped)
-        container = mudata(modalities)
-        links: list[JsonValue] = []
-        for link in self.rules[0].feature_links:
-            linked, unlinked = link_features(container, link.name, link.column, link.target)
-            links.append({"name": link.name, "linked": linked, "unlinked": unlinked})
-        if links:
-            export["feature_links"] = links
-        container.uns[NAMESPACE] = UnsJsonCodec().encode(self._root_part(parsed, export), {})
-        _merge_dataset_uns(container.uns, dataset)
-        return container
+        for name, links in relations.items():
+            if links.coordinates is not None:
+                result = result.with_feature_relation(
+                    name, links.coordinates, {"producer": "apb-export"}
+                )
+        return result
 
     def _aligned(self, parsed: ParsedLevels, rules: Sequence[EffectiveRule]) -> ParsedLevels:
         """Several levels written, with the levels their layers reach into, on one observation
@@ -628,16 +590,6 @@ class CompiledExport:
         if skipped:
             record["skipped_levels"] = cast(JsonValue, skipped)
         return record
-
-    def _root_part(
-        self, parsed: ParsedLevels, provenance: dict[str, JsonValue]
-    ) -> dict[str, JsonValue]:
-        """The result's root apb2 records, unchanged, and the export's own record."""
-        return {
-            "parse": dict(parsed.uns),
-            **parsed.metadata,
-            "export": {"schema_version": EXPORT_SCHEMA_VERSION, "provenance": provenance},
-        }
 
     def _exported_by(self, parsed: ParsedLevels) -> list[EffectiveRule]:
         """The levels that export this result: those for its software that it holds.

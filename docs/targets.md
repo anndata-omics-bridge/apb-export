@@ -20,7 +20,7 @@ Every packaged target's file is written by APB2's `write_parsed_levels`, `.apb.j
 - var names carry no level prefix
 - several levels share one observation axis; MaxQuant's experiments are aligned onto its raw files when each experiment is one raw file
 - a rule's `uns` entries are written beside APB's `uns["apb"]`
-- a rule with `feature_links` still builds its MuData here, until APB2 stores links between levels
+- a rule's `feature_links` become one directed relation in the MuData's `varp`, under the link's name: a nonzero (u, v), 1.0, maps feature u to the target level's feature v, as mulink reads it
 
 | Target | Rule | File | APB2 levels | Layout |
 | --- | --- | --- | --- | --- |
@@ -71,7 +71,7 @@ toy = "toy_plugin.export_rule"
 - Layout: `<package>/<version>/rules.json`, one version per target, the same schema as the packaged documents
 - `Exporter.targets()` lists the target and `Exporter("toy")` applies it; a target named like a packaged one, or by two plugins, is refused
 - Command: `apb-export toy DATA OUTPUT` with `--params`, `--software`, `--fasta`, `--sdrf` and `--strict`; no `--abundance`, so the rule's primary layers become X
-- Rule features no packaged target uses yet: `qualifiers` on a catalogued source, `obs` sources naming SDRF or annotation columns, the table's own `uns` entries, and `feature_links` written to `varp`
+- Rule features no packaged target uses yet: `qualifiers` on a catalogued source, `obs` sources naming SDRF or annotation columns, the table's own `uns` entries, and `feature_links`
 - The web app offers only the packaged targets it describes
 
 ## Confidence, by meaning

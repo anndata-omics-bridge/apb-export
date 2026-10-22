@@ -13,13 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import mudata as md
-from apb2.api import (
-    ParsedLevels,
-    QuantificationLevel,
-    write_container_representation,
-    write_parsed_levels,
-)
+from apb2.api import ParsedLevels, QuantificationLevel, write_parsed_levels
 
 from apb_export.engine import CompiledExport
 from apb_export.export_rules.loader import packaged_documents, packaged_rules
@@ -66,15 +60,15 @@ class Exporter:
         """The file the target opens: ``.h5ad`` or ``.h5mu``."""
         return self._compiled.extension
 
-    def export(self, parsed: ParsedLevels) -> ParsedLevels | md.MuData:
+    def export(self, parsed: ParsedLevels) -> ParsedLevels:
         """Build the target's export from an APB2 result.
 
         Args:
             parsed: An APB2 result holding the levels the target requires.
 
         Returns:
-            A ``ParsedLevels`` for APB2's writer, one level per level the target reads; a MuData
-            for a target that links its levels, which APB2's writer cannot store yet.
+            A ``ParsedLevels`` for APB2's writer, one level per level the target reads, with a
+            directed feature relation for each of the target's feature links.
 
         Raises:
             ValueError: The result lacks a level or field the target requires.
@@ -84,21 +78,16 @@ class Exporter:
         chosen = None if self._abundance is None else dict.fromkeys(written, self._abundance)
         return self._compiled.export(parsed, abundance=chosen)
 
-    def write(self, exported: ParsedLevels | md.MuData, output: Path) -> None:
-        """Write an export and its APB2 sidecar.
+    def write(self, exported: ParsedLevels, output: Path) -> None:
+        """Write an export and its APB2 sidecar through APB2's ``write_parsed_levels``.
 
-        A ``ParsedLevels`` goes through APB2's ``write_parsed_levels`` with var names as the
-        target reads them, unprefixed; a linked MuData through mudata's writer.
+        Var names stay as the target reads them, unprefixed.
 
         Args:
             exported: What :meth:`export` returned.
             output: The new ``.h5ad`` or ``.h5mu`` file.
         """
-        if isinstance(exported, ParsedLevels):
-            write_parsed_levels(exported, output, var_name_prefix=False)
-            return
-        exported.write_h5mu(output)
-        write_container_representation(exported, output)
+        write_parsed_levels(exported, output, var_name_prefix=False)
 
 
 __all__ = ["Exporter"]

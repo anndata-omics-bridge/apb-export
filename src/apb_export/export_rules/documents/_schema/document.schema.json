@@ -436,7 +436,7 @@
     },
     "FeatureLink": {
       "additionalProperties": false,
-      "description": "A ``.h5mu`` relation between modalities, written to the container's ``varp``.\n\nEach feature of a modality holding ``column`` relates to the ``target`` modality's feature\nwhose index equals its value; the matrix is boolean, symmetric and spans every modality.",
+      "description": "A directed ``.h5mu`` relation between modalities, written to the MuData's ``varp``.\n\nEach feature of a modality holding ``column`` maps to the ``target`` modality's feature whose\nkey equals its value: rows are the mapped features, columns the target's, values 1.0.",
       "properties": {
         "name": {
           "minLength": 1,
@@ -1048,7 +1048,7 @@
           "type": "object"
         },
         "uns": {
-          "description": "Dataset entries: the container's own uns beside each level's, from constants and the stored apb2 rule of the first level written.",
+          "description": "Dataset entries: the file's own uns beside each level's, from constants and the stored apb2 rule of the first level written.",
           "items": {
             "$ref": "#/$defs/ColumnEntry"
           },

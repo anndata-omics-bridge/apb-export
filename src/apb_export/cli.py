@@ -15,8 +15,6 @@ from functools import partial
 from pathlib import Path
 from typing import Annotated, Any, cast
 
-import anndata as ad
-import mudata as md
 from apb2.api import (
     AnnotationCompiler,
     ParsedLevel,
@@ -24,7 +22,6 @@ from apb2.api import (
     ParseRuleCompiler,
     QuantificationLevel,
     SdrfSource,
-    UnsJsonCodec,
 )
 from apb_catalog.api import UnresolvedField
 from apb_fasta.api import FastaAnnotator
@@ -106,7 +103,7 @@ def _exported(
     strict: bool,
     fasta: tuple[Path, ...] = (),
     sdrf: Path | None = None,
-) -> ParsedLevels | md.MuData | None:
+) -> ParsedLevels | None:
     """Convert, annotate, FASTA-check and export; ``None`` after logging why not."""
     exporter = Exporter(target, abundance)
     if output.suffix != exporter.extension:
@@ -167,11 +164,6 @@ def _fasta_checked(parsed: ParsedLevels, fasta: tuple[Path, ...]) -> ParsedLevel
     return parsed
 
 
-def _summary(adata: ad.AnnData) -> str:
-    """Its shape and the APB layer behind each written matrix."""
-    return _shape(adata.n_obs, adata.n_vars, _level_part(adata)["export"])
-
-
 def _shape(n_obs: int, n_vars: int, export: Mapping[str, Any]) -> str:
     """A level's shape and, from the export's record, the APB layer behind each matrix."""
     sources = export["provenance"]["sources"]
@@ -188,32 +180,15 @@ def _record(level: ParsedLevel) -> dict[str, Any]:
     return cast(dict[str, Any], level.metadata["export"])
 
 
-def _level_part(adata: ad.AnnData) -> dict[str, Any]:
-    """One exported AnnData's own APB part: ``uns[<level>]["apb"]`` standalone, else ``uns["apb"]``."""
-    parts = [
-        value["apb"] for value in adata.uns.values() if isinstance(value, dict) and "apb" in value
-    ]
-    namespace = parts[0] if parts else adata.uns["apb"]
-    codec = UnsJsonCodec()
-    return cast(dict[str, Any], codec.decode(namespace, codec.storage(namespace)))
-
-
-def _write(target: str, result: ParsedLevels | md.MuData | None, output: Path) -> int:
+def _write(target: str, result: ParsedLevels | None, output: Path) -> int:
     if result is None:
         return 1
     output.parent.mkdir(parents=True, exist_ok=True)
     Exporter(target).write(result, output)
-    if isinstance(result, ParsedLevels):
-        shapes = "; ".join(
-            f"{name} {_shape(level.obs.frame.height, level.var.frame.height, _record(level))}"
-            for name, level in result.levels.items()
-        )
-    else:
-        shapes = "; ".join(
-            f"{name} {_summary(modality)}"
-            for name, modality in result.mod.items()
-            if isinstance(modality, ad.AnnData)
-        )
+    shapes = "; ".join(
+        f"{name} {_shape(level.obs.frame.height, level.var.frame.height, _record(level))}"
+        for name, level in result.levels.items()
+    )
     logger.info(f"wrote {output} and its sidecar: {shapes}")
     return 0
 
@@ -242,7 +217,7 @@ def msmu(
         strict=strict,
         fasta=fasta,
     )
-    if isinstance(result, ParsedLevels):
+    if result is not None:
         # An APB2 result does not record its source files; this command read them.
         result.levels["psm"].export_uns["identification_file"] = str(data)
     return _write("msmu", result, output)

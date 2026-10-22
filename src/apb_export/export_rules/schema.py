@@ -371,10 +371,10 @@ class Output(ModelBase):
 
 
 class FeatureLink(ModelBase):
-    """A ``.h5mu`` relation between modalities, written to the container's ``varp``.
+    """A directed ``.h5mu`` relation between modalities, written to the MuData's ``varp``.
 
-    Each feature of a modality holding ``column`` relates to the ``target`` modality's feature
-    whose index equals its value; the matrix is boolean, symmetric and spans every modality.
+    Each feature of a modality holding ``column`` maps to the ``target`` modality's feature whose
+    key equals its value: rows are the mapped features, columns the target's, values 1.0.
     """
 
     name: str = Field(min_length=1)
@@ -390,7 +390,7 @@ class Table(ModelBase):
     levels: dict[str, dict[str, JsonValue]] = Field(min_length=1)
     uns: list[ColumnEntry] = Field(
         default_factory=list,
-        description="Dataset entries: the container's own uns beside each level's, from "
+        description="Dataset entries: the file's own uns beside each level's, from "
         "constants and the stored apb2 rule of the first level written.",
     )
     feature_links: list[FeatureLink] = Field(default_factory=list)
@@ -400,6 +400,9 @@ class Table(ModelBase):
         _unique("uns", self.uns)
         if self.feature_links and ".h5mu" not in self.output.extensions:
             raise ValueError("feature_links relate the modalities of an .h5mu output")
+        names = [link.name for link in self.feature_links]
+        if len(names) != len(set(names)):
+            raise ValueError("feature_links names must be unique: each is one relation")
         return self
 
 

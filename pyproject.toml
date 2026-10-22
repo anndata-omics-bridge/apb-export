@@ -22,10 +22,8 @@ dependencies = [
     "loguru>=0.7,<1",
     "mudata>=0.4.1,<0.5",
     "numpy>=2,<3",
-    "pandas>=2.2,<4",
     "polars>=1.43,<2",
     "pydantic>=2.10,<3",
-    "scipy>=1.15,<2",
 ]
 
 [project.optional-dependencies]
@@ -45,6 +43,7 @@ dev = [
     "deptry>=0.24,<1",
     "fastapi>=0.142,<1",
     "httpx>=0.28,<1",
+    "pandas>=2.2,<4",
     "pre-commit>=4,<5",
     "pyright==1.1.414",
     "pytest>=9,<10",

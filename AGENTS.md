@@ -22,11 +22,10 @@ Export rules declare what each target reads; one engine applies them. Packaged t
 
 - `cli`: one subcommand per target; APB2's `ParseRuleCompiler` reads the target's levels, apb2's `AnnotationCompiler` applies `--annotation`, then `Exporter` exports; refuses overwrite and the wrong file type, reports unreviewed catalogue answers
 - `api`: `Exporter(target, abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; `write(exported, path)` hands the result to APB2's `write_parsed_levels` with unprefixed var names; `targets()`, `levels` and `extension` describe the packaged rules
-- `engine`: `CompiledExport`, one target's level rules checked once; picks the levels for the result's software, aligns several on one observation axis with APB2's `observation_groups()`, binds every entry's sources, and builds a `ParsedLevels`; a rule with `feature_links` still builds a MuData until APB2 stores links between levels (workspace TODO `exports as ParsedLevels`, step 2b)
+- `engine`: `CompiledExport`, one target's level rules checked once; picks the levels for the result's software, aligns several on one observation axis with APB2's `observation_groups()`, binds every entry's sources, and builds a `ParsedLevels`; a rule's `feature_links` become directed feature relations, fine to coarse, as mulink reads them
 - `rows`: Polars only; aligns sources to feature, observation and `uns` rows
 - `computed`: the conversions a computed entry's `how` names
 - `sources`: APB references resolved against one level, catalogue lookups through apb-catalog, and catalogued protein-level fields read through each variable's protein group, named whole or by its leading protein
-- `container`: MuData assembly for rules with `feature_links`; goes once APB2 writes them
 - `web`: `apb-export-web`, a FastAPI server and job runner; jobs run the `apb-export` and `apb2` commands as subprocesses and write every answer as a file; reaches this package only through `apb_export.api`; its page is the Lit/Vite project in `web/`, built into `web/static` by `make web`
 - `export_rules`: schema models, loader and the packaged `documents/<target>/<version>/rules.json`; `make schema` rewrites `documents/_schema`
 
