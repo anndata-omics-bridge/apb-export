@@ -27,6 +27,7 @@ from conftest import (
     RUNS,
     DiannInput,
     MaxQuantInput,
+    export_sources,
     level_part,
     observed,
     write_diann,
@@ -180,6 +181,27 @@ def test_prolfquapp_reads_each_precursors_pep(diann: DiannInput) -> None:
 
     pep = _per_cell(adata, lambda _run, precursor: 0.01 * (precursor + 1))
     np.testing.assert_allclose(np.asarray(adata.layers["pep"]), pep)
+
+
+def test_prolfquapp_reads_the_intensity_without_normalisation(diann: DiannInput) -> None:
+    adata = _anndata(Exporter("prolfqua").export(_parsed(diann)))
+
+    assert export_sources(adata)["layers.intensity"] == {
+        "location": "layers",
+        "name": "Precursor_Quantity",
+        "catalogue": "abundance",
+        "kind": "intensity",
+        "normalisation": "none",
+    }, "prolfquapp normalises intensities itself"
+
+
+def test_a_named_abundance_layer_replaces_the_rules_intensity(diann: DiannInput) -> None:
+    adata = _anndata(Exporter("prolfqua", "Precursor_Normalised").export(_parsed(diann)))
+
+    assert export_sources(adata)["layers.intensity"] == {
+        "location": "layers",
+        "name": "Precursor_Normalised",
+    }
 
 
 def _maxquant(maxquant: MaxQuantInput) -> ad.AnnData:

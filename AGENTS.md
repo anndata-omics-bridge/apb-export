@@ -35,7 +35,7 @@ Rules for this package:
 - **APB2 owns conversion and persistence.** Never define a `convert`, reader or writer here; use `ParseRuleCompiler`, `read_parsed_levels` and `write_parsed_levels`.
 
 - **Export rules read apb2's rule schema in reverse.** Keep apb2's key names; an entry's `name` is the target field and its `source` an APB reference every vendor shares.
-- **Meanings come from apb-catalog, never vendor column names.** A vendor without a catalogued field gets no column (q-value) or NaN (PEP); an unreviewed rule is an error, not a guess.
+- **Meanings come from apb-catalog, never vendor column names.** A vendor without a catalogued field gets no column (q-value) or NaN (PEP); an unreviewed rule is an error, not a guess. In a candidate list, a catalogue candidate the catalogue reviewed but cannot pick (ambiguous, or a requested qualifier unknown) passes to the next candidate and is recorded as `passed`; the last candidate still raises.
 - **A software name only chooses a level.** A level block's `software` picks the level a target reads for that vendor, as prolfqua reads MaxQuant's peptides.txt; its fields still come from roles and the catalogue.
 - **Match msmu's readers, not our preferences.** Layout, column names and order, q-value precedence and protein canonicalisation follow `msmu.read_diann`; the consumer image's msmu check holds this.
 - **No real vendor data** in tests, docs or examples; tests synthesise vendor files.

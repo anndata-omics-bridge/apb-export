@@ -11,7 +11,10 @@
         "measurements": {
           "primary_layer": "intensity",
           "layers": [
-            {"name": "intensity", "source": {"measurements": "primary_layer"}},
+            {"name": "intensity", "source": [
+              {"catalogue": "abundance", "concept": "abundance", "kind": "intensity", "qualifiers": {"normalisation": "none"}},
+              {"measurements": "primary_layer"}
+            ]},
             {
               "name": "qValue",
               "source": [

@@ -8,12 +8,12 @@ no vendor column name appears in a rule.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 import polars as pl
 from apb2.api import FinalLayerTable, ParsedLevel, ParsedLevels
-from apb_catalog.api import Catalog
+from apb_catalog.api import Catalog, UnresolvedField
 
 from apb_export.export_rules.schema import (
     AxisSource,
@@ -115,19 +115,45 @@ class LevelSources:
         """One observation annotation column."""
         return self._level.obs.frame.get_column(name)
 
+    @property
+    def abundance_chosen(self) -> bool:
+        """Whether the caller named the abundance layer, which then becomes the target's X."""
+        return self._abundance is not None
+
     def resolve(self, source: Source) -> Resolved | None:
         """The first candidate the result carries, or ``None`` when it carries none.
+
+        A catalogue candidate the catalogue reviewed but cannot answer with one field, because
+        several match or the entries leave a requested qualifier unknown, passes to the next
+        candidate of a list; the answer used records it under ``passed``.
 
         Raises:
             ValueError: A reference cannot be answered, such as a composite axis key or an
                 abundance layer that is absent or carries no abundance role.
-            UnresolvedField: apb-catalog finds the answer ambiguous or the rule unreviewed.
+            UnresolvedField: apb-catalog cannot answer the last candidate with one field, or
+                finds the rule unreviewed.
         """
         candidates: list[Reference] = source if isinstance(source, list) else [source]
+        passed: list[str] = []
         for reference in candidates:
-            resolved = self._reference(reference)
+            try:
+                resolved = self._reference(reference)
+            except UnresolvedField as error:
+                reviewed = bool(error.resolution.candidates)
+                if (
+                    not isinstance(reference, CatalogueSource)
+                    or not reviewed
+                    or reference is candidates[-1]
+                ):
+                    raise
+                passed.append(f"{reference.catalogue} {reference.kind} {error.resolution.status}")
+                continue
             if resolved is not None:
-                return resolved
+                if not passed:
+                    return resolved
+                return replace(
+                    resolved, provenance={**resolved.provenance, "passed": "; ".join(passed)}
+                )
         return None
 
     def contaminants(self) -> VarValues:

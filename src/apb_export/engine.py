@@ -38,6 +38,7 @@ from apb_export.export_rules.schema import (
     Contaminant,
     EntryBase,
     LayerEntry,
+    MeasurementSource,
     SourcedEntry,
 )
 from apb_export.rows import (
@@ -66,6 +67,8 @@ if TYPE_CHECKING:
 
 NAMESPACE = "apb"
 EXPORT_SCHEMA_VERSION = "1"
+_CALLERS_LAYER = MeasurementSource(measurements="primary_layer")
+"""The primary layer's source when the caller names the abundance layer."""
 _OBS_TAKES = (ObsValues, ScalarValue)
 _UNS_TAKES = (ScalarValue,)
 _VAR_TAKES = {
@@ -273,8 +276,10 @@ class _LevelExport:
         )
 
     def _layer(self, entry: LayerEntry, *, primary: bool) -> LayerValues | None:
-        """Resolve a layer; ``None`` for an absent optional one."""
-        resolved = self._sources.resolve(entry.source)
+        """Resolve a layer; ``None`` for an absent optional one. A caller's abundance layer
+        replaces the rule's source of the primary layer."""
+        chosen = primary and self._sources.abundance_chosen
+        resolved = self._sources.resolve(_CALLERS_LAYER if chosen else entry.source)
         key = f"layers.{entry.name}"
         if resolved is None:
             if primary or entry.required:

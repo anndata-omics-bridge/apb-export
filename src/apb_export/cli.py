@@ -44,7 +44,7 @@ Software = Annotated[
 ]
 Abundance = Annotated[
     str | None,
-    Parameter(help="Layer of the target's level to become X; APB2's primary layer by default"),
+    Parameter(help="Layer of the target's level to become X; the export rule's choice by default"),
 ]
 SampleAnnotation = Annotated[
     Path | None,

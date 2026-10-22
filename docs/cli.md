@@ -29,7 +29,7 @@ apb-export TARGET DATA OUTPUT [OPTIONS]
 | --- | --- | --- |
 | `--params` | all | Vendor parameter file |
 | `--software` | all | Restrict recognition to one vendor, as in `apb2 convert` |
-| `--abundance` | `msmu`, `prolfqua`, `proteopy` | Layer of the target's level to become X; APB2's primary layer by default |
+| `--abundance` | `msmu`, `prolfqua`, `proteopy` | Layer of the target's level to become X; by default the rule's choice: APB2's primary layer, or for prolfqua the catalogued intensity without normalisation |
 | `--annotation` | `prolfqua`, `proteopy`, `alphapepttools` | SDRF or prolfquapp-style CSV/TSV sample annotation, as `apb2 annotate` reads |
 | `--strict` | all | Promote APB2 layer-contract warnings to errors |
 | `--fasta` | all | FASTA files, or their protein-fasta database: check the peptides and annotate the protein groups first |

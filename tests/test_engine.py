@@ -13,6 +13,7 @@ import pandas as pd
 import polars as pl
 import pytest
 from apb2.api import ParsedLevels, ParseRuleCompiler
+from apb_catalog.api import UnresolvedField
 
 from apb_export.api import Exporter
 from apb_export.engine import CompiledExport
@@ -88,6 +89,34 @@ def test_a_candidate_the_catalogue_does_not_offer_falls_through(diann: DiannInpu
 
     assert export_sources(psm)["var.q_value"]["kind"] == "q_value"
     assert _var(psm).loc["run_A1.PEPTIDEK/2", "q_value"] == pytest.approx(0.001), "per-run Q.Value"
+
+
+def _with_abundance(source: object) -> CompiledExport:
+    """msmu's rule with its abundance layer read from ``source``."""
+    document = _msmu_document()
+    (layer,) = _ion(document)["measurements"]["layers"]
+    layer["source"] = source
+    return _compiled(document)
+
+
+# DIA-NN's ion level offers two intensities, Precursor_Quantity and Precursor_Normalised.
+ANY_INTENSITY = {"catalogue": "abundance", "concept": "abundance", "kind": "intensity"}
+
+
+def test_a_candidate_the_catalogue_cannot_pick_passes_to_the_next(diann: DiannInput) -> None:
+    psm = _psm(_with_abundance([ANY_INTENSITY, {"measurements": "primary_layer"}]), diann)
+
+    (key,) = [key for key in export_sources(psm) if key.startswith("layers.")]
+    assert export_sources(psm)[key] == {
+        "location": "layers",
+        "name": "Precursor_Normalised",
+        "passed": "abundance intensity ambiguous",
+    }
+
+
+def test_the_last_candidate_the_catalogue_cannot_pick_is_an_error(diann: DiannInput) -> None:
+    with pytest.raises(UnresolvedField, match="Precursor_Quantity"):
+        _psm(_with_abundance([ANY_INTENSITY]), diann)
 
 
 def test_absent_optional_sources_are_filled_or_left_out(diann: DiannInput) -> None:
