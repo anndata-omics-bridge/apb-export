@@ -19,7 +19,7 @@ from apb_export.api import Exporter
 from apb_export.engine import CompiledExport
 from apb_export.export_rules.loader import effective_rules
 from apb_export.export_rules.schema import ExportRuleDocument
-from conftest import DiannInput, export_sources, write_diann
+from conftest import DiannInput, column, export_sources, write_diann
 
 # identification_confidence catalogues no library q-value, so this candidate never resolves.
 UNOFFERED = {
@@ -79,7 +79,9 @@ def test_zero_global_q_values_stay_selected(tmp_path: Path) -> None:
     psm = _modality(Exporter("msmu").export(_parsed(diann)))
 
     assert export_sources(psm)["var.q_value"]["kind"] == "global_q_value"
-    assert (_var(psm)["q_value"] == 0).all(), "zero is a value; only the library needs nonzero"
+    assert (column(_var(psm), "q_value") == 0).all(), (
+        "zero is a value; only the library needs nonzero"
+    )
 
 
 def test_a_candidate_the_catalogue_does_not_offer_falls_through(diann: DiannInput) -> None:

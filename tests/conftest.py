@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import anndata as ad
 import mudata as md
+import pandas as pd
 import pytest
 from apb2.api import UnsJsonCodec
 
@@ -275,3 +276,10 @@ def level_part(adata: ad.AnnData | md.MuData) -> dict[str, Any]:
 def export_sources(adata: ad.AnnData | md.MuData) -> dict[str, Any]:
     """The APB source of every entry the export wrote into one AnnData."""
     return cast(dict[str, Any], level_part(adata)["export"]["provenance"]["sources"])
+
+
+def column(frame: pd.DataFrame, name: str) -> pd.Series:
+    """One column; pandas types a column lookup as Series or DataFrame."""
+    values = frame[name]
+    assert isinstance(values, pd.Series)
+    return values

@@ -14,7 +14,16 @@ import pytest
 from apb2.api import ParsedLevels, ParseRuleCompiler
 
 from apb_export.api import Exporter
-from conftest import PRECURSORS, RUNS, DiannInput, apb_part, export_sources, level_part, write_diann
+from conftest import (
+    PRECURSORS,
+    RUNS,
+    DiannInput,
+    apb_part,
+    column,
+    export_sources,
+    level_part,
+    write_diann,
+)
 
 MSMU_DIANN_COLUMNS = [
     "proteins",
@@ -98,8 +107,8 @@ def test_protein_groups_are_written_as_msmu_writes_them(diann: DiannInput) -> No
     assert var.loc["CONTPEPK/2", "proteins"] == "Cont_P4"
     assert var.loc["SHAREDK/2", "proteins"] == "P5;Cont_P6"
     # DIA-NN marks nothing and nothing was FASTA-checked, so nothing is a contaminant or decoy.
-    assert (var["contaminant"] == 0).all()
-    assert (var["decoy"] == 0).all()
+    assert (column(var, "contaminant") == 0).all()
+    assert (column(var, "decoy") == 0).all()
 
 
 def test_a_feature_without_proteins_is_left_out_and_counted(diann: DiannInput) -> None:
@@ -117,7 +126,7 @@ def test_a_feature_without_proteins_is_left_out_and_counted(diann: DiannInput) -
 
     kept = [index for index, name in enumerate(full.var_names) if name != "PEPTIDEK/2"]
     assert list(psm.var_names) == [full.var_names[index] for index in kept]
-    assert (_var(psm)["proteins"] != "").all()
+    assert (column(_var(psm), "proteins") != "").all()
     np.testing.assert_array_equal(_x(psm), _x(full)[:, kept])
     assert export_sources(psm)["var.proteins"]["dropped"] == "1"
 

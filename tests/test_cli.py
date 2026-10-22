@@ -14,7 +14,7 @@ from apb_catalog.api import UnresolvedField
 
 from apb_export.api import Exporter
 from apb_export.cli import app, main
-from conftest import PRECURSORS, RUNS, DiannInput, write_maxquant
+from conftest import PRECURSORS, RUNS, DiannInput, column, write_maxquant
 
 
 def _run(*argv: str) -> int:
@@ -57,7 +57,7 @@ def test_msmu_flags_the_fasta_contaminants_when_given_a_fasta(
     without = md.read_h5mu(plain)["psm"].var
     flagged = md.read_h5mu(checked)["psm"].var
     assert isinstance(without, pd.DataFrame) and isinstance(flagged, pd.DataFrame)
-    assert without["contaminant"].sum() == 0, "DIA-NN marks no contaminant itself"
+    assert column(without, "contaminant").sum() == 0, "DIA-NN marks no contaminant itself"
     assert flagged.loc["CONTPEPK/2", "contaminant"] == 1
     assert flagged.loc["PEPTIDEK/2", "contaminant"] == 0
 
@@ -174,7 +174,7 @@ def test_prolfqua_annotates_proteins_from_the_fasta(diann: DiannInput, tmp_path:
     annotation = annotated.uns["prolfquapp"]["protein_annotation"]
     assert (annotation["description"], annotation["cleaned_ids"]) == ("description", "IDcolumn")
     assert isinstance(without.var, pd.DataFrame) and isinstance(annotated.var, pd.DataFrame)
-    assert (without.var["description"] == without.var["protein_Id"]).all()
+    assert (column(without.var, "description") == column(without.var, "protein_Id")).all()
     assert "gene_name" not in without.var.columns
     one = annotated.var[annotated.var["protein_Id"] == "P1"].iloc[0]
     assert (one["IDcolumn"], one["fasta.id"], one["gene_name"]) == ("P1", "sp|P1|ONE_HUMAN", "ONE")
