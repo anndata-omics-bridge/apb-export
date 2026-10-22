@@ -1,9 +1,7 @@
 """AnnData and MuData assembly: the only module that builds them.
 
-Wide output keeps APB2's samples-by-features matrices. Long output makes each row a feature
-with a block-diagonal sparse ``X``, the layout msmu's own readers write. Row-aligned tables go
-to ``varm``, made writable to HDF5. Several levels become one MuData, one modality each, whose
-features a ``varp`` relation may link across modalities.
+Each level keeps APB2's samples-by-features matrices. Several levels become one MuData, one
+modality each, whose features a ``varp`` relation may link across modalities.
 """
 
 from __future__ import annotations
@@ -47,57 +45,6 @@ def _frame(columns: pl.DataFrame, index: pd.Index) -> pd.DataFrame:
             frame[column.name] = frame[column.name].astype("Int64")
     frame.index = index
     return frame
-
-
-def _search_result(frame: pl.DataFrame, index: pd.Index) -> pd.DataFrame:
-    """The source values as pandas, made writable to HDF5.
-
-    h5py rejects "/" in dataset keys, and AnnData stores object columns only as strings.
-    """
-    table = frame.to_pandas()
-    table.columns = [str(name).replace("/", "_") for name in table.columns]
-    for name in table.columns:
-        if table[name].dtype == object:
-            table[name] = table[name].astype(str)
-    table.index = index
-    return table
-
-
-def long_anndata(
-    *,
-    obs_index: Index,
-    obs: pl.DataFrame,
-    var_index: Index,
-    var: pl.DataFrame,
-    x: Matrix,
-    x_obs: npt.NDArray[np.int64],
-    varm: Mapping[str, pl.DataFrame],
-    uns: Mapping[str, object],
-) -> ad.AnnData:
-    """Assemble long rows: each row a feature, X block-diagonal.
-
-    Args:
-        obs_index: One name per observation.
-        obs: Observation columns, possibly none.
-        var_index: One name per row.
-        var: The rows' columns.
-        x: Each row's X value, already in its written dtype.
-        x_obs: Each row's observation position.
-        varm: Row-aligned tables.
-        uns: The ``uns`` entries.
-
-    Returns:
-        One AnnData.
-    """
-    observations, rows = obs_index.pandas(), var_index.pandas()
-    matrix = sparse.csr_matrix(
-        (x, (x_obs, np.arange(len(rows)))), shape=(len(observations), len(rows)), dtype=x.dtype
-    )
-    adata = ad.AnnData(X=matrix, obs=_frame(obs, observations), var=_frame(var, rows))
-    for name, table in varm.items():
-        adata.varm[name] = _search_result(table, rows)
-    adata.uns.update(dict(uns))
-    return adata
 
 
 def wide_anndata(

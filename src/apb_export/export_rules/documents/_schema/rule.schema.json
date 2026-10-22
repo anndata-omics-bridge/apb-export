@@ -114,7 +114,7 @@
     },
     "AllValues": {
       "additionalProperties": false,
-      "description": "Everything the APB level carries that the rule does not name.\n\nIn ``varm``: every var column and layer value at the written rows, the level's key first.\nIn ``columns.obs``: every obs annotation column, under its own name.",
+      "description": "Every obs annotation column the APB level carries, each under its own name.",
       "properties": {
         "name": {
           "minLength": 1,
@@ -341,7 +341,7 @@
     },
     "Columns": {
       "additionalProperties": false,
-      "description": "The target's observation and variable columns, and var-aligned tables.",
+      "description": "The target's observation and variable columns.",
       "properties": {
         "obs": {
           "items": {
@@ -364,13 +364,6 @@
           "minItems": 1,
           "title": "Var",
           "type": "array"
-        },
-        "varm": {
-          "items": {
-            "$ref": "#/$defs/AllValues"
-          },
-          "title": "Varm",
-          "type": "array"
         }
       },
       "required": [
@@ -387,6 +380,7 @@
           "constant": "#/$defs/Constant",
           "contaminant": "#/$defs/Contaminant",
           "join_nonempty": "#/$defs/JoinNonempty",
+          "layer_minimum": "#/$defs/LayerMinimum",
           "lowercase": "#/$defs/Lowercase",
           "proforma_charge": "#/$defs/ProformaCharge",
           "sequence_length": "#/$defs/SequenceLength"
@@ -417,6 +411,9 @@
         },
         {
           "$ref": "#/$defs/AnnotationMap"
+        },
+        {
+          "$ref": "#/$defs/LayerMinimum"
         }
       ]
     },
@@ -737,6 +734,79 @@
         "source"
       ],
       "title": "LayerEntry",
+      "type": "object"
+    },
+    "LayerMinimum": {
+      "additionalProperties": false,
+      "description": "A layer's smallest value per variable across observations, missing values left out,\nas one q-value per ion from a per-run layer; a variable value is taken as it is.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
+          "title": "Drop Missing",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "layer_minimum",
+          "title": "How",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source",
+          "description": "An APB layer, or candidates in order."
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "source"
+      ],
+      "title": "LayerMinimum",
       "type": "object"
     },
     "Lowercase": {

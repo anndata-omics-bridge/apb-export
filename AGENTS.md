@@ -23,7 +23,7 @@ Export rules declare what each target reads; one engine applies them. Packaged t
 - `cli`: one subcommand per target; APB2's `ParseRuleCompiler` reads the target's levels, apb2's `AnnotationCompiler` applies `--annotation`, then `Exporter` exports; refuses overwrite and the wrong file type, reports unreviewed catalogue answers
 - `api`: `Exporter(target, abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; `targets()`, `levels` and `extension` describe the packaged rules
 - `engine`: `CompiledExport`, one target's level rules checked once; picks the levels for the result's software, binds every entry's sources before building one AnnData per level, combined into a MuData for `.h5mu`; ProteoPy's export is already a `ParsedLevels` that APB2's `write_parsed_levels` writes, the first target of the move planned in the workspace TODO `exports as ParsedLevels`
-- `rows`: Polars only; selects long rows and aligns sources to cell, feature, observation and `uns` rows
+- `rows`: Polars only; aligns sources to feature, observation and `uns` rows
 - `computed`: the conversions a computed entry's `how` names
 - `sources`: APB references resolved against one level, catalogue lookups through apb-catalog, and catalogued protein-level fields read through each variable's protein group, named whole or by its leading protein
 - `container`: AnnData/MuData assembly; the only module that builds them
@@ -37,7 +37,7 @@ Rules for this package:
 - **Export rules read apb2's rule schema in reverse.** Keep apb2's key names; an entry's `name` is the target field and its `source` an APB reference every vendor shares.
 - **Meanings come from apb-catalog, never vendor column names.** A vendor without a catalogued field gets no column (q-value) or NaN (PEP); an unreviewed rule is an error, not a guess. In a candidate list, a catalogue candidate the catalogue reviewed but cannot pick (ambiguous, or a requested qualifier unknown) passes to the next candidate and is recorded as `passed`; the last candidate still raises.
 - **A software name only chooses a level.** A level block's `software` picks the level a target reads for that vendor, as prolfqua reads MaxQuant's peptides.txt; its fields still come from roles and the catalogue.
-- **Match msmu's readers, not our preferences.** Layout, column names and order, q-value precedence and protein canonicalisation follow `msmu.read_diann`; the consumer image's msmu check holds this.
+- **msmu: its names, our layout.** Column names, q-value precedence and protein canonicalisation follow `msmu.read_diann`; the layout is APB2's wide ion level, marked experimental (`uns["apb_export_status"]`), and msmu's developers are asked to read it. The consumer image's msmu check compares msmu's results with `read_diann`'s.
 - **No real vendor data** in tests, docs or examples; tests synthesise vendor files.
 - **The repository is public** since 8 October 2026; its docs site is built from `docs/` by the Pages workflow.
 

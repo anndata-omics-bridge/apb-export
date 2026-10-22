@@ -1,11 +1,11 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "file_version": "1",
   "target_name": "prolfquapp",
   "target_version_pattern": "^2\\.11\\.",
   "tables": [
     {
-      "output": {"shape": "wide", "extensions": [".h5ad"]},
+      "output": {"extensions": [".h5ad"]},
       "base": {
         "axis": {"obs_keys": ["sampleName"], "var_keys": ["feature_id"]},
         "measurements": {

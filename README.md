@@ -44,14 +44,13 @@ An APB2 result already on disk works the same way through `apb2.api.read_parsed_
 
 ## What it writes
 
-msmu's own layout, as `msmu.read_diann` writes it:
+msmu's `psm` modality, written wide. Experimental: msmu's own readers write one feature per run and precursor, and msmu's tools may expect that.
 
-- one `psm` modality; runs are observations
-- one feature per observed (run, precursor) cell, id `<run>.<ProForma precursor>`
-- `X`: block-diagonal sparse float32, the chosen abundance layer (`--abundance`, APB2's primary layer by default)
-- `var`: `proteins`, `peptide`, `stripped_peptide`, `filename`, `charge`, `peptide_length`, `decoy`, `contaminant`, `PEP`, and `q_value` where reported
-- `varm["search_result"]`: every APB2 feature column and every layer value at that cell
-- `uns`: msmu's reader settings, plus APB metadata as in an APB2 result: the MuData's `uns["apb"]` holds the result's root records and the `export` record (rule, target, versions); each modality's `uns["apb"]` holds that level's apb2 records unchanged and the `export` record with each field's APB source and a summary
+- one `psm` modality; runs are observations, precursors are features, id `<ProForma precursor>`
+- `X`: dense float32, the chosen abundance layer (`--abundance`, APB2's primary layer by default); a precursor absent from a run is NaN
+- `layers`: each run's `q_value` and `PEP`, where the vendor reports them
+- `var`: `proteins`, `peptide`, `stripped_peptide`, `charge`, `peptide_length`, `decoy`, `contaminant`, and `PEP` and `q_value` where reported, each the precursor's lowest value across runs
+- `uns`: `apb_export_status: "experimental"`, msmu's reader settings, plus APB metadata as in an APB2 result: the MuData's `uns["apb"]` holds the result's root records and the `export` record (rule, target, versions); each modality's `uns["apb"]` holds that level's apb2 records unchanged and the `export` record with each field's APB source and a summary
 
 `peptide` is ProForma for every vendor (`AC[UNIMOD:4]K`), not each vendor's own notation. msmu's modification parser reads it, and `to_ptm` takes the tag as written, for example `"[UNIMOD:21]"`.
 
@@ -61,7 +60,7 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 
 | Target | File | APB2 levels | Layout |
 | --- | --- | --- | --- |
-| [msmu](src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | ion | long `psm` modality, one feature per run and precursor; a feature without a protein is left out and counted in the export record |
+| [msmu](src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | ion | `psm` modality, precursors by runs, experimental; a feature without a protein is left out and counted in the export record |
 | [prolfquapp](src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | ion, or peptide for MaxQuant; reading protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata`, factors from `apb2 annotate` columns; confidence layers `qValue` (precursor, per run), `pg_qValue` (protein group, per run), `pg_qValue_experiment` (protein group, library or experiment-wide) and `pep`, each where the vendor reports it; a feature without a protein is left out and counted in the export record; with `--fasta`, the leading protein's `fasta.id`, `description`, `IDcolumn` (accession), `gene_name`, `protein_length` and `nr_tryptic_peptides`, as prolfquapp's own FASTA annotation writes them; without one, `fasta.id`, `description` and `IDcolumn` repeat `protein_Id` |
 | [ProteoPy](src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes; with `--fasta`, apb-fasta annotates the protein groups and adds `in_fasta`, `gene_id`, `description` and `fasta_organisms`, which ProteoPy does not read |
 | [AlphaPeptTools](src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | ion, peptide, protein | one wide modality per level, linked by id columns for `mulink_from_anndatas`; ion and peptide modalities carry `contaminant` and, with `--fasta`, `in_fasta`, `fasta_proteins` and `fasta_organisms`, which AlphaPeptTools does not read |
@@ -99,7 +98,8 @@ Releasing, staging the examples and running the container are in [docs/deploy.md
 - Label-free only: a result keyed by more than one observation column, as multiplexed designs are, is refused
 - `decoy` is apb2's `apb_Decoy`; most exports carry no decoys, and msmu's target-decoy q-values need them, so use `calculate_q=False` unless the vendor kept them
 - Group separators other than `;` pass through unchanged; no APB2 rule declares its separator
-- Retention time is not mapped to `rt`, since no catalogue names it; it stays in `varm["search_result"]`
+- Retention time is not mapped to `rt`, since no catalogue names it
+- msmu's file has no per-run `filename` column: msmu tools that group features by file see precursors, not identifications
 
 ## Development
 

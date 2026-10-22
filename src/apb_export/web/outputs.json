@@ -16,7 +16,7 @@
   "apb-export:msmu": {
     "title": "msmu",
     "file": ".h5mu",
-    "what": "msmu's long psm layout: one feature per run and precursor.",
+    "what": "msmu's psm modality, precursors by runs; experimental.",
     "open": "msmu.read_h5mu(path)",
     "version": "0.4",
     "links": [

@@ -1,11 +1,11 @@
 {
-  "schema_version": "0.1",
-  "file_version": "1",
+  "schema_version": "0.2",
+  "file_version": "2",
   "target_name": "msmu",
   "target_version_pattern": "^0\\.4\\.",
   "tables": [
     {
-      "output": {"shape": "long", "extensions": [".h5mu"]},
+      "output": {"extensions": [".h5mu"]},
       "base": {
         "accession_syntax": {
           "msmu": {
@@ -18,7 +18,7 @@
       "levels": {
         "ion": {
           "modality": "psm",
-          "axis": {"obs_keys": ["filename"], "var_keys": ["feature_id"]},
+          "axis": {"obs_keys": ["filename"], "var_keys": ["precursor"]},
           "measurements": {
             "primary_layer": "abundance",
             "layers": [
@@ -27,6 +27,37 @@
                 "source": {"measurements": "primary_layer"},
                 "width": 32,
                 "missing_values": [0]
+              },
+              {
+                "name": "q_value",
+                "source": [
+                  {
+                    "catalogue": "proteobench_entrapment",
+                    "concept": "confidence",
+                    "kind": "library_q_value",
+                    "accept": "nonzero"
+                  },
+                  {
+                    "catalogue": "proteobench_entrapment",
+                    "concept": "confidence",
+                    "kind": "global_q_value"
+                  },
+                  {
+                    "catalogue": "identification_confidence",
+                    "concept": "confidence",
+                    "kind": "q_value"
+                  }
+                ],
+                "width": 32
+              },
+              {
+                "name": "PEP",
+                "source": {
+                  "catalogue": "identification_confidence",
+                  "concept": "confidence",
+                  "kind": "pep"
+                },
+                "width": 32
               }
             ]
           },
@@ -35,13 +66,7 @@
               {"name": "filename", "source": {"axis": "obs_keys"}, "index_only": true}
             ],
             "var": [
-              {
-                "name": "feature_id",
-                "how": "join_nonempty",
-                "inputs": [{"axis": "obs_keys"}, "ProForma_ion"],
-                "separator": ".",
-                "index_only": true
-              },
+              {"name": "precursor", "source": "ProForma_ion", "index_only": true},
               {
                 "name": "proteins",
                 "how": "accessions",
@@ -51,7 +76,6 @@
               },
               {"name": "peptide", "source": "ProForma_peptidoform"},
               {"name": "stripped_peptide", "source": "ProForma_peptide"},
-              {"name": "filename", "source": {"axis": "obs_keys"}},
               {
                 "name": "charge",
                 "how": "proforma_charge",
@@ -68,6 +92,7 @@
               {"name": "contaminant", "how": "contaminant", "type": "integer"},
               {
                 "name": "PEP",
+                "how": "layer_minimum",
                 "source": {
                   "catalogue": "identification_confidence",
                   "concept": "confidence",
@@ -80,6 +105,7 @@
               },
               {
                 "name": "q_value",
+                "how": "layer_minimum",
                 "source": [
                   {
                     "catalogue": "proteobench_entrapment",
@@ -102,8 +128,7 @@
                 "width": 32,
                 "required": false
               }
-            ],
-            "varm": [{"name": "search_result", "how": "all_values"}]
+            ]
           },
           "uns": [
             {"name": "level", "how": "constant", "value": "precursor"},
@@ -124,7 +149,8 @@
             {"name": "label", "how": "constant", "value": "label_free"},
             {"name": "acquisition", "how": "constant", "value": null},
             {"name": "identification_file", "how": "constant", "value": null},
-            {"name": "quantification_file", "how": "constant", "value": null}
+            {"name": "quantification_file", "how": "constant", "value": null},
+            {"name": "apb_export_status", "how": "constant", "value": "experimental"}
           ]
         }
       }

@@ -127,7 +127,7 @@ def test_an_msmu_job_flags_the_uploaded_fastas_contaminants(
     target.write_bytes(content)
     var = md.read_h5mu(target)["psm"].var
     assert isinstance(var, pd.DataFrame)
-    assert var.loc["run_A1.CONTPEPK/2", "contaminant"] == 1
+    assert var.loc["CONTPEPK/2", "contaminant"] == 1
 
 
 def test_an_apb2_job_checks_the_peptides_against_the_uploaded_fasta(

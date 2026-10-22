@@ -240,7 +240,7 @@ def msmu(
     strict: Strict = False,
     fasta: Fasta = (),
 ) -> int:
-    """APB2's ion level as msmu's psm modality: one feature per run and precursor."""
+    """APB2's ion level as msmu's psm modality, precursors by runs; experimental."""
     result = _exported(
         "msmu",
         data,

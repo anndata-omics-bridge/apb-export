@@ -13,13 +13,20 @@ from apb_export.export_rules.schema import (
     Contaminant,
     FloatWidth,
     JoinNonempty,
+    LayerMinimum,
     Lowercase,
     ProformaCharge,
     SequenceLength,
 )
 
 type Computed = (
-    JoinNonempty | ProformaCharge | SequenceLength | Accessions | Contaminant | Lowercase
+    JoinNonempty
+    | ProformaCharge
+    | SequenceLength
+    | Accessions
+    | Contaminant
+    | Lowercase
+    | LayerMinimum
 )
 
 
@@ -89,3 +96,5 @@ def compute(
             return inputs[0]
         case Lowercase():
             return inputs[0].cast(pl.Utf8).str.to_lowercase()
+        case LayerMinimum():
+            return inputs[0]

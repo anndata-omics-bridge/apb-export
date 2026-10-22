@@ -1,4 +1,4 @@
-"""The export has msmu's layout and carries the vendor's confidence by meaning."""
+"""msmu's experimental wide export: ions by runs, and the vendor's confidence by meaning."""
 
 from __future__ import annotations
 
@@ -12,16 +12,14 @@ import pandas as pd
 import polars as pl
 import pytest
 from apb2.api import ParsedLevels, ParseRuleCompiler
-from scipy import sparse
 
 from apb_export.api import Exporter
-from conftest import RUNS, DiannInput, apb_part, export_sources, level_part, write_diann
+from conftest import PRECURSORS, RUNS, DiannInput, apb_part, export_sources, level_part, write_diann
 
 MSMU_DIANN_COLUMNS = [
     "proteins",
     "peptide",
     "stripped_peptide",
-    "filename",
     "charge",
     "peptide_length",
     "decoy",
@@ -50,43 +48,39 @@ def _var(psm: object) -> pd.DataFrame:
     return psm.var
 
 
-def _search_result(psm: object) -> pd.DataFrame:
-    assert isinstance(psm, ad.AnnData)
-    table = psm.varm["search_result"]
-    assert isinstance(table, pd.DataFrame)
-    return table
+def _x(psm: ad.AnnData, layer: str | None = None) -> np.ndarray:
+    matrix = psm.X if layer is None else psm.layers[layer]
+    assert isinstance(matrix, np.ndarray), "wide output is dense"
+    return matrix
 
 
-def _matrix(psm: object) -> sparse.csr_matrix:
-    assert isinstance(psm, ad.AnnData)
-    assert sparse.issparse(psm.X)
-    return sparse.csr_matrix(psm.X)
-
-
-def test_one_feature_per_observed_cell(diann: DiannInput) -> None:
+def test_one_feature_per_precursor(diann: DiannInput) -> None:
     psm = _psm(Exporter("msmu", abundance="Precursor_Quantity").export(_parsed(diann)))
 
     assert list(psm.obs_names) == sorted(RUNS)
-    assert psm.n_vars == diann.cells
+    assert psm.n_vars == len(PRECURSORS)
     assert list(psm.var.columns) == MSMU_DIANN_COLUMNS
-    matrix = _matrix(psm)
-    assert matrix.dtype == np.float32
-    assert (np.diff(sparse.csc_matrix(matrix).indptr) == 1).all(), "one run per feature"
+    x = _x(psm)
+    assert x.dtype == np.float32
+    assert np.isnan(x).sum() == len(RUNS) * len(PRECURSORS) - diann.cells, "absent cells are NaN"
     first = _var(psm).iloc[0]
-    assert psm.var_names[0] == f"{first['filename']}.{first['peptide']}/{first['charge']}"
+    assert psm.var_names[0] == f"{first['peptide']}/{first['charge']}"
 
 
 def test_quantities_and_confidence_come_from_the_report(diann: DiannInput) -> None:
     psm = _psm(Exporter("msmu", abundance="Precursor_Quantity").export(_parsed(diann)))
     var = _var(psm)
-    row = var.index.get_loc("run_A2.YEASTPEPK/2")
+    column = list(psm.var_names).index("YEASTPEPK/2")
     run = list(psm.obs_names).index("run_A2")
 
     # run_A2 is the second run and YEASTPEPK the third precursor: scale 2 * 3.
-    assert _matrix(psm)[run, row] == pytest.approx(6000.0)
-    assert var.iloc[row]["q_value"] == pytest.approx(0.006), "Global.Q.Value, not Q.Value"
-    assert var.iloc[row]["PEP"] == pytest.approx(0.03)
+    assert _x(psm)[run, column] == pytest.approx(6000.0)
+    assert var.loc["YEASTPEPK/2", "q_value"] == pytest.approx(0.006), "Global.Q.Value"
+    assert var.loc["YEASTPEPK/2", "PEP"] == pytest.approx(0.03)
+    assert _x(psm, "q_value")[run, column] == pytest.approx(0.006), "the run's value as a layer"
+    assert _x(psm, "PEP")[run, column] == pytest.approx(0.03)
     assert export_sources(psm)["var.q_value"]["kind"] == "global_q_value"
+    assert export_sources(psm)["var.q_value"]["how"] == "layer_minimum"
 
 
 def test_library_q_value_wins_when_match_between_runs_filled_it(tmp_path: Path) -> None:
@@ -94,16 +88,15 @@ def test_library_q_value_wins_when_match_between_runs_filled_it(tmp_path: Path) 
     psm = _psm(Exporter("msmu").export(_parsed(diann)))
 
     assert export_sources(psm)["var.q_value"]["kind"] == "library_q_value"
-    assert _var(psm).loc["run_A1.PEPTIDEK/2", "q_value"] == pytest.approx(0.0005)
+    assert _var(psm).loc["PEPTIDEK/2", "q_value"] == pytest.approx(0.0005)
 
 
 def test_protein_groups_are_written_as_msmu_writes_them(diann: DiannInput) -> None:
     var = _var(_psm(Exporter("msmu").export(_parsed(diann))))
 
-    assert var.loc["run_A1.AAC[UNIMOD:4]LLK/2", "proteins"] == "P2"
-    assert var.loc["run_A1.CONTPEPK/2", "proteins"] == "Cont_P4"
-    # SHAREDK is absent from run_A1 by design (see conftest.observed).
-    assert var.loc["run_A2.SHAREDK/2", "proteins"] == "P5;Cont_P6"
+    assert var.loc["AAC[UNIMOD:4]LLK/2", "proteins"] == "P2"
+    assert var.loc["CONTPEPK/2", "proteins"] == "Cont_P4"
+    assert var.loc["SHAREDK/2", "proteins"] == "P5;Cont_P6"
     # DIA-NN marks nothing and nothing was FASTA-checked, so nothing is a contaminant or decoy.
     assert (var["contaminant"] == 0).all()
     assert (var["decoy"] == 0).all()
@@ -122,13 +115,11 @@ def test_a_feature_without_proteins_is_left_out_and_counted(diann: DiannInput) -
 
     psm = _psm(Exporter("msmu").export(parsed))
 
-    kept = [index for index, name in enumerate(full.var_names) if not name.endswith(".PEPTIDEK/2")]
-    assert 0 < len(kept) < full.n_vars
+    kept = [index for index, name in enumerate(full.var_names) if name != "PEPTIDEK/2"]
     assert list(psm.var_names) == [full.var_names[index] for index in kept]
     assert (_var(psm)["proteins"] != "").all()
-    assert list(_search_result(psm).index) == list(psm.var_names)
-    np.testing.assert_array_equal(_matrix(psm).toarray(), _matrix(full)[:, kept].toarray())
-    assert export_sources(psm)["var.proteins"]["dropped"] == str(full.n_vars - len(kept))
+    np.testing.assert_array_equal(_x(psm), _x(full)[:, kept])
+    assert export_sources(psm)["var.proteins"]["dropped"] == "1"
 
 
 def test_contaminants_merge_the_vendor_marking_and_the_fasta_match(diann: DiannInput) -> None:
@@ -145,21 +136,11 @@ def test_contaminants_merge_the_vendor_marking_and_the_fasta_match(diann: DiannI
 
     var = _var(_psm(Exporter("msmu").export(parsed)))
 
-    assert var.loc["run_A1.CONTPEPK/2", "contaminant"] == 1
-    assert var.loc["run_A2.SHAREDK/2", "contaminant"] == 1
-    assert var.loc["run_A1.PEPTIDEK/2", "contaminant"] == 0
-    assert var.loc["run_A1.LASTPEPK/2", "decoy"] == 1
-    assert var.loc["run_A1.PEPTIDEK/2", "decoy"] == 0
-
-
-def test_every_source_value_is_kept_in_search_result(diann: DiannInput) -> None:
-    psm = _psm(Exporter("msmu").export(_parsed(diann)))
-    source = _search_result(psm)
-
-    assert list(source.index) == list(psm.var_names)
-    for name in ("Precursor_Quantity", "Q_Value", "Global_Q_Value", "RT", "Protein_Group"):
-        assert name in source.columns
-    assert source.loc["run_A1.PEPTIDEK/2", "RT"] == pytest.approx(10.0)
+    assert var.loc["CONTPEPK/2", "contaminant"] == 1
+    assert var.loc["SHAREDK/2", "contaminant"] == 1
+    assert var.loc["PEPTIDEK/2", "contaminant"] == 0
+    assert var.loc["LASTPEPK/2", "decoy"] == 1
+    assert var.loc["PEPTIDEK/2", "decoy"] == 0
 
 
 def test_written_file_reads_back(diann: DiannInput, tmp_path: Path) -> None:
@@ -169,8 +150,8 @@ def test_written_file_reads_back(diann: DiannInput, tmp_path: Path) -> None:
     mdata.write_h5mu(target)
     back = md.read_h5mu(target)
 
-    psm = back["psm"]
-    assert psm.shape == mdata["psm"].shape
+    psm = _psm(back)
+    assert psm.shape == _psm(mdata).shape
     root = apb_part(back.uns["apb"])["export"]
     assert root["schema_version"] == "1"
     assert root["provenance"]["package"] == "apb-export"
@@ -180,9 +161,11 @@ def test_written_file_reads_back(diann: DiannInput, tmp_path: Path) -> None:
     assert record["provenance"]["source_level"] == "ion"
     assert "parse" in level_part(psm) and "parse" in apb_part(back.uns["apb"])
     assert psm.uns["search_engine"] == "dia-nn"
+    assert psm.uns["apb_export_status"] == "experimental", "msmu's wide file is experimental"
     assert list(psm.obs.columns) == [], "runs are the index only"
-    assert "feature_id" not in _var(psm).columns, "feature ids are the index only"
-    assert _matrix(psm).dtype == np.float32
+    assert "precursor" not in _var(psm).columns, "precursor ids are the index only"
+    assert _x(psm).dtype == np.float32
+    assert {"PEP", "q_value"} <= set(psm.layers.keys()), "each run's value as a layer"
     assert _var(psm)["PEP"].dtype == np.float32
     assert _var(psm)["q_value"].dtype == np.float32
 

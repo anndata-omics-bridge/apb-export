@@ -23,7 +23,6 @@ from apb_export.container import (
     Index,
     Matrix,
     link_features,
-    long_anndata,
     mudata,
     wide_anndata,
 )
@@ -38,18 +37,11 @@ from apb_export.export_rules.schema import (
     Contaminant,
     EntryBase,
     LayerEntry,
+    LayerMinimum,
     MeasurementSource,
     SourcedEntry,
 )
-from apb_export.rows import (
-    CellRows,
-    FeatureRows,
-    ObservationRows,
-    Rows,
-    ScalarRow,
-    all_values,
-    select_cells,
-)
+from apb_export.rows import FeatureRows, ObservationRows, Rows, ScalarRow
 from apb_export.sources import (
     LayerValues,
     LevelSources,
@@ -71,10 +63,7 @@ _CALLERS_LAYER = MeasurementSource(measurements="primary_layer")
 """The primary layer's source when the caller names the abundance layer."""
 _OBS_TAKES = (ObsValues, ScalarValue)
 _UNS_TAKES = (ScalarValue,)
-_VAR_TAKES = {
-    "long": (ObsValues, VarValues, LayerValues, ScalarValue),
-    "wide": (VarValues, ScalarValue),
-}
+_VAR_TAKES = (VarValues, ScalarValue)
 
 type Entries = Sequence[ColumnEntry] | Sequence[ColumnEntry | AllValues]
 
@@ -110,6 +99,16 @@ def _bind(
     if isinstance(entry, Contaminant):
         merged = sources.contaminants()
         return _Bound(entry, (merged,), {"how": entry.how, "inputs": _describe(merged.provenance)})
+    if isinstance(entry, LayerMinimum):
+        found_layer = sources.resolve(entry.source)
+        if found_layer is None:
+            return _absent(entry, group)
+        reduced = _minimum(found_layer)
+        if not isinstance(reduced, takes):
+            raise ValueError(
+                f"{group} entry {entry.name!r} cannot take {_describe(reduced.provenance)}"
+            )
+        return _Bound(entry, (reduced,), {**reduced.provenance, "how": entry.how})
     found = (
         [sources.resolve(entry.source)]
         if isinstance(entry, SourcedEntry)
@@ -127,6 +126,14 @@ def _bind(
         return _Bound(entry, tuple(resolved), resolved[0].provenance)
     inputs = ", ".join(_describe(item.provenance) for item in resolved)
     return _Bound(entry, tuple(resolved), {"how": entry.how, "inputs": inputs})
+
+
+def _minimum(resolved: Resolved) -> Resolved:
+    """A layer reduced to its smallest value per variable; anything else as it is."""
+    if not isinstance(resolved, LayerValues):
+        return resolved
+    values = resolved.values.select(pl.min_horizontal(pl.all().cast(pl.Float64))).to_series()
+    return VarValues(values, resolved.provenance)
 
 
 def _fill(entry: EntryBase) -> object:
@@ -214,35 +221,6 @@ class _LevelExport:
         self._sources = LevelSources(parsed, rule.level, abundance)
         self._provenance: dict[str, Provenance] = {}
 
-    def long(self) -> ad.AnnData:
-        """One row per selected cell, each a feature; X block-diagonal."""
-        rule = self._rule.rule
-        (entry,) = rule.measurements.layers
-        x = self._layer(entry, primary=True)
-        if x is None:
-            raise ValueError(f"layer {entry.name!r}: the result carries no layer for it")
-        bound = self._bind_columns("long")
-        uns = self._bind_group("uns", rule.uns, _UNS_TAKES)
-        cells = select_cells(self._level, x.values, entry.missing_values)
-        obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
-        rows = CellRows(cells)
-        var = self._columns(bound["var"], rows)
-        kept = self._kept(var, rule.columns.var, rows.count())
-        var = [column.filter(kept) for column in var]
-        cells = cells.subset(kept.to_numpy())
-        return self._with_level_part(
-            long_anndata(
-                obs_index=self._index(obs, rule.axis.obs_keys[0], rule.columns.obs, "obs"),
-                obs=self._visible(obs, rule.columns.obs),
-                var_index=self._index(var, rule.axis.var_keys[0], rule.columns.var, "var"),
-                var=self._visible(var, rule.columns.var),
-                x=pl.Series(cells.values).cast(dtype("number", entry.width)).to_numpy(),
-                x_obs=cells.obs,
-                varm={table.name: all_values(self._level, cells) for table in rule.columns.varm},
-                uns=self._uns(uns),
-            )
-        )
-
     def has_index(self) -> bool:
         """Whether the result carries the source of the level's variable index."""
         key = self._rule.rule.axis.var_keys[0]
@@ -259,7 +237,7 @@ class _LevelExport:
             (entry, self._layer(entry, primary=entry.name == primary))
             for entry in rule.measurements.layers
         ]
-        bound = self._bind_columns("wide")
+        bound = self._bind_columns()
         uns = self._bind_group("uns", rule.uns, _UNS_TAKES)
         obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
         rows = FeatureRows(self._level.var.frame.height)
@@ -292,7 +270,7 @@ class _LevelExport:
             (entry, self._layer(entry, primary=entry.name == primary))
             for entry in rule.measurements.layers
         ]
-        bound = self._bind_columns("wide")
+        bound = self._bind_columns()
         obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
         rows = FeatureRows(self._level.var.frame.height)
         var = self._columns(bound["var"], rows)
@@ -337,11 +315,11 @@ class _LevelExport:
         self._provenance[key] = resolved.provenance
         return resolved
 
-    def _bind_columns(self, shape: str) -> dict[str, list[_Bound | AllValues]]:
+    def _bind_columns(self) -> dict[str, list[_Bound | AllValues]]:
         rule = self._rule.rule
         return {
             "obs": self._bind_group("obs", rule.columns.obs, _OBS_TAKES),
-            "var": self._bind_group("var", rule.columns.var, _VAR_TAKES[shape]),
+            "var": self._bind_group("var", rule.columns.var, _VAR_TAKES),
         }
 
     def _bind_group(
@@ -378,7 +356,7 @@ class _LevelExport:
     def _kept(self, columns: list[pl.Series], entries: Entries, count: int) -> pl.Series:
         """Features holding a value in every ``drop_missing`` column; the others are counted.
 
-        A feature is one of the ``count`` rows written: a variable in wide output, a cell in long.
+        A feature is one of the ``count`` variables written.
         """
         dropping = {e.name for e in entries if not isinstance(e, AllValues) and e.drop_missing}
         kept = pl.Series([True] * count)
@@ -471,22 +449,15 @@ class CompiledExport:
     """One target's effective rules, checked once and applied to any number of results."""
 
     def __init__(self, rules: Sequence[EffectiveRule]) -> None:
-        """Check what Pydantic cannot see across one table's levels.
+        """Keep one target's effective rules.
 
         Raises:
-            ValueError: No level, a long level with more than its primary layer, or a wide
-                level with ``varm`` tables.
+            ValueError: No level.
         """
         if not rules:
             raise ValueError("an export rule needs at least one level")
-        output = rules[0].output
-        for rule in rules:
-            if output.shape == "long" and len(rule.rule.measurements.layers) != 1:
-                raise ValueError(f"{rule.document}: long output writes only its primary layer")
-            if output.shape == "wide" and rule.rule.columns.varm:
-                raise ValueError(f"{rule.document}: wide output writes no varm tables")
         self.rules = tuple(rules)
-        self.output = output
+        self.output = rules[0].output
 
     @property
     def levels(self) -> tuple[str, ...]:
@@ -517,8 +488,8 @@ class CompiledExport:
 
     @property
     def _apb2_writes(self) -> bool:
-        """Whether the export is a ``ParsedLevels`` for APB2's writer: so far a wide ``.h5ad``
-        level without ``uns`` entries, links or index flags; the others still build AnnData."""
+        """Whether the export is a ``ParsedLevels`` for APB2's writer: so far an ``.h5ad`` level
+        without ``uns`` entries, links or index flags; the others still build AnnData."""
         rule = self.rules[0]
         flags = any(
             getattr(entry, flag, False)
@@ -526,8 +497,7 @@ class CompiledExport:
             for flag in ("index_only", "named_index")
         )
         return (
-            self.output.shape == "wide"
-            and self.extension == ".h5ad"
+            self.extension == ".h5ad"
             and not rule.dataset_uns
             and not rule.feature_links
             and not any(level.rule.uns for level in self.rules)
@@ -567,7 +537,7 @@ class CompiledExport:
                 logger.info(f"level {rule.level}: the result carries no index for it; left out")
                 skipped.append(rule.level)
                 continue
-            built = level.long() if self.output.shape == "long" else level.wide()
+            built = level.wide()
             modalities[rule.rule.modality or rule.level] = built
             written.append(rule.level)
         if not modalities:

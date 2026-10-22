@@ -10,7 +10,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
-type SchemaVersion = Literal["0.1"]
+type SchemaVersion = Literal["0.2"]
 type ColumnType = Literal["string", "integer", "number", "boolean"]
 type FloatWidth = Literal[32, 64]
 type Scalar = str | int | float | bool | None
@@ -231,6 +231,14 @@ class AnnotationMap(EntryBase):
     how: Literal["annotation_map"]
 
 
+class LayerMinimum(EntryBase):
+    """A layer's smallest value per variable across observations, missing values left out,
+    as one q-value per ion from a per-run layer; a variable value is taken as it is."""
+
+    how: Literal["layer_minimum"]
+    source: Source = Field(description="An APB layer, or candidates in order.")
+
+
 type ComputedEntry = Annotated[
     Constant
     | JoinNonempty
@@ -239,18 +247,15 @@ type ComputedEntry = Annotated[
     | Accessions
     | Contaminant
     | Lowercase
-    | AnnotationMap,
+    | AnnotationMap
+    | LayerMinimum,
     Field(discriminator="how"),
 ]
 type ColumnEntry = SourcedEntry | ComputedEntry
 
 
 class AllValues(ModelBase):
-    """Everything the APB level carries that the rule does not name.
-
-    In ``varm``: every var column and layer value at the written rows, the level's key first.
-    In ``columns.obs``: every obs annotation column, under its own name.
-    """
+    """Every obs annotation column the APB level carries, each under its own name."""
 
     name: str = Field(min_length=1)
     how: Literal["all_values"]
@@ -296,11 +301,10 @@ class Axis(ModelBase):
 
 
 class Columns(ModelBase):
-    """The target's observation and variable columns, and var-aligned tables."""
+    """The target's observation and variable columns."""
 
     obs: list[ColumnEntry | AllValues] = Field(default_factory=list)
     var: list[ColumnEntry] = Field(min_length=1)
-    varm: list[AllValues] = Field(default_factory=list)
 
 
 class AccessionSyntax(ModelBase):
@@ -375,14 +379,12 @@ class LevelRule(ModelBase):
 
 
 class Output(ModelBase):
-    """What one table writes, like apb2's ``input``.
+    """What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.
 
-    ``wide`` keeps APB2's samples-by-features matrices; ``long`` writes one row per measured
-    cell. ``.h5ad`` holds one level: the first listed that the result's software and levels
-    allow. ``.h5mu`` holds one modality per level.
+    ``.h5ad`` holds one level: the first listed that the result's software and levels allow.
+    ``.h5mu`` holds one modality per level.
     """
 
-    shape: Literal["long", "wide"]
     extensions: list[Literal[".h5mu", ".h5ad"]] = Field(min_length=1, max_length=1)
 
 

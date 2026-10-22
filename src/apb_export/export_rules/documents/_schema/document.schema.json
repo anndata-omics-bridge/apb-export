@@ -267,6 +267,7 @@
           "constant": "#/$defs/Constant",
           "contaminant": "#/$defs/Contaminant",
           "join_nonempty": "#/$defs/JoinNonempty",
+          "layer_minimum": "#/$defs/LayerMinimum",
           "lowercase": "#/$defs/Lowercase",
           "proforma_charge": "#/$defs/ProformaCharge",
           "sequence_length": "#/$defs/SequenceLength"
@@ -297,6 +298,9 @@
         },
         {
           "$ref": "#/$defs/AnnotationMap"
+        },
+        {
+          "$ref": "#/$defs/LayerMinimum"
         }
       ]
     },
@@ -609,6 +613,79 @@
       "type": "object"
     },
     "JsonValue": {},
+    "LayerMinimum": {
+      "additionalProperties": false,
+      "description": "A layer's smallest value per variable across observations, missing values left out,\nas one q-value per ion from a per-run layer; a variable value is taken as it is.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "index_only": {
+          "default": false,
+          "description": "An axis entry that becomes the index without being written as a column.",
+          "title": "Index Only",
+          "type": "boolean"
+        },
+        "named_index": {
+          "default": false,
+          "description": "The index takes this axis entry's name, as AlphaPeptTools' levels need.",
+          "title": "Named Index",
+          "type": "boolean"
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
+          "title": "Drop Missing",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "layer_minimum",
+          "title": "How",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Source",
+          "description": "An APB layer, or candidates in order."
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "source"
+      ],
+      "title": "LayerMinimum",
+      "type": "object"
+    },
     "Lowercase": {
       "additionalProperties": false,
       "description": "The input text in lower case.",
@@ -721,16 +798,8 @@
     },
     "Output": {
       "additionalProperties": false,
-      "description": "What one table writes, like apb2's ``input``.\n\n``wide`` keeps APB2's samples-by-features matrices; ``long`` writes one row per measured\ncell. ``.h5ad`` holds one level: the first listed that the result's software and levels\nallow. ``.h5mu`` holds one modality per level.",
+      "description": "What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.\n\n``.h5ad`` holds one level: the first listed that the result's software and levels allow.\n``.h5mu`` holds one modality per level.",
       "properties": {
-        "shape": {
-          "enum": [
-            "long",
-            "wide"
-          ],
-          "title": "Shape",
-          "type": "string"
-        },
         "extensions": {
           "items": {
             "enum": [
@@ -746,7 +815,6 @@
         }
       },
       "required": [
-        "shape",
         "extensions"
       ],
       "title": "Output",
@@ -913,7 +981,7 @@
       ]
     },
     "SchemaVersion": {
-      "const": "0.1",
+      "const": "0.2",
       "type": "string"
     },
     "SequenceLength": {

@@ -23,5 +23,5 @@ Modules compose downward only:
 - Export rules keep APB2's key names: an entry's `name` is the target field and its `source` an APB reference every vendor shares
 - Meanings come from apb-catalog: a vendor without a catalogued field gets no column (q-value) or NaN (PEP); an unreviewed rule is an error
 - A software name only chooses a level: a level block's `software` picks the level a target reads, as prolfquapp reads MaxQuant's peptides.txt
-- Layout follows each tool's own readers: msmu's `read_diann` sets column names, order, q-value precedence and protein canonicalisation
+- Names follow each tool's own readers: msmu's `read_diann` sets column names, q-value precedence and protein canonicalisation; the layout is APB2's wide level, for msmu marked experimental
 - `make schema` rewrites the JSON Schemas in `documents/_schema` from the models

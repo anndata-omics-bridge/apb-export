@@ -1,11 +1,11 @@
 {
-  "schema_version": "0.1",
+  "schema_version": "0.2",
   "file_version": "1",
   "target_name": "ProteoPy",
   "target_version_pattern": "^0\\.1\\.",
   "tables": [
     {
-      "output": {"shape": "wide", "extensions": [".h5ad"]},
+      "output": {"extensions": [".h5ad"]},
       "levels": {
         "protein": {
           "axis": {"obs_keys": ["sample_id"], "var_keys": ["protein_id"]},

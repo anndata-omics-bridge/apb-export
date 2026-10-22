@@ -1,4 +1,4 @@
-"""msmu reads apb-export's file and gets what its own DIA-NN reader gets from the report.
+"""msmu reads apb-export's experimental wide file and gets what its own DIA-NN reader gets.
 
 Inside the consumer image: ``python check_msmu.py EXAMPLES``.
 """
@@ -37,16 +37,22 @@ def check(folder: Path, level: str) -> None:
     reference = _pipeline(mm.read_diann(str(folder / "report.tsv")))[level]
     ours = _pipeline(mm.read_h5mu(str(export)))[level]
     if level == "peptide":
-        # The export writes peptides in ProForma; msmu's reader keeps DIA-NN's notation.
-        psm = md.read_h5mu(export)["psm"]
-        source = psm.varm["search_result"]
-        notation = dict(zip(psm.var["peptide"], source["Modified_Sequence"], strict=True))
+        # The export writes peptides in ProForma, msmu's reader DIA-NN's notation; both carry
+        # the stripped sequence, which names one modified peptide in this example.
+        theirs = mm.read_diann(str(folder / "report.tsv"))["psm"].var
+        modified = dict(zip(theirs["stripped_peptide"], theirs["peptide"], strict=True))
+        psm = md.read_h5mu(export)["psm"].var
+        notation = {
+            peptide: modified[stripped]
+            for peptide, stripped in zip(psm["peptide"], psm["stripped_peptide"], strict=True)
+        }
         ours.var_names = [notation[name] for name in ours.var_names]
     assert set(ours.obs_names) == set(reference.obs_names), f"{level}: samples differ"
     assert set(ours.var_names) == set(reference.var_names), f"{level}: features differ"
     aligned = ours[reference.obs_names, reference.var_names]
-    np.testing.assert_array_equal(_dense(aligned.X), _dense(reference.X))
-    print(f"msmu {level}: {reference.n_vars} features, identical to read_diann")
+    # msmu's dense and sparse paths round float32 differently; equal to rounding, NaN alike.
+    np.testing.assert_allclose(_dense(aligned.X), _dense(reference.X), rtol=1e-6, equal_nan=True)
+    print(f"msmu {level}: {reference.n_vars} features, equal to read_diann")
 
 
 if __name__ == "__main__":
