@@ -259,7 +259,7 @@
             ".xlsx",
             ".txt"
           ],
-          "note": "Proline's Excel export of the quantification, with its Quantified peptide ions sheet, plus MS-Angel's exported workflow JSON. MS-Angel documents neither name."
+          "note": "Proline's Excel export of the quantification, with its Quantified peptide ions sheet and, for the protein level, its Protein sets sheet, plus MS-Angel's exported workflow JSON. MS-Angel documents neither name."
         }
       ]
     },
@@ -326,7 +326,7 @@
             ".xlsx",
             ".txt"
           ],
-          "note": "Export > Excel… with a custom export: enable the Quantified peptide ions sheet and its samesets_accessions and subsets_accessions columns, all off by default. Its settings sheets are the parameters."
+          "note": "Export > Excel… with a custom export: enable the Quantified peptide ions sheet with its samesets_accessions, subsets_accessions and protein_set_score columns; the sheet and both accession columns are off by default. Its settings sheets are the parameters."
         }
       ]
     },
