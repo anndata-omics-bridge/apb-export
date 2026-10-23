@@ -6,7 +6,7 @@ corpus, plus extra rows. An extra row is a corpus row under the same root, such 
 ProteoBench submission outside the routine corpus, unless its ``source`` column names a file
 to copy from the workspace, such as a sample apb2 commits; a ``.gz`` source is unpacked. Its
 ``sdrf`` column, when set, names an SDRF placed beside the input as ``sdrf.tsv``, for a tool
-that named its samples otherwise than the module SDRF's raw files, such as WOMBAT. With
+that named its samples otherwise than the module SDRF's raw files, such as WOMBAT-P. With
 ``--fastas``, a table of each module's FASTA such as APB Studio's ``workflow_proteobench.csv``,
 every example of a listed module gets its FASTA under ``data/`` and in a ``fasta`` column.
 Serve it with

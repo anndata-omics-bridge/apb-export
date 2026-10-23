@@ -206,7 +206,7 @@ def test_prolfquapp_reads_each_precursors_pep(diann: DiannInput) -> None:
     np.testing.assert_allclose(np.asarray(adata.layers["pep"]), pep)
 
 
-def test_prolfquapp_reads_the_intensity_without_normalisation(diann: DiannInput) -> None:
+def test_prolfquapp_reads_the_intensity_without_normalization(diann: DiannInput) -> None:
     adata = _anndata(_written("prolfqua", _parsed(diann), diann.report.parent))
 
     assert export_sources(adata)["layers.intensity"] == {
@@ -214,8 +214,8 @@ def test_prolfquapp_reads_the_intensity_without_normalisation(diann: DiannInput)
         "name": "Precursor_Quantity",
         "catalogue": "abundance",
         "kind": "intensity",
-        "normalisation": "none",
-    }, "prolfquapp normalises intensities itself"
+        "normalization": "none",
+    }, "prolfquapp normalizes intensities itself"
 
 
 def test_a_named_abundance_layer_replaces_the_rules_intensity(diann: DiannInput) -> None:
