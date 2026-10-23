@@ -400,7 +400,7 @@
         }
       ]
     },
-    "WOMBAT": {
+    "WOMBAT-P": {
       "sources": [
         "https://github.com/wombat-p/WOMBAT-Pipelines/blob/0.9.11/modules/local/calcbenchmarks/main.nf",
         "https://github.com/wombat-p/WOMBAT-Pipelines/blob/0.9.11/modules/local/prepare_files/main.nf"
