@@ -35,19 +35,8 @@
                     "catalogue": "proteobench_entrapment",
                     "concept": "confidence",
                     "kind": "library_q_value",
-                    "accept": "nonzero"
-                  },
-                  {
-                    "catalogue": "proteobench_entrapment",
-                    "concept": "confidence",
-                    "kind": "library_q_value",
                     "location": "var",
                     "accept": "nonzero"
-                  },
-                  {
-                    "catalogue": "proteobench_entrapment",
-                    "concept": "confidence",
-                    "kind": "global_q_value"
                   },
                   {
                     "catalogue": "proteobench_entrapment",
@@ -123,19 +112,8 @@
                     "catalogue": "proteobench_entrapment",
                     "concept": "confidence",
                     "kind": "library_q_value",
-                    "accept": "nonzero"
-                  },
-                  {
-                    "catalogue": "proteobench_entrapment",
-                    "concept": "confidence",
-                    "kind": "library_q_value",
                     "location": "var",
                     "accept": "nonzero"
-                  },
-                  {
-                    "catalogue": "proteobench_entrapment",
-                    "concept": "confidence",
-                    "kind": "global_q_value"
                   },
                   {
                     "catalogue": "proteobench_entrapment",
