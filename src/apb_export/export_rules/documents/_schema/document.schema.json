@@ -191,7 +191,7 @@
         },
         "accept": {
           "default": "present",
-          "description": "nonzero rejects a layer holding no finite nonzero value, such as DIA-NN's library q-value without match-between-runs.",
+          "description": "nonzero rejects a layer or var column holding no finite nonzero value, such as DIA-NN's library q-value without match-between-runs.",
           "enum": [
             "present",
             "nonzero"

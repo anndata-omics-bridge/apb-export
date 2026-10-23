@@ -46,7 +46,7 @@ msmu's `psm` modality, written wide. Experimental: msmu's own readers write one 
 
 - Intensity (`X`): the `abundance` catalogue's intensity without normalisation, since prolfquapp normalises itself, such as DIA-NN's `Precursor_Quantity`; APB2's primary layer where the catalogue has none or cannot pick one; `--abundance` names another layer
 - Factors: `apb2 annotate` columns, from `--annotation`
-- Confidence layers, each where the vendor reports it: `qValue` (precursor, per run), `pg_qValue` (protein group, per run), `pg_qValue_experiment` (protein group, library or experiment-wide), `pep`
+- Confidence layers, each where the vendor reports it: `qValue` (precursor, per run), `pg_qValue` (protein group, per run), `pg_qValue_experiment` (protein group, library or experiment-wide, the same in every run), `pep`
 - Features without a protein: left out and counted in the export record
 - With `--fasta`: the leading protein's `fasta.id`, `description`, `IDcolumn`, `gene_name`, `protein_length` and `nr_tryptic_peptides`, as prolfquapp's FASTA annotation writes them
 - Without a FASTA: `fasta.id`, `description` and `IDcolumn` repeat `protein_Id`

@@ -81,6 +81,11 @@ def _has_values(layer: FinalLayerTable) -> bool:
     return bool(total)
 
 
+def _column_has_values(column: pl.Series) -> bool:
+    """Say whether a var column holds any finite, nonzero value."""
+    return bool(column.cast(pl.Float64).fill_nan(0).fill_null(0).sum())
+
+
 def rule_field(level: ParsedLevel, name: str) -> object:
     """A top-level field of the apb2 rule stored with a level; ``None`` when it has none."""
     provenance = level.uns.get("provenance")
@@ -264,7 +269,7 @@ class LevelSources:
             column = catalog.var(
                 self._name, concept=reference.concept, kind=reference.kind, **qualifiers
             )
-            if column is None:
+            if column is None or (reference.accept == "nonzero" and not _column_has_values(column)):
                 return None
             return VarValues(column, {"location": "var", "name": column.name, **found})
         layer = catalog.layer(
@@ -289,7 +294,7 @@ class LevelSources:
         catalog = self._catalog(reference.catalogue)
         if reference.location == "var":
             column = catalog.var(level, concept=reference.concept, kind=reference.kind)
-            if column is None:
+            if column is None or (reference.accept == "nonzero" and not _column_has_values(column)):
                 return None
             table = column.cast(pl.Float64).to_numpy()[:, np.newaxis]
             runs = np.zeros(self._level.obs.frame.height, dtype=np.int64)

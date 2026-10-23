@@ -27,6 +27,12 @@
                   "catalogue": "proteobench_entrapment",
                   "concept": "confidence",
                   "kind": "global_q_value"
+                },
+                {
+                  "catalogue": "proteobench_entrapment",
+                  "concept": "confidence",
+                  "kind": "global_q_value",
+                  "location": "var"
                 }
               ]
             },
@@ -46,6 +52,14 @@
                   "catalogue": "identification_confidence",
                   "concept": "confidence",
                   "kind": "library_q_value",
+                  "level": "protein",
+                  "accept": "nonzero"
+                },
+                {
+                  "catalogue": "identification_confidence",
+                  "concept": "confidence",
+                  "kind": "library_q_value",
+                  "location": "var",
                   "level": "protein",
                   "accept": "nonzero"
                 },

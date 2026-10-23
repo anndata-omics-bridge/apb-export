@@ -165,13 +165,21 @@ def _per_cell(adata: ad.AnnData, value: Callable[[int, int], float]) -> np.ndarr
     return np.array([[value(r, p) if observed(r, p) else np.nan for p in precursors] for r in runs])
 
 
+def _every_cell(adata: ad.AnnData, value: Callable[[int], float]) -> np.ndarray:
+    """``value(precursor)`` in every run, reported or not: one experiment-wide value per group."""
+    groups = [group for _, group in PRECURSORS]
+    precursors = [groups.index(group) for group in _frame(adata.var)["protein_Id"]]
+    return np.array([[value(p) for p in precursors] for _run in adata.obs_names])
+
+
 def test_prolfquapp_reads_protein_group_q_values_through_each_precursors_group(
     diann: DiannInput,
 ) -> None:
     adata = _anndata(_written("prolfqua", _parsed(diann), diann.report.parent))
 
     run_wise = _per_cell(adata, lambda run, precursor: 0.0001 * (precursor + 1) * (run + 1))
-    experiment = _per_cell(adata, lambda run, precursor: 0.002 * (precursor + 1) / 2)
+    # DIA-NN's global protein-group q-value is one value per group, kept in var.
+    experiment = _every_cell(adata, lambda precursor: 0.002 * (precursor + 1) / 2)
     np.testing.assert_allclose(np.asarray(adata.layers["pg_qValue"]), run_wise)
     np.testing.assert_allclose(
         np.asarray(adata.layers["pg_qValue_experiment"]),
@@ -185,7 +193,7 @@ def test_prolfquapp_prefers_the_library_q_value_with_match_between_runs(tmp_path
         _written("prolfqua", _parsed(write_diann(tmp_path, library_q=0.003)), tmp_path)
     )
 
-    library = _per_cell(adata, lambda run, precursor: 0.003 * (precursor + 1) / 2)
+    library = _every_cell(adata, lambda precursor: 0.003 * (precursor + 1) / 2)
     np.testing.assert_allclose(np.asarray(adata.layers["pg_qValue_experiment"]), library)
 
 

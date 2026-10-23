@@ -99,8 +99,8 @@ class CatalogueSource(ModelBase):
     )
     accept: Literal["present", "nonzero"] = Field(
         default="present",
-        description="nonzero rejects a layer holding no finite nonzero value, such as "
-        "DIA-NN's library q-value without match-between-runs.",
+        description="nonzero rejects a layer or var column holding no finite nonzero value, "
+        "such as DIA-NN's library q-value without match-between-runs.",
     )
     qualifiers: dict[str, str] = Field(
         default_factory=dict,
