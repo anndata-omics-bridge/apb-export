@@ -27,7 +27,7 @@ def test_writes_msmu_file(diann: DiannInput, tmp_path: Path) -> None:
     assert _run("msmu", str(diann.report), str(target), "--params", str(diann.log)) == 0
     psm = md.read_h5mu(target)["psm"]
     assert psm.n_vars == len(PRECURSORS), "one feature per precursor"
-    assert psm.uns["identification_file"] == str(diann.report), "the command names its source"
+    assert psm.uns["identification_file"] == diann.report.name, "the command names its source"
 
 
 def test_msmu_flags_the_fasta_contaminants_when_given_a_fasta(

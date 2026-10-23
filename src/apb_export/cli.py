@@ -218,8 +218,8 @@ def msmu(
         fasta=fasta,
     )
     if result is not None:
-        # An APB2 result does not record its source files; this command read them.
-        result.levels["psm"].export_uns["identification_file"] = str(data)
+        # The PSM table names the identification file its rows came from, by base name.
+        result.levels["psm"].export_uns["identification_file"] = data.name
     return _write("msmu", result, output)
 
 
