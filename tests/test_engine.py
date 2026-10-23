@@ -19,7 +19,7 @@ from apb_export.api import Exporter
 from apb_export.engine import CompiledExport
 from apb_export.export_rules.loader import effective_rules
 from apb_export.export_rules.schema import ExportRuleDocument
-from conftest import DiannInput, column, export_sources, read_back, write_diann
+from conftest import DiannInput, export_sources, read_back, write_diann
 
 # identification_confidence catalogues no library q-value, so this candidate never resolves.
 UNOFFERED = {
@@ -75,14 +75,14 @@ def _var(psm: object) -> pd.DataFrame:
     return psm.var
 
 
-def test_zero_global_q_values_stay_selected(tmp_path: Path) -> None:
+def test_an_all_zero_global_q_value_leaves_the_run_q_value_to_stand_in(tmp_path: Path) -> None:
+    """apb2 creates no column whose every value is the same; the next candidate answers."""
     diann = write_diann(tmp_path, global_q=0.0)
-    psm = _modality(Exporter("msmu").export(_parsed(diann)), tmp_path / "psm.h5mu")
+    parsed = _parsed(diann)
+    psm = _modality(Exporter("msmu").export(parsed), tmp_path / "psm.h5mu")
 
-    assert export_sources(psm)["var.q_value"]["kind"] == "global_q_value"
-    assert (column(_var(psm), "q_value") == 0).all(), (
-        "zero is a value; only the library needs nonzero"
-    )
+    assert "Global_Q_Value" not in parsed.levels["ion"].var.frame.columns
+    assert export_sources(psm)["var.q_value"]["kind"] == "q_value"
 
 
 def test_a_candidate_the_catalogue_does_not_offer_falls_through(diann: DiannInput) -> None:
