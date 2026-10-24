@@ -31,7 +31,7 @@ apb-export TARGET DATA OUTPUT [OPTIONS]
 | `--software` | all | Restrict recognition to one vendor, as in `apb2 convert` |
 | `--abundance` | `msmu`, `prolfqua`, `proteopy` | Layer of the target's level to become X; by default the rule's choice: APB2's primary layer, or for prolfqua the catalogued intensity without normalization |
 | `--annotation` | `prolfqua`, `proteopy`, `alphapepttools` | SDRF or prolfquapp-style CSV/TSV sample annotation, as `apb2 annotate` reads |
-| `--strict` | all | Promote APB2 layer-contract warnings to errors |
+| `--strict` | all | An effectively empty layer is an error, not left out with a finding |
 | `--fasta` | all | FASTA files, or their protein-fasta database: check the peptides and annotate the protein groups first |
 | `--sdrf` | plugin targets | SDRF-Proteomics sample table: every run must match one of its rows, whose columns fill the sample metadata |
 

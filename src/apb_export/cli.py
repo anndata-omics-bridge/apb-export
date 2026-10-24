@@ -56,7 +56,7 @@ Sdrf = Annotated[
     ),
 ]
 Strict = Annotated[
-    bool, Parameter(negative=False, help="Promote APB2 layer-contract warnings to errors")
+    bool, Parameter(negative=False, help="Make an effectively empty layer an error, not left out")
 ]
 Fasta = Annotated[
     tuple[Path, ...],

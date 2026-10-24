@@ -8,7 +8,7 @@ Rules follow APB2's rule schema read in reverse:
 
 - `name`: the target's field
 - `source`: an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning
-- `"level": "protein"` on a catalogued source: read through each variable's protein group, named whole or by its leading protein; a cell takes its group's value in its run
+- `"level": "protein"` on a catalogued source: read through each variable's protein group, named whole or by its leading protein; a cell takes its group's value in its run; a var column's value, the group's, repeats in every run
 - `software` on a level block: the vendor that block is for
 - `.h5ad` rules: list their levels in order and write the first one the result's software and levels allow
 
@@ -35,7 +35,7 @@ msmu's `psm` modality, written wide. Experimental: msmu's own readers write one 
 
 - One `psm` modality; runs are observations, precursors are features, id `<ProForma precursor>`; the keys `filename` and `precursor` stay columns and name the indices
 - `X`: dense float32, the chosen abundance layer; APB2's primary layer by default; a precursor absent from a run is NaN
-- `layers`: each run's `q_value` and `PEP`, where the vendor reports them
+- `layers`: `q_value`, the library or experiment-wide q-value repeated in every run where the vendor reports one, else each run's; each run's `PEP`, where the vendor reports it
 - `var`: `proteins`, `peptide`, `stripped_peptide`, `charge`, `peptide_length`, `decoy`, `contaminant`, and `PEP` and `q_value` where reported, each the precursor's lowest value across runs (`how: "layer_minimum"`)
 - `uns`: `apb_export_status: "experimental"`, msmu's reader settings plus APB metadata; `uns["apb"]` holds the result's root records and the `export` record
 - Features without a protein: left out and counted in the export record, since msmu's protein inference would group them as one unnamed protein
@@ -76,7 +76,7 @@ toy = "toy_plugin.export_rule"
 
 ## Confidence, by meaning
 
-- `q_value`: library q-value when match-between-runs filled it, else experiment-wide, else per run; the order msmu's DIA-NN reader uses
+- `q_value`: library q-value (var) when it holds a nonzero value, else experiment-wide (var), else per run; the first two repeat in every run; the order msmu's DIA-NN reader uses
 - `PEP`: the vendor's posterior error probability
 - Lookup: apb-catalog's `identification_confidence` and `proteobench_entrapment` catalogues
 - Not reported: no `q_value` column, so msmu's filter cannot act on an invented value; `PEP` is NaN, because msmu's `to_peptide` requires the column

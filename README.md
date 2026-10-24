@@ -48,7 +48,7 @@ msmu's `psm` modality, written wide. Experimental: msmu's own readers write one 
 
 - one `psm` modality; runs are observations, precursors are features, id `<ProForma precursor>`; the keys `filename` and `precursor` stay columns and name the indices, as APB2 writes them
 - `X`: dense float32, the chosen abundance layer (`--abundance`, APB2's primary layer by default); a precursor absent from a run is NaN
-- `layers`: each run's `q_value` and `PEP`, where the vendor reports them
+- `layers`: `q_value`, the library or experiment-wide q-value repeated in every run where the vendor reports one, else each run's; each run's `PEP`, where the vendor reports it
 - `var`: `proteins`, `peptide`, `stripped_peptide`, `charge`, `peptide_length`, `decoy`, `contaminant`, and `PEP` and `q_value` where reported, each the precursor's lowest value across runs
 - `uns`: `apb_export_status: "experimental"`, msmu's reader settings, plus APB metadata as in an APB2 result: the MuData's `uns["apb"]` holds the result's root records and the `export` record (rule, target, versions); each modality's `uns["apb"]` holds that level's apb2 records unchanged and the `export` record with each field's APB source and a summary
 
@@ -56,7 +56,7 @@ msmu's `psm` modality, written wide. Experimental: msmu's own readers write one 
 
 ## Export rules
 
-The layout above is declared in [msmu's export rule](src/apb_export/export_rules/documents/msmu/v0_4/rules.json), not coded. Rules follow APB2's rule schema read in reverse: an entry's `name` is the target's field, its `source` an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning. A catalogued source with `"level": "protein"` reads the protein level through each variable's protein group, named whole or by the protein that leads it: a cell takes its group's value in its run. A level block may name the `software` it is for; an `.h5ad` rule lists its levels in order and writes the first one the result's software and levels allow. One engine checks every source before it builds anything; the published [JSON Schemas](src/apb_export/export_rules/documents/_schema) describe the documents. An installed package can add a target through the `apb_export.targets` entry-point group; see [plugin targets](docs/targets.md#plugin-targets).
+The layout above is declared in [msmu's export rule](src/apb_export/export_rules/documents/msmu/v0_4/rules.json), not coded. Rules follow APB2's rule schema read in reverse: an entry's `name` is the target's field, its `source` an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning. A catalogued source with `"level": "protein"` reads the protein level through each variable's protein group, named whole or by the protein that leads it: a cell takes its group's value in its run; a var column's value, the group's, repeats in every run. A level block may name the `software` it is for; an `.h5ad` rule lists its levels in order and writes the first one the result's software and levels allow. One engine checks every source before it builds anything; the published [JSON Schemas](src/apb_export/export_rules/documents/_schema) describe the documents. An installed package can add a target through the `apb_export.targets` entry-point group; see [plugin targets](docs/targets.md#plugin-targets).
 
 | Target | File | APB2 levels | Layout |
 | --- | --- | --- | --- |
@@ -67,7 +67,7 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 
 ## Confidence, by meaning
 
-- `q_value`: the library q-value when match-between-runs filled it, else the experiment-wide q-value, else the per-run q-value; the order msmu's DIA-NN reader uses
+- `q_value`: the library q-value (a var column) when it holds a nonzero value, else the experiment-wide q-value (var), else the per-run q-value; the first two repeat in every run; the order msmu's DIA-NN reader uses
 - `PEP`: the vendor's posterior error probability
 - Lookup: apb-catalog's `identification_confidence` and `proteobench_entrapment` catalogues, never vendor column names
 - Not reported: no `q_value` column, so msmu's filter cannot act on an invented value; `PEP` is NaN, because msmu's `to_peptide` requires the column
