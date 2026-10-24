@@ -318,4 +318,4 @@ def assert_rewrite_identical(written: Path, again: Path) -> None:
         assert_frame_equal(other.var.frame, level.var.frame)
         assert list(other.layers) == list(level.layers)
         for layer, table in level.layers.items():
-            assert_frame_equal(other.layers[layer].values, table.values)
+            assert_frame_equal(other.layers[layer].wide(), table.wide())
