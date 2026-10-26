@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.3",
+  "schema_version": "0.4",
   "file_version": "2",
   "target_name": "AlphaPeptTools",
   "target_version_pattern": "^0\\.4\\.",
@@ -24,10 +24,10 @@
             "var": [
               {
                 "name": "precursor_id",
-                "source": "ProForma_ion"
+                "source": {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}
               },
-              {"name": "sequence", "source": "ProForma_peptide"},
-              {"name": "proteins", "source": {"role": "protein_assignment"}},
+              {"name": "sequence", "source": {"catalog": "apb", "kind": "peptide", "location": "var"}},
+              {"name": "proteins", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}},
               {"name": "contaminant", "how": "contaminant", "type": "boolean"},
               {"name": "in_fasta", "source": {"fasta": "peptide_in_fasta"}, "type": "boolean", "required": false},
               {"name": "fasta_proteins", "source": {"fasta": "fasta_matching_protein_ids"}, "required": false},
@@ -47,9 +47,9 @@
             "var": [
               {
                 "name": "sequence",
-                "source": "ProForma_peptide"
+                "source": {"catalog": "apb", "kind": "peptide", "location": "var"}
               },
-              {"name": "proteins", "source": {"role": "protein_assignment"}, "required": false},
+              {"name": "proteins", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}, "required": false},
               {"name": "contaminant", "how": "contaminant", "type": "boolean"},
               {"name": "in_fasta", "source": {"fasta": "peptide_in_fasta"}, "type": "boolean", "required": false},
               {"name": "fasta_proteins", "source": {"fasta": "fasta_matching_protein_ids"}, "required": false},
@@ -69,7 +69,7 @@
             "var": [
               {
                 "name": "proteins",
-                "source": {"role": "protein_assignment"}
+                "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}
               }
             ]
           }

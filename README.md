@@ -56,7 +56,7 @@ msmu's `psm` modality, written wide. Experimental: msmu's own readers write one 
 
 ## Export rules
 
-The layout above is declared in [msmu's export rule](src/apb_export/export_rules/documents/msmu/v0_4/rules.json), not coded. Rules follow APB2's rule schema read in reverse: an entry's `name` is the target's field, its `source` an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning. A catalogued source with `"level": "protein"` reads the protein level through each variable's protein group, named whole or by the protein that leads it: a cell takes its group's value in its run; a var column's value, the group's, repeats in every run. A level block may name the `software` it is for; an `.h5ad` rule lists its levels in order and writes the first one the result's software and levels allow. One engine checks every source before it builds anything; the published [JSON Schemas](src/apb_export/export_rules/documents/_schema) describe the documents. An installed package can add a target through the `apb_export.targets` entry-point group; see [plugin targets](docs/targets.md#plugin-targets).
+The layout above is declared in [msmu's export rule](src/apb_export/export_rules/documents/msmu/v0_4/rules.json), not coded. Rules follow APB2's rule schema read in reverse: an entry's `name` is the target's field, its `source` an APB field every vendor shares: the run key, the primary layer, or a meaning catalogued by apb-catalog, APB's own columns included (`{"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}` is `ProForma_ion`). A catalogued source with `"level": "protein"` reads the protein level through each variable's protein group, named whole or by the protein that leads it: a cell takes its group's value in its run; a var column's value, the group's, repeats in every run. A level block may name the `software` it is for; an `.h5ad` rule lists its levels in order and writes the first one the result's software and levels allow. One engine checks every source before it builds anything; the published [JSON Schemas](src/apb_export/export_rules/documents/_schema) describe the documents. An installed package can add a target through the `apb_export.targets` entry-point group; see [plugin targets](docs/targets.md#plugin-targets).
 
 | Target | File | APB2 levels | Layout |
 | --- | --- | --- | --- |
@@ -69,7 +69,7 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 
 - `q_value`: the library q-value (a var column) when it holds a nonzero value, else the experiment-wide q-value (var), else the per-run q-value; the first two repeat in every run; the order msmu's DIA-NN reader uses
 - `PEP`: the vendor's posterior error probability
-- Lookup: apb-catalog's `identification_confidence` and `proteobench_entrapment` catalogues, never vendor column names
+- Lookup: apb-catalog's `confidence` and `proteobench_entrapment` catalogues, never vendor column names
 - Not reported: no `q_value` column, so msmu's filter cannot act on an invented value; `PEP` is NaN, because msmu's `to_peptide` requires the column
 - Unreviewed rule: apb-catalog answers "unknown" and the command stops; unknown is not missing
 

@@ -21,13 +21,9 @@ from apb_export.export_rules.loader import effective_rules
 from apb_export.export_rules.schema import ExportRuleDocument
 from conftest import DiannInput, export_sources, read_back, write_diann
 
-# identification_confidence catalogues no library q-value, so this candidate never resolves.
-UNOFFERED = {
-    "catalogue": "identification_confidence",
-    "concept": "confidence",
-    "kind": "library_q_value",
-}
-RUN_Q_VALUE = {"catalogue": "identification_confidence", "concept": "confidence", "kind": "q_value"}
+# The confidence set catalogues no per-precursor PEP for DIA-NN, so this candidate never resolves.
+UNOFFERED = {"catalog": "confidence", "kind": "pep", "location": "var"}
+RUN_Q_VALUE = {"catalog": "confidence", "kind": "q_value"}
 
 
 def _parsed(diann: DiannInput) -> ParsedLevels:
@@ -108,7 +104,7 @@ def _with_abundance(source: object) -> CompiledExport:
 
 
 # DIA-NN's peptidoform_ion level offers two intensities, Precursor_Quantity and Precursor_Normalised.
-ANY_INTENSITY = {"catalogue": "abundance", "concept": "abundance", "kind": "intensity"}
+ANY_INTENSITY = {"catalog": "abundance", "kind": "intensity"}
 
 
 def test_a_candidate_the_catalogue_cannot_pick_passes_to_the_next(diann: DiannInput) -> None:

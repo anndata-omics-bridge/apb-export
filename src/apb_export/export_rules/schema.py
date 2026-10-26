@@ -10,31 +10,16 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
-type SchemaVersion = Literal["0.3"]
+type SchemaVersion = Literal["0.4"]
 type ColumnType = Literal["string", "integer", "number", "boolean"]
 type FloatWidth = Literal[32, 64]
 type Scalar = str | int | float | bool | None
-type FixedColumn = Literal[
-    "ProForma_peptide",
-    "ProForma_peptidoform",
-    "ProForma_ion",
-    "ProForma_fragment",
-    "apb_Decoy",
-    "apb_Contaminant",
-]
-"""The column names apb2's rule schema fixes for every vendor."""
 
 
 class ModelBase(BaseModel):
     """Strict base: unknown keys are errors, as in apb2's rules."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
-
-
-class RoleSource(ModelBase):
-    """The var column carrying an apb2 role."""
-
-    role: Literal["fasta_accessions", "protein_assignment"]
 
 
 class AxisSource(ModelBase):
@@ -84,12 +69,18 @@ class FastaSource(ModelBase):
 
 
 class CatalogueSource(ModelBase):
-    """A field found by meaning through apb-catalog."""
+    """A field found by meaning through apb-catalog; the set ``apb`` holds APB's own fields,
+    such as ``ProForma_ion`` (kind ``peptidoform_ion``) or the column a rule marks with a role."""
 
-    catalogue: str = Field(min_length=1)
-    concept: str = Field(min_length=1)
+    catalog: str = Field(min_length=1)
     kind: str = Field(min_length=1)
-    location: Literal["layers", "var"] = "layers"
+    location: Literal["layers", "var", "obs"] = "layers"
+    enforce: Literal["MUST", "SHOULD"] | None = Field(
+        default=None,
+        description="How binding the set's requirements are for this lookup: MUST raises for a "
+        "missing MUST field and logs a warning for a missing SHOULD field; SHOULD raises for "
+        "both.",
+    )
     level: Literal["protein"] | None = Field(
         default=None,
         description="Read the field from this level through each variable's protein_assignment, "
@@ -117,14 +108,7 @@ class ObsSource(ModelBase):
 
 
 type Reference = (
-    FixedColumn
-    | RoleSource
-    | AxisSource
-    | MeasurementSource
-    | RuleSource
-    | CatalogueSource
-    | FastaSource
-    | ObsSource
+    AxisSource | MeasurementSource | RuleSource | CatalogueSource | FastaSource | ObsSource
 )
 type Source = Reference | list[Reference]
 """One APB reference, or candidates in order: the first one that resolves is used."""

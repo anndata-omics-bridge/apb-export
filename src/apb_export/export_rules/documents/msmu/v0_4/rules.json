@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.3",
+  "schema_version": "0.4",
   "file_version": "3",
   "target_name": "msmu",
   "target_version_pattern": "^0\\.4\\.",
@@ -32,21 +32,18 @@
                 "name": "q_value",
                 "source": [
                   {
-                    "catalogue": "proteobench_entrapment",
-                    "concept": "confidence",
+                    "catalog": "proteobench_entrapment",
                     "kind": "library_q_value",
                     "location": "var",
                     "accept": "nonzero"
                   },
                   {
-                    "catalogue": "proteobench_entrapment",
-                    "concept": "confidence",
+                    "catalog": "proteobench_entrapment",
                     "kind": "global_q_value",
                     "location": "var"
                   },
                   {
-                    "catalogue": "identification_confidence",
-                    "concept": "confidence",
+                    "catalog": "confidence",
                     "kind": "q_value"
                   }
                 ],
@@ -55,8 +52,7 @@
               {
                 "name": "PEP",
                 "source": {
-                  "catalogue": "identification_confidence",
-                  "concept": "confidence",
+                  "catalog": "confidence",
                   "kind": "pep"
                 },
                 "width": 32
@@ -68,36 +64,35 @@
               {"name": "filename", "source": {"axis": "obs_keys"}}
             ],
             "var": [
-              {"name": "precursor", "source": "ProForma_ion"},
+              {"name": "precursor", "source": {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}},
               {
                 "name": "proteins",
                 "how": "accessions",
-                "inputs": [{"role": "fasta_accessions"}],
+                "inputs": [{"catalog": "apb", "kind": "fasta_accessions", "location": "var"}],
                 "syntax": "msmu",
                 "drop_missing": true
               },
-              {"name": "peptide", "source": "ProForma_peptidoform"},
-              {"name": "stripped_peptide", "source": "ProForma_peptide"},
+              {"name": "peptide", "source": {"catalog": "apb", "kind": "peptidoform", "location": "var"}},
+              {"name": "stripped_peptide", "source": {"catalog": "apb", "kind": "peptide", "location": "var"}},
               {
                 "name": "charge",
                 "how": "proforma_charge",
-                "inputs": ["ProForma_ion"],
+                "inputs": [{"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}],
                 "type": "integer"
               },
               {
                 "name": "peptide_length",
                 "how": "sequence_length",
-                "inputs": ["ProForma_peptide"],
+                "inputs": [{"catalog": "apb", "kind": "peptide", "location": "var"}],
                 "type": "integer"
               },
-              {"name": "decoy", "source": "apb_Decoy", "type": "integer"},
+              {"name": "decoy", "source": {"catalog": "apb", "kind": "decoy", "location": "var"}, "type": "integer"},
               {"name": "contaminant", "how": "contaminant", "type": "integer"},
               {
                 "name": "PEP",
                 "how": "layer_minimum",
                 "source": {
-                  "catalogue": "identification_confidence",
-                  "concept": "confidence",
+                  "catalog": "confidence",
                   "kind": "pep"
                 },
                 "type": "number",
@@ -109,21 +104,18 @@
                 "how": "layer_minimum",
                 "source": [
                   {
-                    "catalogue": "proteobench_entrapment",
-                    "concept": "confidence",
+                    "catalog": "proteobench_entrapment",
                     "kind": "library_q_value",
                     "location": "var",
                     "accept": "nonzero"
                   },
                   {
-                    "catalogue": "proteobench_entrapment",
-                    "concept": "confidence",
+                    "catalog": "proteobench_entrapment",
                     "kind": "global_q_value",
                     "location": "var"
                   },
                   {
-                    "catalogue": "identification_confidence",
-                    "concept": "confidence",
+                    "catalog": "confidence",
                     "kind": "q_value"
                   }
                 ],

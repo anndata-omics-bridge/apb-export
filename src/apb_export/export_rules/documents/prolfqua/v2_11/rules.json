@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.3",
+  "schema_version": "0.4",
   "file_version": "2",
   "target_name": "prolfquapp",
   "target_version_pattern": "^2\\.11\\.",
@@ -12,20 +12,18 @@
           "primary_layer": "intensity",
           "layers": [
             {"name": "intensity", "source": [
-              {"catalogue": "abundance", "concept": "abundance", "kind": "intensity", "qualifiers": {"normalization": "none"}},
+              {"catalog": "abundance", "kind": "intensity", "qualifiers": {"normalization": "none"}, "enforce": "MUST"},
               {"measurements": "primary_layer"}
             ]},
             {
               "name": "qValue",
               "source": [
                 {
-                  "catalogue": "identification_confidence",
-                  "concept": "confidence",
+                  "catalog": "confidence",
                   "kind": "q_value"
                 },
                 {
-                  "catalogue": "proteobench_entrapment",
-                  "concept": "confidence",
+                  "catalog": "proteobench_entrapment",
                   "kind": "global_q_value",
                   "location": "var"
                 }
@@ -34,8 +32,7 @@
             {
               "name": "pg_qValue",
               "source": {
-                "catalogue": "identification_confidence",
-                "concept": "confidence",
+                "catalog": "confidence",
                 "kind": "q_value",
                 "level": "protein"
               }
@@ -44,16 +41,14 @@
               "name": "pg_qValue_experiment",
               "source": [
                 {
-                  "catalogue": "identification_confidence",
-                  "concept": "confidence",
+                  "catalog": "confidence",
                   "kind": "library_q_value",
                   "location": "var",
                   "level": "protein",
                   "accept": "nonzero"
                 },
                 {
-                  "catalogue": "identification_confidence",
-                  "concept": "confidence",
+                  "catalog": "confidence",
                   "kind": "global_q_value",
                   "location": "var",
                   "level": "protein"
@@ -63,10 +58,9 @@
             {
               "name": "pep",
               "source": [
-                {"catalogue": "identification_confidence", "concept": "confidence", "kind": "pep"},
+                {"catalog": "confidence", "kind": "pep"},
                 {
-                  "catalogue": "identification_confidence",
-                  "concept": "confidence",
+                  "catalog": "confidence",
                   "kind": "pep",
                   "location": "var"
                 }
@@ -88,21 +82,21 @@
               {
                 "name": "feature_id",
                 "how": "join_nonempty",
-                "inputs": [{"role": "protein_assignment"}, "ProForma_peptide"],
+                "inputs": [{"catalog": "apb", "kind": "protein_assignment", "location": "var"}, {"catalog": "apb", "kind": "peptide", "location": "var"}],
                 "separator": "~"
               },
-              {"name": "protein_Id", "source": {"role": "protein_assignment"}, "drop_missing": true},
+              {"name": "protein_Id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}, "drop_missing": true},
               {
                 "name": "IDcolumn",
-                "source": [{"fasta": "reported_leading_accession"}, {"role": "protein_assignment"}]
+                "source": [{"fasta": "reported_leading_accession"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}]
               },
               {
                 "name": "fasta.id",
-                "source": [{"fasta": "reported_leading_id"}, {"role": "protein_assignment"}]
+                "source": [{"fasta": "reported_leading_id"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}]
               },
               {
                 "name": "description",
-                "source": [{"fasta": "reported_leading_description"}, {"role": "protein_assignment"}]
+                "source": [{"fasta": "reported_leading_description"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}]
               },
               {"name": "gene_name", "source": {"fasta": "reported_leading_gene_name"}, "required": false},
               {
@@ -117,7 +111,7 @@
                 "type": "number",
                 "required": false
               },
-              {"name": "peptide_Id", "source": "ProForma_peptide"},
+              {"name": "peptide_Id", "source": {"catalog": "apb", "kind": "peptide", "location": "var"}},
               {"name": "nr_children", "how": "constant", "value": 1, "type": "integer"}
             ]
           },
@@ -182,21 +176,21 @@
               {
                 "name": "feature_id",
                 "how": "join_nonempty",
-                "inputs": [{"role": "protein_assignment"}, "ProForma_peptide", "ProForma_ion"],
+                "inputs": [{"catalog": "apb", "kind": "protein_assignment", "location": "var"}, {"catalog": "apb", "kind": "peptide", "location": "var"}, {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}],
                 "separator": "~"
               },
-              {"name": "protein_Id", "source": {"role": "protein_assignment"}, "drop_missing": true},
+              {"name": "protein_Id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}, "drop_missing": true},
               {
                 "name": "IDcolumn",
-                "source": [{"fasta": "reported_leading_accession"}, {"role": "protein_assignment"}]
+                "source": [{"fasta": "reported_leading_accession"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}]
               },
               {
                 "name": "fasta.id",
-                "source": [{"fasta": "reported_leading_id"}, {"role": "protein_assignment"}]
+                "source": [{"fasta": "reported_leading_id"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}]
               },
               {
                 "name": "description",
-                "source": [{"fasta": "reported_leading_description"}, {"role": "protein_assignment"}]
+                "source": [{"fasta": "reported_leading_description"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}]
               },
               {"name": "gene_name", "source": {"fasta": "reported_leading_gene_name"}, "required": false},
               {
@@ -211,8 +205,8 @@
                 "type": "number",
                 "required": false
               },
-              {"name": "peptide_Id", "source": "ProForma_peptide"},
-              {"name": "precursor_Id", "source": "ProForma_ion"},
+              {"name": "peptide_Id", "source": {"catalog": "apb", "kind": "peptide", "location": "var"}},
+              {"name": "precursor_Id", "source": {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}},
               {"name": "nr_children", "how": "constant", "value": 1, "type": "integer"}
             ]
           },

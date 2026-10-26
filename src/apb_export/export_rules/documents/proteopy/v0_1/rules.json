@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.3",
+  "schema_version": "0.4",
   "file_version": "1",
   "target_name": "ProteoPy",
   "target_version_pattern": "^0\\.1\\.",
@@ -19,7 +19,7 @@
               {"name": "annotations", "how": "all_values"}
             ],
             "var": [
-              {"name": "protein_id", "source": {"role": "protein_assignment"}},
+              {"name": "protein_id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}},
               {
                 "name": "in_fasta",
                 "source": {"fasta": "any_member_in_fasta"},

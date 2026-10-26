@@ -7,7 +7,7 @@ Each target's layout is declared in its export rule, not coded. One engine check
 Rules follow APB2's rule schema read in reverse:
 
 - `name`: the target's field
-- `source`: an APB field every vendor shares, such as a ProForma column, a role, the run key or a catalogued meaning
+- `source`: an APB field every vendor shares: the run key, the primary layer, or a catalogued meaning `{"catalog": <set>, "kind": ..., "location": ...}`. APB's own columns come from apb-catalog's `apb` set, such as `{"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}` for `ProForma_ion` or kind `protein_assignment` for the column a rule marks with that role, so no rule names an APB column. `"enforce": "MUST"` makes the set's MUST fields binding and logs a warning for a missing SHOULD field; prolfqua's intensity sets it
 - `"level": "protein"` on a catalogued source: read through each variable's protein group, named whole or by its leading protein; a cell takes its group's value in its run; a var column's value, the group's, repeats in every run
 - `software` on a level block: the vendor that block is for
 - `.h5ad` rules: list their levels in order and write the first one the result's software and levels allow
@@ -78,7 +78,7 @@ toy = "toy_plugin.export_rule"
 
 - `q_value`: library q-value (var) when it holds a nonzero value, else experiment-wide (var), else per run; the first two repeat in every run; the order msmu's DIA-NN reader uses
 - `PEP`: the vendor's posterior error probability
-- Lookup: apb-catalog's `identification_confidence` and `proteobench_entrapment` catalogues
+- Lookup: apb-catalog's `confidence` and `proteobench_entrapment` catalogues
 - Not reported: no `q_value` column, so msmu's filter cannot act on an invented value; `PEP` is NaN, because msmu's `to_peptide` requires the column
 - Unreviewed rule: apb-catalog answers "unknown" and the command stops; unknown is not missing
 

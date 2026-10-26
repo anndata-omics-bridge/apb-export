@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, replace
+from typing import Literal
 
 import numpy as np
 import polars as pl
 from apb2.api import FinalLayerTable, ParsedLevel, ParsedLevels
-from apb_catalog.api import Catalog, UnresolvedField
+from apb_catalog.api import DataCatalog, UnresolvedField
 
 from apb_export.export_rules.schema import (
     AxisSource,
@@ -22,7 +23,6 @@ from apb_export.export_rules.schema import (
     MeasurementSource,
     ObsSource,
     Reference,
-    RoleSource,
     RuleSource,
     Scalar,
     Source,
@@ -30,7 +30,6 @@ from apb_export.export_rules.schema import (
 
 type Provenance = dict[str, str]
 
-_CONTAMINANT = "apb_Contaminant"
 _FASTA_TABLE = "fasta_validation"
 _FASTA_PROTEIN_TABLE = "fasta"
 _FASTA_CONTAMINANT = "fasta_matches_contaminant"
@@ -109,7 +108,7 @@ class LevelSources:
         self._name = level
         self._level = parsed.levels[level]
         self._abundance = abundance
-        self._catalogues: dict[str, Catalog] = {}
+        self._catalogues: dict[tuple[str, str | None], DataCatalog] = {}
 
     def annotations(self) -> list[str]:
         """The level's observation columns other than its keys, such as ``apb2 annotate`` adds."""
@@ -151,7 +150,7 @@ class LevelSources:
                     or reference is candidates[-1]
                 ):
                     raise
-                passed.append(f"{reference.catalogue} {reference.kind} {error.resolution.status}")
+                passed.append(f"{reference.catalog} {reference.kind} {error.resolution.status}")
                 continue
             if resolved is not None:
                 if not passed:
@@ -164,14 +163,15 @@ class LevelSources:
     def contaminants(self) -> VarValues:
         """apb2's vendor contaminant marking, merged with apb-fasta's FASTA match if present.
 
+        The marking is the ``apb`` set's kind ``contaminant``, which every apb2 rule writes.
+
         Raises:
-            ValueError: The level lacks ``apb_Contaminant``, which every apb2 rule writes.
+            ValueError: The level lacks the marking.
         """
-        frame = self._level.var.frame
-        if _CONTAMINANT not in frame.columns:
-            raise ValueError(f"export needs apb2's {_CONTAMINANT} marking on level {self._name!r}")
-        marked = frame.get_column(_CONTAMINANT)
-        provenance: Provenance = {"location": "var", "name": _CONTAMINANT}
+        marked = self._catalog("apb", None).var(self._name, kind="contaminant")
+        if marked is None:
+            raise ValueError(f"export needs apb2's contaminant marking on level {self._name!r}")
+        provenance: Provenance = {"location": "var", "name": marked.name, "catalog": "apb"}
         fasta = self._level.varm.get(_FASTA_TABLE)
         if fasta is not None and _FASTA_CONTAMINANT in fasta.columns:
             marked = marked | fasta.get_column(_FASTA_CONTAMINANT)
@@ -180,10 +180,6 @@ class LevelSources:
 
     def _reference(self, reference: Reference) -> Resolved | None:
         match reference:
-            case str():
-                return self._column(reference)
-            case RoleSource():
-                return self._role(reference)
             case AxisSource():
                 return self._axis(reference)
             case MeasurementSource():
@@ -210,19 +206,6 @@ class LevelSources:
                 provenance: Provenance = {"location": "varm", "name": f"{table}.{reference.fasta}"}
                 return VarValues(fasta.get_column(reference.fasta), provenance)
         return None
-
-    def _column(self, name: str) -> VarValues | None:
-        frame = self._level.var.frame
-        if name not in frame.columns:
-            return None
-        return VarValues(frame.get_column(name), {"location": "var", "name": name})
-
-    def _role(self, reference: RoleSource) -> VarValues | None:
-        column = self._level.var.roles.get(reference.role)
-        if column is None:
-            return None
-        values = self._level.var.frame.get_column(column)
-        return VarValues(values, {"location": "var", "name": column, "role": reference.role})
 
     def _axis(self, reference: AxisSource) -> ObsValues | VarValues:
         if reference.axis == "obs_keys":
@@ -252,29 +235,30 @@ class LevelSources:
             return None
         return ScalarValue(_scalar(value), {"location": "rule", "name": reference.rule})
 
-    def _catalog(self, name: str) -> Catalog:
-        catalog = self._catalogues.get(name)
+    def _catalog(self, name: str, enforce: Literal["MUST", "SHOULD"] | None) -> DataCatalog:
+        catalog = self._catalogues.get((name, enforce))
         if catalog is None:
-            catalog = Catalog(self._parsed, name)
-            self._catalogues[name] = catalog
+            catalog = DataCatalog(self._parsed, name, enforce=enforce)
+            self._catalogues[(name, enforce)] = catalog
         return catalog
 
-    def _catalogue(self, reference: CatalogueSource) -> LayerValues | VarValues | None:
+    def _catalogue(self, reference: CatalogueSource) -> Resolved | None:
         if reference.level is not None:
             return self._through_protein_group(reference, reference.level)
-        catalog = self._catalog(reference.catalogue)
+        catalog = self._catalog(reference.catalog, reference.enforce)
         qualifiers = reference.qualifiers
-        found: Provenance = {"catalogue": reference.catalogue, "kind": reference.kind, **qualifiers}
+        found: Provenance = {"catalog": reference.catalog, "kind": reference.kind, **qualifiers}
+        if reference.location == "obs":
+            values = catalog.obs(self._name, kind=reference.kind, **qualifiers)
+            if values is None:
+                return None
+            return ObsValues(values, {"location": "obs", "name": values.name, **found})
         if reference.location == "var":
-            column = catalog.var(
-                self._name, concept=reference.concept, kind=reference.kind, **qualifiers
-            )
+            column = catalog.var(self._name, kind=reference.kind, **qualifiers)
             if column is None or (reference.accept == "nonzero" and not _column_has_values(column)):
                 return None
             return VarValues(column, {"location": "var", "name": column.name, **found})
-        layer = catalog.layer(
-            self._name, concept=reference.concept, kind=reference.kind, **qualifiers
-        )
+        layer = catalog.layer(self._name, kind=reference.kind, **qualifiers)
         if layer is None or (reference.accept == "nonzero" and not _has_values(layer)):
             return None
         provenance = {"location": "layers", "name": layer.layer_name, **found}
@@ -291,16 +275,16 @@ class LevelSources:
         if level not in self._parsed.levels or assignment is None:
             return None
         coarse = self._parsed.levels[level]
-        catalog = self._catalog(reference.catalogue)
-        if reference.location == "var":
-            column = catalog.var(level, concept=reference.concept, kind=reference.kind)
+        catalog = self._catalog(reference.catalog, reference.enforce)
+        if reference.location != "layers":
+            column = catalog.var(level, kind=reference.kind)
             if column is None or (reference.accept == "nonzero" and not _column_has_values(column)):
                 return None
             table = column.cast(pl.Float64).to_numpy()[:, np.newaxis]
             runs = np.zeros(self._level.obs.frame.height, dtype=np.int64)
             name = column.name
         else:
-            layer = catalog.layer(level, concept=reference.concept, kind=reference.kind)
+            layer = catalog.layer(level, kind=reference.kind)
             if layer is None or (reference.accept == "nonzero" and not _has_values(layer)):
                 return None
             table = layer.decoded_values().select(pl.all().cast(pl.Float64)).to_numpy()
@@ -324,7 +308,7 @@ class LevelSources:
             "name": name,
             "level": level,
             "through": assignment,
-            "catalogue": reference.catalogue,
+            "catalog": reference.catalog,
             "kind": reference.kind,
         }
         return LayerValues(values, provenance)

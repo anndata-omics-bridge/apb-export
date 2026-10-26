@@ -257,7 +257,7 @@ class _LevelExport:
                 raise ValueError(f"layer {entry.name!r}: the result carries no layer for it")
             self._provenance[key] = {"location": "absent"}
             return None
-        if isinstance(resolved, VarValues) and "catalogue" in resolved.provenance:
+        if isinstance(resolved, VarValues) and "catalog" in resolved.provenance:
             resolved = _repeated(resolved, self._level.obs.frame.height)
         if not isinstance(resolved, LayerValues):
             raise ValueError(f"layer {entry.name!r} cannot take {_describe(resolved.provenance)}")

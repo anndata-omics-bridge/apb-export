@@ -149,16 +149,11 @@
     },
     "CatalogueSource": {
       "additionalProperties": false,
-      "description": "A field found by meaning through apb-catalog.",
+      "description": "A field found by meaning through apb-catalog; the set ``apb`` holds APB's own fields,\nsuch as ``ProForma_ion`` (kind ``peptidoform_ion``) or the column a rule marks with a role.",
       "properties": {
-        "catalogue": {
+        "catalog": {
           "minLength": 1,
-          "title": "Catalogue",
-          "type": "string"
-        },
-        "concept": {
-          "minLength": 1,
-          "title": "Concept",
+          "title": "Catalog",
           "type": "string"
         },
         "kind": {
@@ -170,10 +165,28 @@
           "default": "layers",
           "enum": [
             "layers",
-            "var"
+            "var",
+            "obs"
           ],
           "title": "Location",
           "type": "string"
+        },
+        "enforce": {
+          "anyOf": [
+            {
+              "enum": [
+                "MUST",
+                "SHOULD"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How binding the set's requirements are for this lookup: MUST raises for a missing MUST field and logs a warning for a missing SHOULD field; SHOULD raises for both.",
+          "title": "Enforce"
         },
         "level": {
           "anyOf": [
@@ -209,8 +222,7 @@
         }
       },
       "required": [
-        "catalogue",
-        "concept",
+        "catalog",
         "kind"
       ],
       "title": "CatalogueSource",
@@ -461,17 +473,6 @@
       ],
       "title": "FeatureLink",
       "type": "object"
-    },
-    "FixedColumn": {
-      "enum": [
-        "ProForma_peptide",
-        "ProForma_peptidoform",
-        "ProForma_ion",
-        "ProForma_fragment",
-        "apb_Decoy",
-        "apb_Contaminant"
-      ],
-      "type": "string"
     },
     "FloatWidth": {
       "enum": [
@@ -805,12 +806,6 @@
     "Reference": {
       "anyOf": [
         {
-          "$ref": "#/$defs/FixedColumn"
-        },
-        {
-          "$ref": "#/$defs/RoleSource"
-        },
-        {
           "$ref": "#/$defs/AxisSource"
         },
         {
@@ -829,25 +824,6 @@
           "$ref": "#/$defs/ObsSource"
         }
       ]
-    },
-    "RoleSource": {
-      "additionalProperties": false,
-      "description": "The var column carrying an apb2 role.",
-      "properties": {
-        "role": {
-          "enum": [
-            "fasta_accessions",
-            "protein_assignment"
-          ],
-          "title": "Role",
-          "type": "string"
-        }
-      },
-      "required": [
-        "role"
-      ],
-      "title": "RoleSource",
-      "type": "object"
     },
     "RuleSource": {
       "additionalProperties": false,
@@ -885,7 +861,7 @@
       ]
     },
     "SchemaVersion": {
-      "const": "0.3",
+      "const": "0.4",
       "type": "string"
     },
     "SequenceLength": {

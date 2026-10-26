@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.3",
+  "schema_version": "0.4",
   "file_version": "1",
   "target_name": "Toy",
   "target_version_pattern": "^1\\.",
@@ -23,8 +23,7 @@
             {
               "name": "q_value",
               "source": {
-                "catalogue": "identification_confidence",
-                "concept": "confidence",
+                "catalog": "confidence",
                 "kind": "q_value",
                 "qualifiers": {
                   "stage": "identification"
@@ -35,8 +34,7 @@
             {
               "name": "ms1_q_value",
               "source": {
-                "catalogue": "identification_confidence",
-                "concept": "confidence",
+                "catalog": "confidence",
                 "kind": "q_value",
                 "qualifiers": {
                   "stage": "quantification"
@@ -149,7 +147,7 @@
               {
                 "name": "protein_group",
                 "source": {
-                  "role": "protein_assignment"
+                  "catalog": "apb", "kind": "protein_assignment", "location": "var"
                 }
               }
             ]
@@ -228,7 +226,7 @@
             "var": [
               {
                 "name": "peptidoform",
-                "source": "ProForma_peptidoform"
+                "source": {"catalog": "apb", "kind": "peptidoform", "location": "var"}
               }
             ]
           }
@@ -295,12 +293,12 @@
             "var": [
               {
                 "name": "precursor",
-                "source": "ProForma_ion"
+                "source": {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}
               },
               {
                 "name": "protein_group",
                 "source": {
-                  "role": "protein_assignment"
+                  "catalog": "apb", "kind": "protein_assignment", "location": "var"
                 },
                 "required": false
               },

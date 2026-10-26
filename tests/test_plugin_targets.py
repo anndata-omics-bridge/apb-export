@@ -223,7 +223,7 @@ def test_qualifiers_choose_the_catalogue_answer(
     assert "q_value" in ion.layers
     assert "ms1_q_value" not in ion.layers
     source = export_sources(ion)["layers.q_value"]
-    assert (source["catalogue"], source["stage"]) == ("identification_confidence", "identification")
+    assert (source["catalog"], source["stage"]) == ("confidence", "identification")
 
 
 def test_apb_fasta_supplies_group_specificity(toy: str, diann: DiannInput, tmp_path: Path) -> None:
@@ -262,7 +262,11 @@ def _compiled(document: dict[str, Any]) -> CompiledExport:
 def test_an_optional_level_without_its_index_is_left_out(diann: DiannInput, tmp_path: Path) -> None:
     """A protein level whose index the result cannot supply is skipped and recorded."""
     document = _document()
-    document["tables"][0]["levels"]["protein"]["columns"]["var"][0]["source"] = "ProForma_fragment"
+    document["tables"][0]["levels"]["protein"]["columns"]["var"][0]["source"] = {
+        "catalog": "apb",
+        "kind": "peptidoform_fragment",
+        "location": "var",
+    }
     compiled = _compiled(document)
     parsed = ParseRuleCompiler.detect(diann.report, diann.log, compiled.levels).compile().parse()
     checked = FastaAnnotator.read((_fasta(tmp_path),)).verify_peptides(parsed).parsed

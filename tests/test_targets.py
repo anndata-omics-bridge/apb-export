@@ -6,6 +6,7 @@ written files must carry what each consumer's reader looks for.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
@@ -224,10 +225,38 @@ def test_prolfquapp_reads_the_intensity_without_normalization(diann: DiannInput)
     assert export_sources(adata)["layers.intensity"] == {
         "location": "layers",
         "name": "Precursor_Quantity",
-        "catalogue": "abundance",
+        "catalog": "abundance",
         "kind": "intensity",
         "normalization": "none",
     }, "prolfquapp normalizes intensities itself"
+
+
+def test_prolfquapp_logs_no_warning_with_an_un_normalized_layer(
+    diann: DiannInput, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.WARNING, logger="apb_catalog"):
+        _written("prolfqua", _parsed(diann), diann.report.parent)
+
+    assert "SHOULD field" not in caplog.text
+
+
+def test_prolfquapp_warns_and_takes_the_primary_layer_without_an_un_normalized_one(
+    diann: DiannInput, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The abundance set's SHOULD: every result should carry an un-normalized intensity."""
+    parsed = _parsed(diann)
+    ion = parsed.levels["peptidoform_ion"]
+    layers = {name: layer for name, layer in ion.layers.items() if name != "Precursor_Quantity"}
+    without = replace(parsed, levels={"peptidoform_ion": replace(ion, layers=layers)})
+
+    with caplog.at_level(logging.WARNING, logger="apb_catalog"):
+        adata = _anndata(_written("prolfqua", without, diann.report.parent))
+
+    assert "SHOULD field kind=intensity, normalization=none on peptidoform_ion" in caplog.text
+    assert export_sources(adata)["layers.intensity"] == {
+        "location": "layers",
+        "name": ion.primary_layer_name,
+    }
 
 
 def test_a_named_abundance_layer_replaces_the_rules_intensity(diann: DiannInput) -> None:
