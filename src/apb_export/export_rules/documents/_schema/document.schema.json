@@ -721,7 +721,8 @@
           "items": {
             "enum": [
               ".h5mu",
-              ".h5ad"
+              ".h5ad",
+              ".qpx"
             ],
             "type": "string"
           },

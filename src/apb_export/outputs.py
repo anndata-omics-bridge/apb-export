@@ -1,0 +1,46 @@
+"""Select the target serializer once; APB2 continues to own HDF5 persistence."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Protocol
+
+from apb2.api import ParsedLevels, write_parsed_levels
+
+from apb_export.qpx.output import QpxOutput
+
+
+class OutputFormat(Protocol):
+    """The operations that differ between matrix containers and QPX tables."""
+
+    def align(self, parsed: ParsedLevels, first_level: str) -> ParsedLevels:
+        """Resolve the observation axes the format can represent."""
+        ...
+
+    def write(self, exported: ParsedLevels, output: Path) -> None:
+        """Serialize the exported quantities."""
+        ...
+
+
+class MatrixOutput:
+    """AnnData/MuData require one shared observation axis, as before."""
+
+    def align(self, parsed: ParsedLevels, first_level: str) -> ParsedLevels:
+        """Keep the observation group holding the first exported level."""
+        return next(group for group in parsed.observation_groups() if first_level in group.levels)
+
+    def write(self, exported: ParsedLevels, output: Path) -> None:
+        """Delegate HDF5 and its sidecar to APB2."""
+        write_parsed_levels(exported, output, var_name_prefix=False)
+
+
+_OUTPUTS: dict[str, OutputFormat] = {
+    ".h5ad": MatrixOutput(),
+    ".h5mu": MatrixOutput(),
+    ".qpx": QpxOutput(),
+}
+
+
+def output_for(extension: str) -> OutputFormat:
+    """Select the stateless serializer for one declared target output."""
+    return _OUTPUTS[extension]

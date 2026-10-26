@@ -9,7 +9,7 @@ description = "APB2 results exported in the formats downstream tools read, msmu 
 readme = "README.md"
 requires-python = ">=3.13"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "src/apb_export/qpx/LICENSE.qpx"]
 authors = [
     { name = "Witold Wolski", email = "wew@fgcz.ethz.ch" },
 ]
@@ -21,6 +21,7 @@ dependencies = [
     "loguru>=0.7,<1",
     "numpy>=2,<3",
     "polars>=1.43,<2",
+    "pyarrow>=21,<24",
     "pydantic>=2.10,<3",
 ]
 

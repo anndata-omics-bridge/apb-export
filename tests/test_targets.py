@@ -431,6 +431,7 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
         "msmu": (("peptidoform_ion",), ".h5mu"),
         "prolfqua": (("peptide", "peptidoform_ion", "protein"), ".h5ad"),
         "proteopy": (("protein",), ".h5ad"),
+        "qpx": (("peptidoform_ion", "protein"), ".qpx"),
     }
 
 

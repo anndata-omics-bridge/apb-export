@@ -32,7 +32,7 @@ from apb_export.api import Exporter
 
 app = App(
     name="apb-export",
-    help="Convert vendor output into the AnnData or MuData a downstream tool opens.",
+    help="Export vendor output as downstream AnnData, MuData or QPX Parquet.",
 )
 
 Data = Annotated[Path, Parameter(help="Vendor table or vendor-result directory")]
@@ -184,12 +184,16 @@ def _write(target: str, result: ParsedLevels | None, output: Path) -> int:
     if result is None:
         return 1
     output.parent.mkdir(parents=True, exist_ok=True)
-    Exporter(target).write(result, output)
+    try:
+        Exporter(target).write(result, output)
+    except (OSError, ValueError) as error:
+        logger.error(str(error))
+        return 1
     shapes = "; ".join(
         f"{name} {_shape(level.obs.frame.height, level.var.frame.height, _record(level))}"
         for name, level in result.levels.items()
     )
-    logger.info(f"wrote {output} and its sidecar: {shapes}")
+    logger.info(f"wrote {output}: {shapes}")
     return 0
 
 
@@ -277,6 +281,36 @@ def proteopy(
             params=params,
             software=software,
             abundance=abundance,
+            annotation=annotation,
+            strict=strict,
+            fasta=fasta,
+        ),
+        output,
+    )
+
+
+@app.command
+def qpx(
+    data: Data,
+    output: Annotated[Path, Parameter(help="New .qpx directory containing QPX Parquet tables")],
+    /,
+    *,
+    params: Params = None,
+    software: Software = None,
+    annotation: SampleAnnotation = None,
+    strict: Strict = False,
+    fasta: Fasta = (),
+) -> int:
+    """Existing precursor and protein quantities as QPX 1.1; either level suffices."""
+    return _write(
+        "qpx",
+        _exported(
+            "qpx",
+            data,
+            output,
+            params=params,
+            software=software,
+            abundance=None,
             annotation=annotation,
             strict=strict,
             fasta=fasta,

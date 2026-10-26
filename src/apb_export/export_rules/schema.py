@@ -351,7 +351,7 @@ class Output(ModelBase):
     ``.h5mu`` holds one modality per level.
     """
 
-    extensions: list[Literal[".h5mu", ".h5ad"]] = Field(min_length=1, max_length=1)
+    extensions: list[Literal[".h5mu", ".h5ad", ".qpx"]] = Field(min_length=1, max_length=1)
 
 
 class FeatureLink(ModelBase):

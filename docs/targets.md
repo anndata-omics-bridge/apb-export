@@ -14,7 +14,7 @@ Rules follow APB2's rule schema read in reverse:
 
 The published [JSON Schemas](https://github.com/anndata-omics-bridge/apb-export/tree/main/src/apb_export/export_rules/documents/_schema) describe the documents.
 
-Every packaged target's file is written by APB2's `write_parsed_levels`, `.apb.json` sidecar included:
+HDF5 target files are written by APB2's `write_parsed_levels`, `.apb.json` sidecar included:
 
 - each key stays a column and names its index, a String key as written
 - var names carry no level prefix
@@ -28,6 +28,25 @@ Every packaged target's file is written by APB2's `write_parsed_levels`, `.apb.j
 | prolfquapp | [v2_11](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | peptidoform_ion, or peptide for MaxQuant; reads protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata` |
 | ProteoPy | [v0_1](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes |
 | AlphaPeptTools | [v0_4](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | one wide modality per level, linked by id columns |
+| QPX | [v1_1](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/qpx/v1_1/rules.json) | `.qpx` directory | peptidoform_ion and/or protein | QPX 1.1 Parquet tables, metadata and export manifest |
+
+## QPX
+
+```bash
+apb-export qpx report.tsv result.qpx --params report.log.txt
+multiqc --qpx-plugin result.qpx -o report
+```
+
+- Existing primary precursor quantities become `apb.feature.parquet`; existing primary protein quantities become `apb.pg.parquet`. Either level suffices; no quantities are aggregated or inferred
+- Feature quantities use nested `intensities`; protein quantities use flat `label`, `intensity`, and `grouped_runs`, as pMultiQC 0.0.48 reads. Identifiers are opaque integers per table; complete protein-group membership is retained even when distinct groups share a leading protein
+- Missing measurements produce no quantity row; measured zeroes remain zero. Float32 intensities follow QPX 1.1; infinite or overflowing values are refused
+- `rt` is read only through APB Catalog's `chromatography` set, kind `retention_time`, with original units `minute` or `second`. Minutes become seconds; missing RT remains null. An unknown unit is an unresolved catalogue answer, so the exporter never assumes one
+- Unknown spectral values remain typed nulls; unknown scan references and peptide-count lists are empty lists. No spectral measurements or peptide counts are fabricated
+- `apb.run.parquet` and `apb.sample.parquet` provide technical identities keyed by run, with optional supplied observation annotations. QPX requires organism and tissue strings, so missing values use the explicit marker `not available`; no organism or grouping column is required from the user
+- `export.json` records versions, source mappings and table sizes. HDF5 targets continue to use APB2's sidecar; the QPX directory has its own manifest
+- The schema snapshot comes from [qpx 1.1.6](https://github.com/bigbio/qpx/tree/v1.1.6), with its Apache-2.0 license included. pMultiQC's QPX reader does not provide organism-based feature grouping
+
+Report generation belongs to the proposed `apb-pmultiqc` application. [pMultiQC PR #751](https://github.com/bigbio/pmultiqc/pull/751) fixes upstream RT plots for missing/all-null RT; the released reader can log a plot exception for such valid inputs. Consumer checks require populated reports and no plot errors.
 
 ## msmu
 
@@ -99,5 +118,5 @@ Written as msmu's readers write them:
 - Label-free only: a result keyed by more than one observation column, as multiplexed designs are, is refused
 - `decoy` is apb2's `apb_Decoy`; most exports carry no decoys, so use msmu's `calculate_q=False` unless the vendor kept them
 - Group separators other than `;` pass through unchanged
-- Retention time is not mapped to `rt`
+- Retention time is mapped to QPX `rt` through the chromatography catalogue; HDF5 targets do not map it
 - msmu's file has no per-run `filename` column: msmu tools that group features by file see precursors, not identifications

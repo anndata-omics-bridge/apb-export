@@ -8,6 +8,7 @@ from pathlib import Path
 import anndata as ad
 import mudata as md
 import pandas as pd
+import polars as pl
 import pytest
 from apb2.api import sidecar_path
 from apb_catalog.api import UnresolvedField
@@ -224,13 +225,18 @@ def test_proteopy_and_alphapepttools_write_their_files_and_sidecars(
 
 
 @pytest.mark.parametrize("target", Exporter.targets())
-def test_every_target_writes_its_sidecar(target: str, diann: DiannInput, tmp_path: Path) -> None:
+def test_every_target_writes_its_manifest(target: str, diann: DiannInput, tmp_path: Path) -> None:
     fasta = tmp_path / "proteins.fasta"
     fasta.write_text(">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE\nMPEPTIDEKAACLLKR\n")
     output = tmp_path / f"out{Exporter(target).extension}"
     common = ("--params", str(diann.log), "--fasta", str(fasta))
 
     assert _run(target, str(diann.report), str(output), *common) == 0
+    if target == "qpx":
+        manifest = json.loads((output / "export.json").read_text())
+        assert manifest["format"] == "qpx"
+        assert set(manifest["tables"]) == {"feature", "pg", "run", "sample"}
+        return
     # APB2 checks each sidecar against its published schema before writing it.
     sidecar = json.loads(sidecar_path(output).read_text(encoding="utf-8"))
     assert (sidecar["format"], sidecar["artifact"]["name"]) == (
@@ -243,6 +249,18 @@ def test_a_target_refuses_the_other_file_type(diann: DiannInput, tmp_path: Path)
     wrong = str(tmp_path / "out.h5mu")
 
     assert _run("prolfqua", str(diann.report), wrong, "--params", str(diann.log)) == 1
+
+
+def test_qpx_reports_unrepresentable_quantities_without_a_partial_directory(
+    diann: DiannInput, tmp_path: Path
+) -> None:
+    frame = pl.read_csv(diann.report, separator="\t").with_columns(
+        pl.lit(1e100).alias("Precursor.Normalised")
+    )
+    frame.write_csv(diann.report, separator="\t")
+    output = tmp_path / "overflow.qpx"
+    assert _run("qpx", str(diann.report), str(output), "--params", str(diann.log)) == 1
+    assert not output.exists()
 
 
 def test_software_alone_exports_without_a_parameter_file(tmp_path: Path) -> None:

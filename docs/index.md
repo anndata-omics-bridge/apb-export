@@ -2,7 +2,7 @@
 
 [APB2](https://anndata-omics-bridge.github.io/apb2/) results exported as the AnnData and MuData files downstream tools open: one export rule per target, one subcommand per target.
 
-APB2 converts the vendor output; apb-export applies the target's packaged export rule and writes the file that tool reads. Every file gets APB2's `<file>.apb.json` sidecar. Field meanings come from [apb-catalog](https://anndata-omics-bridge.github.io/apb-catalog/), never from vendor column names.
+APB2 converts the vendor output; apb-export applies the target's packaged export rule and writes the format that tool reads. HDF5 files get APB2's `<file>.apb.json` sidecar; QPX Parquet tables have an export manifest. Field meanings come from [apb-catalog](https://anndata-omics-bridge.github.io/apb-catalog/), never from vendor column names.
 
 ## Targets
 
@@ -12,6 +12,7 @@ APB2 converts the vendor output; apb-export applies the target's packaged export
 | prolfqua | `.h5ad` | peptidoform_ion, or peptide for MaxQuant | prolfquapp's `LFQData_from_anndata` |
 | ProteoPy | `.h5ad` | protein | ProteoPy |
 | AlphaPeptTools | `.h5mu` | peptidoform_ion, peptide, protein | `mulink_from_anndatas` |
+| QPX | `.qpx` directory | peptidoform_ion and/or protein | unchanged pMultiQC `--qpx-plugin` |
 
 [Targets and layouts](targets.md) describes what each file holds.
 
@@ -23,6 +24,7 @@ apb-export msmu report.tsv result.h5mu --params report.log.txt --fasta proteins.
 apb-export prolfqua report.tsv result.h5ad --params report.log.txt --annotation dataset.csv
 apb-export proteopy report.tsv proteins.h5ad --params report.log.txt
 apb-export alphapepttools report.tsv linked.h5mu --params report.log.txt
+apb-export qpx report.tsv result.qpx --params report.log.txt
 ```
 
 msmu then runs unchanged on the result:
@@ -53,7 +55,7 @@ parsed = ParseRuleCompiler.detect(
 exporter.write(exporter.export(parsed), Path("result.h5mu"))
 ```
 
-`write` writes the file through APB2's `write_parsed_levels`, with its `.apb.json` sidecar. An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file each opens.
+`write` uses APB2's writer for HDF5 and a target-specific serializer for QPX. Stored APB results work through `apb2.api.read_parsed_levels` and the same exporter API. `Exporter.targets()` lists the packaged targets; `extension` names the suffix or `.qpx` directory.
 
 ## Install
 

@@ -1,0 +1,662 @@
+{
+  "source": "https://github.com/bigbio/qpx/tree/v1.1.6",
+  "revision": "b148b0a47f57effa15f3b2285ea727b98ed1a3c6",
+  "license": "Apache-2.0",
+  "types": {
+    "score": {
+      "fields": {
+        "score_name": {
+          "type": "string"
+        },
+        "score_value": {
+          "type": "float64"
+        },
+        "higher_better": {
+          "type": "bool",
+          "nullable": true
+        }
+      }
+    },
+    "cv_param": {
+      "fields": {
+        "cv_name": {
+          "type": "string"
+        },
+        "cv_value": {
+          "type": "string"
+        }
+      }
+    },
+    "modification_position": {
+      "fields": {
+        "position": {
+          "type": "int32"
+        },
+        "amino_acid": {
+          "type": "string",
+          "nullable": true
+        },
+        "scores": {
+          "type": "list<score>",
+          "nullable": true
+        }
+      }
+    },
+    "modification": {
+      "fields": {
+        "name": {
+          "type": "string"
+        },
+        "accession": {
+          "type": "string",
+          "nullable": true
+        },
+        "positions": {
+          "type": "list<modification_position>"
+        }
+      }
+    },
+    "intensity": {
+      "fields": {
+        "label": {
+          "type": "string"
+        },
+        "intensity": {
+          "type": "float32"
+        }
+      }
+    },
+    "intensity_pair": {
+      "fields": {
+        "intensity_name": {
+          "type": "string"
+        },
+        "intensity_value": {
+          "type": "float32"
+        }
+      }
+    },
+    "additional_intensity": {
+      "fields": {
+        "label": {
+          "type": "string"
+        },
+        "intensities": {
+          "type": "list<intensity_pair>"
+        }
+      }
+    },
+    "pg_protein": {
+      "fields": {
+        "accession": {
+          "type": "string"
+        },
+        "start": {
+          "type": "int32",
+          "nullable": true
+        },
+        "end": {
+          "type": "int32",
+          "nullable": true
+        },
+        "pre": {
+          "type": "string",
+          "nullable": true
+        },
+        "post": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "protein_position": {
+      "fields": {
+        "protein_accession": {
+          "type": "string"
+        },
+        "start": {
+          "type": "int32"
+        },
+        "end": {
+          "type": "int32"
+        }
+      }
+    },
+    "ontology_property": {
+      "fields": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "ontology_term": {
+      "fields": {
+        "accession": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "nullable": true
+        },
+        "properties": {
+          "type": "list<ontology_property>",
+          "nullable": true
+        }
+      }
+    },
+    "sample_channel": {
+      "fields": {
+        "sample_accession": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "biological_replicate": {
+          "type": "int32",
+          "nullable": true
+        },
+        "technical_replicate": {
+          "type": "int32",
+          "nullable": true
+        }
+      }
+    },
+    "modification_param": {
+      "fields": {
+        "accession": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "nullable": true
+        },
+        "fixed": {
+          "type": "bool",
+          "nullable": true
+        },
+        "position": {
+          "type": "string",
+          "nullable": true
+        },
+        "target_amino_acid": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "peptide_per_protein": {
+      "fields": {
+        "protein_name": {
+          "type": "string"
+        },
+        "peptide_count": {
+          "type": "int32"
+        }
+      }
+    },
+    "peptide_counts": {
+      "fields": {
+        "unique_sequences": {
+          "type": "int32"
+        },
+        "total_sequences": {
+          "type": "int32"
+        }
+      }
+    },
+    "feature_counts": {
+      "fields": {
+        "unique_features": {
+          "type": "int32"
+        },
+        "total_features": {
+          "type": "int32"
+        }
+      }
+    },
+    "precursor": {
+      "fields": {
+        "selected_ion_mz": {
+          "type": "float32"
+        },
+        "selected_ion_charge": {
+          "type": "int32",
+          "nullable": true
+        },
+        "selected_ion_intensity": {
+          "type": "float32",
+          "nullable": true
+        },
+        "isolation_window_target": {
+          "type": "float32",
+          "nullable": true
+        },
+        "isolation_window_lower": {
+          "type": "float32",
+          "nullable": true
+        },
+        "isolation_window_upper": {
+          "type": "float32",
+          "nullable": true
+        },
+        "spectrum_ref": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "parameter": {
+      "fields": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "cross_link": {
+      "fields": {
+        "xl_type": {
+          "type": "string"
+        },
+        "partner_sequence": {
+          "type": "string",
+          "nullable": true
+        },
+        "partner_peptidoform": {
+          "type": "string",
+          "nullable": true
+        },
+        "donor_position": {
+          "type": "int32"
+        },
+        "acceptor_position": {
+          "type": "int32",
+          "nullable": true
+        },
+        "linker_name": {
+          "type": "string"
+        },
+        "linker_accession": {
+          "type": "string",
+          "nullable": true
+        },
+        "linker_mass": {
+          "type": "float64"
+        }
+      }
+    }
+  },
+  "feature": {
+    "fields": {
+      "feature_id": {
+        "type": "int64",
+        "nullable": false
+      },
+      "sequence": {
+        "type": "string",
+        "nullable": false
+      },
+      "peptidoform": {
+        "type": "string",
+        "nullable": false
+      },
+      "modifications": {
+        "type": "list<modification>",
+        "nullable": true
+      },
+      "charge": {
+        "type": "int16",
+        "nullable": false
+      },
+      "posterior_error_probability": {
+        "type": "float64",
+        "nullable": true
+      },
+      "peptide_qvalue": {
+        "type": "float64",
+        "nullable": true,
+        "optional": true
+      },
+      "is_decoy": {
+        "type": "bool",
+        "nullable": false
+      },
+      "calculated_mz": {
+        "type": "float32",
+        "nullable": true
+      },
+      "observed_mz": {
+        "type": "float32",
+        "nullable": true
+      },
+      "mass_error_ppm": {
+        "type": "float32",
+        "nullable": true
+      },
+      "additional_scores": {
+        "type": "list<score>",
+        "nullable": true
+      },
+      "predicted_rt": {
+        "type": "float32",
+        "nullable": true
+      },
+      "run_file_name": {
+        "type": "string",
+        "nullable": false
+      },
+      "quantification_unit_id": {
+        "type": "string",
+        "nullable": true,
+        "optional": true
+      },
+      "cv_params": {
+        "type": "list<cv_param>",
+        "nullable": true
+      },
+      "scan": {
+        "type": "list<int32>",
+        "nullable": false
+      },
+      "rt": {
+        "type": "float32",
+        "nullable": true
+      },
+      "consensus_rt": {
+        "type": "float32",
+        "nullable": true,
+        "optional": true
+      },
+      "ion_mobility": {
+        "type": "float32",
+        "nullable": true
+      },
+      "compensation_voltage": {
+        "type": "float32",
+        "nullable": true,
+        "optional": true
+      },
+      "missed_cleavages": {
+        "type": "int16",
+        "nullable": true
+      },
+      "intensities": {
+        "type": "list<intensity>",
+        "nullable": true
+      },
+      "additional_intensities": {
+        "type": "list<additional_intensity>",
+        "nullable": true
+      },
+      "pg_accessions": {
+        "type": "list<pg_protein>",
+        "nullable": true
+      },
+      "anchor_protein": {
+        "type": "string",
+        "nullable": true
+      },
+      "unique": {
+        "type": "bool",
+        "nullable": true
+      },
+      "pg_global_qvalue": {
+        "type": "float64",
+        "optional": true,
+        "nullable": true
+      },
+      "pg_positions": {
+        "type": "list<protein_position>",
+        "optional": true,
+        "nullable": true
+      },
+      "ion_mobility_start": {
+        "type": "float32",
+        "nullable": true
+      },
+      "ion_mobility_stop": {
+        "type": "float32",
+        "nullable": true
+      },
+      "gg_accessions": {
+        "type": "list<string>",
+        "optional": true,
+        "nullable": true
+      },
+      "gg_names": {
+        "type": "list<string>",
+        "optional": true,
+        "nullable": true
+      },
+      "id_run_file_name": {
+        "type": "string",
+        "nullable": true
+      },
+      "rt_start": {
+        "type": "float32",
+        "nullable": true
+      },
+      "rt_stop": {
+        "type": "float32",
+        "nullable": true
+      },
+      "psm_ids": {
+        "type": "list<int64>",
+        "optional": true,
+        "nullable": true
+      },
+      "pg_ids": {
+        "type": "list<int64>",
+        "optional": true,
+        "nullable": true
+      }
+    }
+  },
+  "pg": {
+    "fields": {
+      "pg_id": {
+        "type": "int64",
+        "nullable": false
+      },
+      "pg_accessions": {
+        "type": "list<string>",
+        "nullable": false
+      },
+      "pg_names": {
+        "type": "list<string>",
+        "nullable": true
+      },
+      "gg_accessions": {
+        "type": "list<string>",
+        "nullable": true
+      },
+      "gg_names": {
+        "type": "list<string>",
+        "nullable": true
+      },
+      "gg_qvalue": {
+        "type": "float64",
+        "nullable": true
+      },
+      "anchor_protein": {
+        "type": "string",
+        "nullable": false
+      },
+      "grouped_runs": {
+        "type": "list<string>",
+        "nullable": false
+      },
+      "global_qvalue": {
+        "type": "float64",
+        "nullable": true
+      },
+      "pg_qvalue": {
+        "type": "float64",
+        "nullable": true
+      },
+      "label": {
+        "type": "string",
+        "nullable": true
+      },
+      "intensity": {
+        "type": "float32",
+        "nullable": true
+      },
+      "additional_intensities": {
+        "type": "list<additional_intensity>",
+        "nullable": true
+      },
+      "is_decoy": {
+        "type": "bool",
+        "nullable": false
+      },
+      "contaminant": {
+        "type": "bool",
+        "nullable": true
+      },
+      "peptides": {
+        "type": "list<peptide_per_protein>",
+        "nullable": false
+      },
+      "peptide_counts": {
+        "type": "peptide_counts",
+        "nullable": true
+      },
+      "feature_counts": {
+        "type": "feature_counts",
+        "nullable": true
+      },
+      "sequence_coverage": {
+        "type": "float32",
+        "nullable": true
+      },
+      "molecular_weight": {
+        "type": "float32",
+        "nullable": true
+      },
+      "additional_scores": {
+        "type": "list<score>",
+        "nullable": true
+      },
+      "cv_params": {
+        "type": "list<cv_param>",
+        "nullable": true
+      }
+    }
+  },
+  "run": {
+    "fields": {
+      "run_accession": {
+        "type": "string",
+        "nullable": false
+      },
+      "run_file_name": {
+        "type": "string",
+        "nullable": false
+      },
+      "file_name": {
+        "type": "string",
+        "nullable": true
+      },
+      "samples": {
+        "type": "list<sample_channel>",
+        "nullable": false
+      },
+      "fraction": {
+        "type": "string",
+        "nullable": true
+      },
+      "instrument": {
+        "type": "string",
+        "nullable": true
+      },
+      "enzymes": {
+        "type": "list<string>",
+        "nullable": true
+      },
+      "dissociation_method": {
+        "type": "string",
+        "nullable": true
+      },
+      "acquisition_method": {
+        "type": "string",
+        "nullable": true
+      },
+      "additional_terms": {
+        "type": "list<ontology_term>",
+        "nullable": true
+      },
+      "modification_parameters": {
+        "type": "list<modification_param>",
+        "nullable": true
+      }
+    }
+  },
+  "sample": {
+    "fields": {
+      "sample_accession": {
+        "type": "string",
+        "nullable": false
+      },
+      "organism": {
+        "type": "string",
+        "nullable": false
+      },
+      "organism_part": {
+        "type": "string",
+        "nullable": false
+      },
+      "disease": {
+        "type": "string",
+        "optional": true,
+        "nullable": true
+      },
+      "cell_line": {
+        "type": "string",
+        "optional": true,
+        "nullable": true
+      },
+      "cell_type": {
+        "type": "string",
+        "optional": true,
+        "nullable": true
+      },
+      "sex": {
+        "type": "string",
+        "optional": true,
+        "nullable": true
+      },
+      "age": {
+        "type": "string",
+        "optional": true,
+        "nullable": true
+      },
+      "developmental_stage": {
+        "type": "string",
+        "optional": true,
+        "nullable": true
+      },
+      "ancestry": {
+        "type": "string",
+        "optional": true,
+        "nullable": true
+      },
+      "individual": {
+        "type": "string",
+        "optional": true,
+        "nullable": true
+      },
+      "sample_description": {
+        "type": "string",
+        "optional": true,
+        "nullable": true
+      }
+    }
+  }
+}
