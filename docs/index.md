@@ -71,7 +71,7 @@ uv sync --group dev
 make check
 ```
 
-`uv tool install --editable .` puts `apb-export` on `PATH`. The web app needs the `web` extra.
+`uv tool install --editable .` puts `apb-export` on `PATH`. The separate [APB Export UI](https://github.com/anndata-omics-bridge/apb-export-ui) owns the web application and its locked environment.
 
 ## Testing
 

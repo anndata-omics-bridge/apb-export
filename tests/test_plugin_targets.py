@@ -27,7 +27,6 @@ from apb_export.engine import CompiledExport, FeatureLinks
 from apb_export.export_rules import loader
 from apb_export.export_rules.loader import PLUGIN_GROUP, effective_rules, plugin_folders
 from apb_export.export_rules.schema import ExportRuleDocument, FeatureLink
-from apb_export.web import options
 from conftest import (
     PRECURSORS,
     RUNS,
@@ -175,13 +174,6 @@ def test_two_plugins_naming_one_target_are_refused() -> None:
     )
     with pytest.raises(ValueError, match=r"several installed plugins name the export targets"):
         plugin_folders(points)
-
-
-def test_the_web_page_offers_only_the_targets_it_describes(toy: str) -> None:
-    """An installed plugin target has no description there, so the page leaves it out."""
-    offered = {output.id for output in options.outputs()}
-    assert f"apb-export:{toy}" not in offered
-    assert "apb-export:msmu" in offered
 
 
 def test_the_target_writes_the_modalities_the_result_holds(

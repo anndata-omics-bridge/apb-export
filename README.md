@@ -77,20 +77,9 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 
 Written as msmu's readers write them: members split on `;`, the accession taken from a UniProt `db|ACC|NAME` entry, and members spelled `contam_`, `Cont_` or `CON__` respelled `Cont_ACC`. `contaminant` flags a row that apb2 marked `apb_Contaminant`, a contaminant the software flags or adds itself, or that apb-fasta matched to a FASTA contaminant. `apb-export msmu --fasta` runs that FASTA check after conversion; without a FASTA only the vendor's own flags are known.
 
-## Web app
+## Web application
 
-`apb-export-web` serves a page that takes a vendor result, an optional parameter file, an optional SDRF or prolfquapp sample table and an optional FASTA, converts them to any target above or to an APB2 result (h5ad/h5mu, Parquet, DuckDB), and shows QC before download: intensity density per sample, CV per feature within each annotation group (across all samples without one), and detected and missing counts.
-
-```bash
-uv pip install 'apb-export[web]'
-apb-export-web --store ./web-store --port 8770
-```
-
-The page asks for the software first, then shows which files it writes (result and parameter file names from ProteoBench's module documentation, packaged as `src/apb_export/web/hints.json`) and whether the parameter file is required. `--examples corpus.csv --examples-root DIR` offers one row per software of an APB Studio corpus CSV, such as `apb_studio/corpuses/routine.csv`, three ways: result file only, with its parameter file, and with parameters and SDRF. The SDRF is an `sdrf.tsv` beside the input, else `<module>.sdrf.tsv` from `--examples-sdrf DIR`, such as apb-proteobench's `src/apb_proteobench/data/modules`. The server links the chosen files into the job instead of uploading them; the data stays where the corpus keeps it, and this repository holds none. A row whose software's hints describe no export for it, such as AlphaDIA 1.10's ProteoBench-joined table, is not offered. At startup the server writes the first 20 lines of every example file, including each file of a folder result (a Parquet file's first rows as text), to the store, and the page shows them when a file name is clicked.
-
-Each upload becomes a job folder; one worker runs the `apb-export` or `apb2` command in its own process and writes `status.json`, `qc.json` and the downloads, which the server only serves. Finished jobs are deleted after `--ttl-hours`. The page is a Lit/Vite project in [web](web); `make web` rebuilds its bundle into `src/apb_export/web/static`, which the wheel ships, so no Node runs in production.
-
-Releasing, staging the examples and running the container are in [docs/deploy.md](docs/deploy.md); the public instance is https://apps-dev.bfabric.org/apb-export/.
+The upload page, server and deployment now belong to [APB Export UI](https://github.com/anndata-omics-bridge/apb-export-ui). It installs a locked APB stack and provides `apb-export-web`; this library provides `apb-export` only.
 
 ## Limits
 

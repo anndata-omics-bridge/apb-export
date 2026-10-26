@@ -1,12 +1,7 @@
 VENV_BIN := .venv/bin
-STUDIO ?= ../apb_studio
-MODULES ?= ../apb-proteobench/src/apb_proteobench/data/modules
-WEB_EXAMPLES ?= build/web-examples
-IMAGE ?= ghcr.io/anndata-omics-bridge/apb-export
-IMAGE_TAG ?= local
 
 .DEFAULT_GOAL := help
-.PHONY: help sync format format-check lint typecheck deps test docs build schema web web-examples image check clean
+.PHONY: help sync format format-check lint typecheck deps test docs build schema check check-full clean
 
 help:  ## Show developer commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -44,17 +39,10 @@ build:  ## Build and validate source and wheel distributions
 schema:  ## Rewrite the export-rule JSON Schemas from the models
 	$(VENV_BIN)/python -m apb_export.export_rules.schema_artifact
 
-web:  ## Test, type-check and rebuild the web page bundle into the package
-	cd web && npm ci && npm test && npm run build
-
-web-examples:  ## Collect the routine corpus, scripts/web_examples.csv and module SDRFs into one folder the server mounts
-	$(VENV_BIN)/python scripts/web_examples.py $(STUDIO)/corpuses/routine.csv $(STUDIO)/test_data_download $(MODULES) $(WEB_EXAMPLES) --extra scripts/web_examples.csv --workspace .. --fastas $(STUDIO)/workflow_tables/workflow_proteobench.csv
-
-image:  ## Build the web app's image from this checkout and its sibling packages
-	docker build -f Dockerfile -t $(IMAGE):$(IMAGE_TAG) ..
-
 check:  ## Run every merge-blocking quality gate
 	$(MAKE) format-check lint typecheck deps test docs build
+
+check-full: check  ## Run every pre-push quality gate
 
 clean:  ## Remove generated build and quality artifacts
 	$(VENV_BIN)/python -c "import shutil; [shutil.rmtree(path, ignore_errors=True) for path in ('build', 'dist', 'public', '.pytest_cache', '.ruff_cache')]"
