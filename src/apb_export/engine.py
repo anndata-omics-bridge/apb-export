@@ -12,6 +12,7 @@ import copy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from importlib.metadata import version
+from pathlib import Path
 from typing import cast
 
 import polars as pl
@@ -35,6 +36,7 @@ from apb_export.export_rules.schema import (
     MeasurementSource,
     SourcedEntry,
 )
+from apb_export.outputs import output_for
 from apb_export.rows import FeatureRows, ObservationRows, Rows, ScalarRow
 from apb_export.sources import (
     LayerValues,
@@ -434,6 +436,11 @@ class CompiledExport:
             raise ValueError("an export rule needs at least one level")
         self.rules = tuple(rules)
         self.output = rules[0].output
+        self._format = output_for(self.extension)
+
+    def write(self, exported: ParsedLevels, output: Path) -> None:
+        """Write the already exported levels through the selected output format."""
+        self._format.write(exported, output)
 
     @property
     def levels(self) -> tuple[str, ...]:
@@ -521,8 +528,7 @@ class CompiledExport:
             return parsed
         names = dict.fromkeys([*(rule.level for rule in rules), *self.levels])
         levels = {name: parsed.levels[name] for name in names if name in parsed.levels}
-        groups = replace(parsed, levels=levels).observation_groups()
-        return next(group for group in groups if rules[0].level in group.levels)
+        return self._format.align(replace(parsed, levels=levels), rules[0].level)
 
     def _held(
         self, parsed: ParsedLevels, rules: Sequence[EffectiveRule], chosen: Mapping[str, str]

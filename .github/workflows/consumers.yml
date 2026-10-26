@@ -73,6 +73,9 @@ jobs:
       - name: Export the synthetic examples
         run: uv run python consumers/export_examples.py "$RUNNER_TEMP/examples"
 
+      - name: QPX schemas and pMultiQC reports
+        run: uv run python consumers/run_qpx.py "$RUNNER_TEMP/examples"
+
       - name: Keep the examples for the readers
         uses: actions/upload-artifact@v4
         with:

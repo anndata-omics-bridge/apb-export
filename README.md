@@ -4,7 +4,7 @@
 
 **Web app: <https://apps-dev.bfabric.org/apb-export/>**: upload a vendor result, check its QC and download the export, without installing anything.
 
-APB2 results exported in the AnnData and MuData flavours downstream tools read: one export rule per target, one subcommand per target. Each file gets APB2's `<file>.apb.json` sidecar, which APB Studio's viewer reads. Each target fixes the APB2 levels it reads; `--abundance` picks which layer of that level becomes X, and `--annotation` attaches an SDRF or prolfquapp-style sample table, as `apb2 annotate` does.
+APB2 results exported as downstream AnnData, MuData and QPX Parquet: one export rule per target, one subcommand per target. HDF5 files get APB2's `<file>.apb.json` sidecar, which APB Studio's viewer reads. QPX tables and their export manifest live in a new `.qpx` directory. Each target fixes the APB2 levels it reads; `--abundance` picks which layer of a single-level target becomes X, and `--annotation` attaches an SDRF or prolfquapp-style sample table, as `apb2 annotate` does.
 
 ```bash
 apb-export msmu report.tsv result.h5mu --params report.log.txt
@@ -12,6 +12,7 @@ apb-export msmu report.tsv result.h5mu --params report.log.txt --fasta proteins.
 apb-export prolfqua report.tsv result.h5ad --params report.log.txt --annotation dataset.csv
 apb-export proteopy report.tsv proteins.h5ad --params report.log.txt
 apb-export alphapepttools report.tsv linked.h5mu --params report.log.txt
+apb-export qpx report.tsv result.qpx --params report.log.txt
 ```
 
 The msmu file is the MuData [msmu](https://github.com/bertis-informatics/msmu) builds itself: apb-catalog names the confidence fields, and msmu takes the result with `msmu.read_h5mu` and runs unchanged.
@@ -40,7 +41,9 @@ parsed = ParseRuleCompiler.detect(
 exporter.write(exporter.export(parsed), Path("result.h5mu"))
 ```
 
-`write` writes the file through APB2's `write_parsed_levels`, with its `.apb.json` sidecar. An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file each opens.
+`write` uses APB2's `write_parsed_levels` for HDF5 and a target-specific serializer for QPX. An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file suffix or `.qpx` directory.
+
+QPX exports existing precursor and/or protein quantities, with no aggregation or required grouping, FASTA or SDRF. RT is resolved through APB Catalog's `chromatography` set and converted from its reviewed unit to seconds. [QPX layout and pMultiQC](docs/targets.md#qpx) describes the tables, missing metadata and report compatibility.
 
 ## What it writes
 
@@ -64,6 +67,7 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 | [prolfquapp](src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | peptidoform_ion, or peptide for MaxQuant; reading protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata`, factors from `apb2 annotate` columns; confidence layers `qValue` (precursor, per run), `pg_qValue` (protein group, per run), `pg_qValue_experiment` (protein group, library or experiment-wide, the same in every run) and `pep`, each where the vendor reports it; a feature without a protein is left out and counted in the export record; with `--fasta`, the leading protein's `fasta.id`, `description`, `IDcolumn` (accession), `gene_name`, `protein_length` and `nr_tryptic_peptides`, as prolfquapp's own FASTA annotation writes them; without one, `fasta.id`, `description` and `IDcolumn` repeat `protein_Id` |
 | [ProteoPy](src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes; with `--fasta`, apb-fasta annotates the protein groups and adds `in_fasta`, `gene_id`, `description` and `fasta_organisms`, which ProteoPy does not read |
 | [AlphaPeptTools](src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | one wide modality per level, linked by id columns for `mulink_from_anndatas`; peptidoform_ion and peptide modalities carry `contaminant` and, with `--fasta`, `in_fasta`, `fasta_proteins` and `fasta_organisms`, which AlphaPeptTools does not read |
+| [QPX](src/apb_export/export_rules/documents/qpx/v1_1/rules.json) | `.qpx` directory | peptidoform_ion and/or protein | QPX 1.1 feature/protein Parquet, optional annotations and export manifest; existing primary quantities, catalogued RT in seconds |
 
 ## Confidence, by meaning
 
@@ -87,7 +91,7 @@ The upload page, server and deployment now belong to [APB Export UI](https://git
 - Label-free only: a result keyed by more than one observation column, as multiplexed designs are, is refused
 - `decoy` is apb2's `apb_Decoy`; most exports carry no decoys, and msmu's target-decoy q-values need them, so use `calculate_q=False` unless the vendor kept them
 - Group separators other than `;` pass through unchanged; no APB2 rule declares its separator
-- Retention time is not mapped to `rt`, since no catalogue names it
+- QPX maps retention time through the chromatography catalogue; an unknown original unit is refused instead of assumed
 - msmu's file has no per-run `filename` column: msmu tools that group features by file see precursors, not identifications
 
 ## Development
@@ -104,6 +108,7 @@ anndata_bridge/
 ```bash
 uv sync --group dev
 make check
+make check-full
 ```
 
 Tests use synthetic vendor files only and install none of the target tools. Whether the tools read the files is checked in [consumers/](consumers): the [Consumers workflow](.github/workflows/consumers.yml) exports the synthetic examples, builds one image with msmu, ProteoPy and AlphaPeptTools, runs prolfquapp's check in prolfquapp's own image, and runs each tool's check, msmu's comparison with its own `read_diann` among them.

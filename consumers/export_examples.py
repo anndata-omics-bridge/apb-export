@@ -7,6 +7,7 @@ consumer image then checks that each tool reads its file. No real vendor data is
 from __future__ import annotations
 
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from apb2.api import AnnotationCompiler, ParseRuleCompiler
@@ -39,6 +40,12 @@ def main(folder: Path) -> None:
         path = folder / f"{target}{exporter.extension}"
         exporter.write(exporter.export(parsed), path)
         print(path)
+        if target == "qpx":
+            for level in exporter.levels:
+                single = replace(parsed, levels={level: parsed.levels[level]})
+                path = folder / f"qpx-{level}.qpx"
+                exporter.write(exporter.export(single), path)
+                print(path)
 
 
 if __name__ == "__main__":

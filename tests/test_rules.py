@@ -43,6 +43,7 @@ def test_every_packaged_rule_validates_and_compiles() -> None:
         "msmu/v0_4/rules.json",
         "prolfqua/v2_11/rules.json",
         "proteopy/v0_1/rules.json",
+        "qpx/v1_1/rules.json",
     )
     extensions = {
         name.split("/", 1)[0]: CompiledExport(packaged_rules(name.split("/", 1)[0])).extension
@@ -54,6 +55,7 @@ def test_every_packaged_rule_validates_and_compiles() -> None:
         "msmu": ".h5mu",
         "prolfqua": ".h5ad",
         "proteopy": ".h5ad",
+        "qpx": ".qpx",
     }
 
 

@@ -3,7 +3,7 @@
 APB2 owns conversion and persistence: ``ParseRuleCompiler`` reads vendor files into
 ``ParsedLevels``, ``read_parsed_levels`` loads a stored result, ``write_parsed_levels`` writes
 one. Each target's packaged export rule declares what that tool reads; ``Exporter`` applies one
-and writes the file the tool opens through APB2's writer. The ``apb-export`` command composes
+and writes the target's format: HDF5 through APB2, or a QPX Parquet directory. The command composes
 conversion, annotation and export.
 
 A plugin package adds a target through the `apb_export.targets` entry-point group.
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from apb2.api import ParsedLevels, QuantificationLevel, write_parsed_levels
+from apb2.api import ParsedLevels, QuantificationLevel
 
 from apb_export.engine import CompiledExport
 from apb_export.export_rules.loader import packaged_documents, packaged_rules
@@ -57,7 +57,7 @@ class Exporter:
 
     @property
     def extension(self) -> str:
-        """The file the target opens: ``.h5ad`` or ``.h5mu``."""
+        """The target's file suffix, or ``.qpx`` for a QPX directory."""
         return self._compiled.extension
 
     def export(self, parsed: ParsedLevels) -> ParsedLevels:
@@ -79,15 +79,16 @@ class Exporter:
         return self._compiled.export(parsed, abundance=chosen)
 
     def write(self, exported: ParsedLevels, output: Path) -> None:
-        """Write an export and its APB2 sidecar through APB2's ``write_parsed_levels``.
+        """Write an export in its target's format.
 
-        Var names stay as the target reads them, unprefixed.
+        HDF5 exports use APB2's writer with unprefixed variable names and its sidecar.
+        QPX exports contain Parquet tables and an export manifest in a new directory.
 
         Args:
             exported: What :meth:`export` returned.
-            output: The new ``.h5ad`` or ``.h5mu`` file.
+            output: The new ``.h5ad``/``.h5mu`` file or ``.qpx`` directory.
         """
-        write_parsed_levels(exported, output, var_name_prefix=False)
+        self._compiled.write(exported, output)
 
 
 __all__ = ["Exporter"]

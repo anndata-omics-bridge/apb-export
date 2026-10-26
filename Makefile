@@ -1,7 +1,7 @@
 VENV_BIN := .venv/bin
 
 .DEFAULT_GOAL := help
-.PHONY: help sync format format-check lint typecheck deps test docs build schema check check-full clean
+.PHONY: help sync format format-check lint typecheck deps test docs build schema check check-full check-qpx clean
 
 help:  ## Show developer commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -42,7 +42,10 @@ schema:  ## Rewrite the export-rule JSON Schemas from the models
 check:  ## Run every merge-blocking quality gate
 	$(MAKE) format-check lint typecheck deps test docs build
 
-check-full: check  ## Run every pre-push quality gate
+check-qpx:  ## Validate synthetic QPX and render reports with pinned downstream tools
+	$(VENV_BIN)/python consumers/run_qpx.py
+
+check-full: check check-qpx  ## Run every pre-push quality gate
 
 clean:  ## Remove generated build and quality artifacts
 	$(VENV_BIN)/python -c "import shutil; [shutil.rmtree(path, ignore_errors=True) for path in ('build', 'dist', 'public', '.pytest_cache', '.ruff_cache')]"
