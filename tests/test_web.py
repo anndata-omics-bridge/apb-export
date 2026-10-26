@@ -312,7 +312,12 @@ def test_qc_counts_densities_and_cv_by_group() -> None:
         ]
     )
     matrix = Matrix(
-        "ion", "Intensity", ["a1", "a2", "b1", "b2"], values, ["A", "A", "B", "B"], "condition"
+        "peptidoform_ion",
+        "Intensity",
+        ["a1", "a2", "b1", "b2"],
+        values,
+        ["A", "A", "B", "B"],
+        "condition",
     )
 
     summary = summarize(matrix)
@@ -330,7 +335,7 @@ def test_qc_counts_densities_and_cv_by_group() -> None:
 
 
 def test_cv_falls_back_to_all_samples() -> None:
-    matrix = Matrix("ion", "Intensity", ["s1", "s2"], np.array([[1.0, 3.0]]))
+    matrix = Matrix("peptidoform_ion", "Intensity", ["s1", "s2"], np.array([[1.0, 3.0]]))
     cv = summarize(matrix)["cv"]
     assert isinstance(cv, dict)
     assert cv["grouping"] == ALL_SAMPLES

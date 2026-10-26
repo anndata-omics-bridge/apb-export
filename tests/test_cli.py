@@ -118,7 +118,7 @@ def test_an_unreviewed_rule_is_reported_not_guessed(
 ) -> None:
     def _unreviewed(_self: Exporter, _parsed: object, /) -> md.MuData:
         error = UnresolvedField.__new__(UnresolvedField)
-        LookupError.__init__(error, "confidence on ion (kind=q_value) is unknown")
+        LookupError.__init__(error, "confidence on peptidoform_ion (kind=q_value) is unknown")
         raise error
 
     monkeypatch.setattr(Exporter, "export", _unreviewed)

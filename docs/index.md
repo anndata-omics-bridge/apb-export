@@ -8,10 +8,10 @@ APB2 converts the vendor output; apb-export applies the target's packaged export
 
 | Target | File | APB2 levels | Opened with |
 | --- | --- | --- | --- |
-| [msmu](https://github.com/bertis-informatics/msmu) | `.h5mu` | ion | `msmu.read_h5mu` |
-| prolfqua | `.h5ad` | ion, or peptide for MaxQuant | prolfquapp's `LFQData_from_anndata` |
+| [msmu](https://github.com/bertis-informatics/msmu) | `.h5mu` | peptidoform_ion | `msmu.read_h5mu` |
+| prolfqua | `.h5ad` | peptidoform_ion, or peptide for MaxQuant | prolfquapp's `LFQData_from_anndata` |
 | ProteoPy | `.h5ad` | protein | ProteoPy |
-| AlphaPeptTools | `.h5mu` | ion, peptide, protein | `mulink_from_anndatas` |
+| AlphaPeptTools | `.h5mu` | peptidoform_ion, peptide, protein | `mulink_from_anndatas` |
 
 [Targets and layouts](targets.md) describes what each file holds.
 

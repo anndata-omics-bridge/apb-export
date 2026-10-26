@@ -147,7 +147,7 @@ def test_an_installed_target_is_listed_and_applied(toy: str) -> None:
     """Exporter treats a plugin target like a packaged one."""
     assert toy in Exporter.targets()
     exporter = Exporter(toy)
-    assert exporter.levels == ("protein", "peptidoform", "ion")
+    assert exporter.levels == ("protein", "peptidoform", "peptidoform_ion")
     assert exporter.extension == ".h5mu"
 
 
@@ -187,15 +187,15 @@ def test_the_web_page_offers_only_the_targets_it_describes(toy: str) -> None:
 def test_the_target_writes_the_modalities_the_result_holds(
     toy: str, diann: DiannInput, tmp_path: Path
 ) -> None:
-    """Protein and ion modalities; the peptidoform level the result lacks is left out."""
+    """Protein and peptidoform_ion modalities; the peptidoform level the result lacks is left out."""
     container = _export(diann, tmp_path, "--sdrf", str(_sdrf(tmp_path)))
 
-    assert sorted(container.mod) == ["ion", "protein"]
+    assert sorted(container.mod) == ["peptidoform_ion", "protein"]
     dataset = {key: container.uns[key] for key in container.uns if key != "apb"}
     assert dataset["toy_version"] == "1"
-    assert list(dataset["toy_modalities"]) == ["protein", "ion"]
+    assert list(dataset["toy_modalities"]) == ["protein", "peptidoform_ion"]
     assert dataset["search_engine"] == "DIA-NN"
-    assert _modality(container, "ion").uns["level"] == "ion"
+    assert _modality(container, "peptidoform_ion").uns["level"] == "peptidoform_ion"
     record = apb_part(container.uns["apb"])["export"]["provenance"]
     assert record["sources"]["uns.search_engine"] == {"location": "rule", "name": "software_name"}
 
@@ -204,7 +204,7 @@ def test_the_sdrf_names_the_assays_and_fills_the_samples(
     toy: str, diann: DiannInput, tmp_path: Path
 ) -> None:
     """assay_id is the SDRF's assay name; the run stays as raw_file."""
-    ion = _modality(_export(diann, tmp_path, "--sdrf", str(_sdrf(tmp_path))), "ion")
+    ion = _modality(_export(diann, tmp_path, "--sdrf", str(_sdrf(tmp_path))), "peptidoform_ion")
     obs = _obs(ion)
 
     assert list(obs.index) == [f"assay_{run}" for run in RUNS]
@@ -216,7 +216,7 @@ def test_the_sdrf_names_the_assays_and_fills_the_samples(
 
 def test_without_an_sdrf_the_run_is_the_assay(toy: str, diann: DiannInput, tmp_path: Path) -> None:
     """The obs index falls back to the run; SDRF-only columns are left out."""
-    obs = _obs(_modality(_export(diann, tmp_path), "ion"))
+    obs = _obs(_modality(_export(diann, tmp_path), "peptidoform_ion"))
 
     assert list(obs.index) == list(RUNS)
     assert "sample_id" not in obs.columns
@@ -226,7 +226,7 @@ def test_qualifiers_choose_the_catalogue_answer(
     toy: str, diann: DiannInput, tmp_path: Path
 ) -> None:
     """DIA-NN's q-value rates the identification; it reports none for the MS1 peak."""
-    ion = _modality(_export(diann, tmp_path), "ion")
+    ion = _modality(_export(diann, tmp_path), "peptidoform_ion")
 
     assert "q_value" in ion.layers
     assert "ms1_q_value" not in ion.layers
@@ -236,7 +236,7 @@ def test_qualifiers_choose_the_catalogue_answer(
 
 def test_apb_fasta_supplies_group_specificity(toy: str, diann: DiannInput, tmp_path: Path) -> None:
     """Specific when the group holds every protein the peptide matches; missing without a match."""
-    ion = _modality(_export(diann, tmp_path, "--fasta", str(_fasta(tmp_path))), "ion")
+    ion = _modality(_export(diann, tmp_path, "--fasta", str(_fasta(tmp_path))), "peptidoform_ion")
     flags = _var(ion)["group_specific"].astype(object)
     found = {str(key): (None if value is pd.NA else bool(value)) for key, value in flags.items()}
 
@@ -248,16 +248,18 @@ def test_ions_map_to_the_protein_group_they_name(
 ) -> None:
     """feature_mapping is directed, as mulink reads it: ion rows, protein group columns."""
     container = _export(diann, tmp_path)
-    ion = _modality(container, "ion")
+    ion = _modality(container, "peptidoform_ion")
     links = container.varp["feature_mapping"].tocoo()
     names = list(container.var_names)
 
-    assert list(container.mod) == ["protein", "ion"]
+    assert list(container.mod) == ["protein", "peptidoform_ion"]
     pairs = {(names[row], names[column]) for row, column in zip(links.row, links.col, strict=True)}
     assert pairs == {(name, group) for name, group in _var(ion)["protein_group"].items()}
     assert set(links.data) == {1.0}
     relation = read_parsed_levels(tmp_path / "toy.h5mu").feature_relations["feature_mapping"]
-    assert relation.coordinates.select("source", "target").unique().rows() == [("ion", "protein")]
+    assert relation.coordinates.select("source", "target").unique().rows() == [
+        ("peptidoform_ion", "protein")
+    ]
     assert_rewrite_identical(tmp_path / "toy.h5mu", tmp_path / "again.h5mu")
 
 
@@ -275,7 +277,7 @@ def test_an_optional_level_without_its_index_is_left_out(diann: DiannInput, tmp_
 
     exported = compiled.export(checked)
 
-    assert list(exported.levels) == ["ion"]
+    assert list(exported.levels) == ["peptidoform_ion"]
     record = exported.metadata["export"]
     assert isinstance(record, dict) and isinstance(record["provenance"], dict)
     assert record["provenance"]["skipped_levels"] == ["protein"]
@@ -298,7 +300,7 @@ def test_links_skip_empty_groups_and_count_unknown_ones(diann: DiannInput) -> No
     """An empty group links nowhere; a group the target lacks is counted, not guessed."""
     compiled = _compiled(_document())
     parsed = ParseRuleCompiler.detect(diann.report, diann.log, compiled.levels).compile().parse()
-    ion = parsed.levels["ion"]
+    ion = parsed.levels["peptidoform_ion"]
     groups, precursor = ion.var.roles["protein_assignment"], pl.col("ProForma_ion")
     ion.var.frame = ion.var.frame.with_columns(
         pl.when(precursor == "PEPTIDEK/2")
@@ -340,9 +342,11 @@ def test_every_level_holding_the_column_maps_to_the_target() -> None:
         "peptide": _level(
             pl.DataFrame({"peptide": ["A", "B", "C"], "protein_group": ["P2", None, "P9"]})
         ),
-        "ion": _level(pl.DataFrame({"ion": ["a", "b", "c"], "protein_group": ["P1", "", "P1"]})),
+        "peptidoform_ion": _level(
+            pl.DataFrame({"peptidoform_ion": ["a", "b", "c"], "protein_group": ["P1", "", "P1"]})
+        ),
         "site": _level(pl.DataFrame({"site": ["s"], "protein_group": [float("nan")]})),
-        "fragment": _level(pl.DataFrame({"fragment": ["f"]})),
+        "peptidoform_fragment": _level(pl.DataFrame({"peptidoform_fragment": ["f"]})),
     }
     link = FeatureLink(name="feature_mapping", column="protein_group", target="protein")
 
@@ -351,11 +355,11 @@ def test_every_level_holding_the_column_maps_to_the_target() -> None:
     assert links.coordinates is not None
     assert links.coordinates.rows() == [
         ("peptide", 0, "protein", 1, 1.0),
-        ("ion", 0, "protein", 0, 1.0),
-        ("ion", 2, "protein", 0, 1.0),
+        ("peptidoform_ion", 0, "protein", 0, 1.0),
+        ("peptidoform_ion", 2, "protein", 0, 1.0),
     ]
     assert links.counts() == {"name": "feature_mapping", "linked": 3, "unlinked": 1}
-    absent = FeatureLinks(link, {name: levels[name] for name in ("peptide", "ion")})
+    absent = FeatureLinks(link, {name: levels[name] for name in ("peptide", "peptidoform_ion")})
     assert absent.coordinates is None, "no target level, no relation"
 
 

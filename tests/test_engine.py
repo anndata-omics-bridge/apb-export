@@ -31,7 +31,7 @@ RUN_Q_VALUE = {"catalogue": "identification_confidence", "concept": "confidence"
 
 
 def _parsed(diann: DiannInput) -> ParsedLevels:
-    return ParseRuleCompiler.detect(diann.report, diann.log, ("ion",)).compile().parse()
+    return ParseRuleCompiler.detect(diann.report, diann.log, ("peptidoform_ion",)).compile().parse()
 
 
 def _msmu_document() -> dict[str, Any]:
@@ -40,7 +40,7 @@ def _msmu_document() -> dict[str, Any]:
 
 
 def _ion(document: dict[str, Any]) -> dict[str, Any]:
-    return document["tables"][0]["levels"]["ion"]
+    return document["tables"][0]["levels"]["peptidoform_ion"]
 
 
 def _compiled(document: dict[str, Any]) -> CompiledExport:
@@ -81,7 +81,7 @@ def test_an_all_zero_global_q_value_leaves_the_run_q_value_to_stand_in(tmp_path:
     parsed = _parsed(diann)
     psm = _modality(Exporter("msmu").export(parsed), tmp_path / "psm.h5mu")
 
-    assert "Global_Q_Value" not in parsed.levels["ion"].var.frame.columns
+    assert "Global_Q_Value" not in parsed.levels["peptidoform_ion"].var.frame.columns
     assert export_sources(psm)["var.q_value"]["kind"] == "q_value"
 
 
@@ -107,7 +107,7 @@ def _with_abundance(source: object) -> CompiledExport:
     return _compiled(document)
 
 
-# DIA-NN's ion level offers two intensities, Precursor_Quantity and Precursor_Normalised.
+# DIA-NN's peptidoform_ion level offers two intensities, Precursor_Quantity and Precursor_Normalised.
 ANY_INTENSITY = {"catalogue": "abundance", "concept": "abundance", "kind": "intensity"}
 
 

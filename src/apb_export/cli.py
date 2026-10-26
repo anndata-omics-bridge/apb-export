@@ -205,7 +205,7 @@ def msmu(
     strict: Strict = False,
     fasta: Fasta = (),
 ) -> int:
-    """APB2's ion level as msmu's psm modality, precursors by runs; experimental."""
+    """APB2's peptidoform_ion level as msmu's psm modality, precursors by runs; experimental."""
     result = _exported(
         "msmu",
         data,
@@ -236,7 +236,7 @@ def prolfqua(
     strict: Strict = False,
     fasta: Fasta = (),
 ) -> int:
-    """APB2's ion level for prolfquapp; the annotation's columns become its factors."""
+    """APB2's peptidoform_ion level for prolfquapp; the annotation's columns become its factors."""
     return _write(
         "prolfqua",
         _exported(
@@ -297,7 +297,7 @@ def alphapepttools(
     strict: Strict = False,
     fasta: Fasta = (),
 ) -> int:
-    """APB2's ion, peptide and protein levels as AlphaPeptTools modalities, each primary layer."""
+    """APB2's peptidoform_ion, peptide and protein levels as AlphaPeptTools modalities, each primary layer."""
     return _write(
         "alphapepttools",
         _exported(

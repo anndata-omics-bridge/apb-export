@@ -13,7 +13,7 @@
         }
       },
       "levels": {
-        "ion": {
+        "peptidoform_ion": {
           "modality": "precursors",
           "axis": {"obs_keys": ["raw_name"], "var_keys": ["precursor_id"]},
           "columns": {

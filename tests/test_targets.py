@@ -48,7 +48,9 @@ PROLFQUAPP_KEYS = {
 
 def _parsed(diann: DiannInput) -> ParsedLevels:
     return (
-        ParseRuleCompiler.detect(diann.report, diann.log, requested_levels=("ion", "protein"))
+        ParseRuleCompiler.detect(
+            diann.report, diann.log, requested_levels=("peptidoform_ion", "protein")
+        )
         .compile()
         .parse()
     )
@@ -200,7 +202,9 @@ def test_prolfquapp_prefers_the_library_q_value_with_match_between_runs(tmp_path
 def test_prolfquapp_without_a_protein_level_has_no_protein_group_q_values(
     diann: DiannInput,
 ) -> None:
-    ion_only = ParseRuleCompiler.detect(diann.report, diann.log, requested_levels=("ion",))
+    ion_only = ParseRuleCompiler.detect(
+        diann.report, diann.log, requested_levels=("peptidoform_ion",)
+    )
     adata = _anndata(_written("prolfqua", ion_only.compile().parse(), diann.report.parent))
 
     assert {"pg_qValue", "pg_qValue_experiment"}.isdisjoint(adata.layers)
@@ -295,7 +299,7 @@ def test_prolfquapp_links_maxquant_peptides_to_the_group_their_razor_protein_lea
 def test_prolfquapp_reads_maxquant_evidence_alone_from_its_ion_level(tmp_path: Path) -> None:
     adata = _maxquant(write_maxquant(tmp_path, peptides=False))
 
-    assert level_part(adata)["export"]["provenance"]["source_level"] == "ion"
+    assert level_part(adata)["export"]["provenance"]["source_level"] == "peptidoform_ion"
     assert "precursor_Id" in _frame(adata.var).columns
     assert "pg_qValue_experiment" not in adata.layers
 
@@ -309,11 +313,11 @@ def test_precursors_without_a_protein_are_left_out(
     levels = Exporter(target).levels
     compiler = ParseRuleCompiler.detect(maxquant.folder, maxquant.params, requested_levels=levels)
     parsed = compiler.compile().parse()
-    ion = parsed.levels["ion"]
+    ion = parsed.levels["peptidoform_ion"]
     column = ion.var.roles["protein_assignment"]
     unassigned = pl.when(pl.int_range(pl.len()) == 0).then(None).otherwise(pl.col(column))
     var = replace(ion.var, frame=ion.var.frame.with_columns(unassigned.alias(column)))
-    result = replace(parsed, levels={**parsed.levels, "ion": replace(ion, var=var)})
+    result = replace(parsed, levels={**parsed.levels, "peptidoform_ion": replace(ion, var=var)})
 
     adata = _anndata(_written(target, result, tmp_path))
 
@@ -359,11 +363,13 @@ def test_alphapepttools_aligns_maxquant_levels_on_the_raw_files(tmp_path: Path) 
 def test_alphapepttools_leaves_out_levels_it_cannot_align(tmp_path: Path) -> None:
     """Two raw files per experiment, as with fractions: only the evidence's precursors remain."""
     parsed = _maxquant_levels(write_maxquant(tmp_path), "alphapepttools")
-    ion = parsed.levels["ion"]
+    ion = parsed.levels["peptidoform_ion"]
     fractions = ion.obs.frame.with_columns(pl.Series("Experiment", ["S1", "S1", "S2", "S2"]))
     ion = replace(ion, obs=replace(ion.obs, frame=fractions))
     mdata = _written(
-        "alphapepttools", replace(parsed, levels={**parsed.levels, "ion": ion}), tmp_path
+        "alphapepttools",
+        replace(parsed, levels={**parsed.levels, "peptidoform_ion": ion}),
+        tmp_path,
     )
 
     assert isinstance(mdata, md.MuData)
@@ -392,9 +398,9 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
     }
 
     assert found == {
-        "alphapepttools": (("ion", "peptide", "protein"), ".h5mu"),
-        "msmu": (("ion",), ".h5mu"),
-        "prolfqua": (("peptide", "ion", "protein"), ".h5ad"),
+        "alphapepttools": (("peptidoform_ion", "peptide", "protein"), ".h5mu"),
+        "msmu": (("peptidoform_ion",), ".h5mu"),
+        "prolfqua": (("peptide", "peptidoform_ion", "protein"), ".h5ad"),
         "proteopy": (("protein",), ".h5ad"),
     }
 

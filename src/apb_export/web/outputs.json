@@ -30,7 +30,7 @@
   "apb-export:prolfqua": {
     "title": "prolfquapp",
     "file": ".h5ad",
-    "what": "Wide ion table (peptides for MaxQuant) with protein groups and q-values; annotation columns become factors.",
+    "what": "Wide peptidoform_ion table (peptides for MaxQuant) with protein groups and q-values; annotation columns become factors.",
     "open": "R: prolfquapp::LFQData_from_anndata(anndataR::read_h5ad(path))",
     "version": "2.11",
     "links": [

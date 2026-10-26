@@ -12,10 +12,10 @@ apb-export TARGET DATA OUTPUT [OPTIONS]
 
 | Command | Writes |
 | --- | --- |
-| `msmu` | APB2's ion level as msmu's `psm` modality: one feature per run and precursor |
-| `prolfqua` | APB2's ion level for prolfquapp; the annotation's columns become its factors |
+| `msmu` | APB2's peptidoform_ion level as msmu's `psm` modality: one feature per run and precursor |
+| `prolfqua` | APB2's peptidoform_ion level for prolfquapp; the annotation's columns become its factors |
 | `proteopy` | APB2's protein level for ProteoPy, with `sample_id` and `protein_id` |
-| `alphapepttools` | APB2's ion, peptide and protein levels as AlphaPeptTools modalities, each primary layer |
+| `alphapepttools` | APB2's peptidoform_ion, peptide and protein levels as AlphaPeptTools modalities, each primary layer |
 | plugin target | Each target an installed plugin adds; see [plugin targets](targets.md#plugin-targets) |
 
 ## Arguments

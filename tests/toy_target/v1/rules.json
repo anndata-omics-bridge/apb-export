@@ -57,7 +57,7 @@
           "how": "constant",
           "value": [
             "protein",
-            "ion"
+            "peptidoform_ion"
           ]
         },
         {
@@ -233,8 +233,8 @@
             ]
           }
         },
-        "ion": {
-          "modality": "ion",
+        "peptidoform_ion": {
+          "modality": "peptidoform_ion",
           "required": false,
           "axis": {
             "obs_keys": [
@@ -318,7 +318,7 @@
             {
               "name": "level",
               "how": "constant",
-              "value": "ion"
+              "value": "peptidoform_ion"
             }
           ]
         }

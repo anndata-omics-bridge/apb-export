@@ -23,7 +23,7 @@ def _msmu_document() -> dict[str, Any]:
 
 
 def _ion(document: dict[str, Any]) -> dict[str, Any]:
-    return document["tables"][0]["levels"]["ion"]
+    return document["tables"][0]["levels"]["peptidoform_ion"]
 
 
 def _var(document: dict[str, Any], name: str) -> dict[str, Any]:
@@ -131,7 +131,10 @@ def _h5ad_with_two_levels(document: dict[str, Any]) -> None:
         (_map_in_columns, "'factors' can only be written to uns"),
         (_mapping_constant_in_columns, "'x' can only be written to uns"),
         (_two_tables, "an export rule writes one table, not 2"),
-        (_h5ad_with_two_levels, r"\.h5ad levels \['ion'\] precede another but name no software"),
+        (
+            _h5ad_with_two_levels,
+            r"\.h5ad levels \['peptidoform_ion'\] precede another but name no software",
+        ),
     ],
 )
 def test_inconsistent_declarations_are_refused(change: Change, message: str) -> None:

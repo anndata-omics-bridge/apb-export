@@ -41,7 +41,7 @@ MSMU_DIANN_COLUMNS = [
 
 
 def _parsed(diann: DiannInput) -> ParsedLevels:
-    return ParseRuleCompiler.detect(diann.report, diann.log, ("ion",)).compile().parse()
+    return ParseRuleCompiler.detect(diann.report, diann.log, ("peptidoform_ion",)).compile().parse()
 
 
 def _psm(exporter: Exporter, parsed: ParsedLevels, folder: Path) -> ad.AnnData:
@@ -121,7 +121,7 @@ def test_protein_groups_are_written_as_msmu_writes_them(diann: DiannInput) -> No
 def test_a_feature_without_proteins_is_left_out_and_counted(diann: DiannInput) -> None:
     """PEAKS leaves some precursors without an accession; msmu would group them as ""."""
     parsed = _parsed(diann)
-    level = parsed.levels["ion"]
+    level = parsed.levels["peptidoform_ion"]
     accessions = level.var.roles["fasta_accessions"]
     unassigned = level.var.frame.get_column("ProForma_ion") == "PEPTIDEK/2"
     level.var.frame = level.var.frame.with_columns(
@@ -140,7 +140,7 @@ def test_a_feature_without_proteins_is_left_out_and_counted(diann: DiannInput) -
 
 def test_contaminants_merge_the_vendor_marking_and_the_fasta_match(diann: DiannInput) -> None:
     parsed = _parsed(diann)
-    level = parsed.levels["ion"]
+    level = parsed.levels["peptidoform_ion"]
     ions = level.var.frame.get_column("ProForma_ion")
     level.var.frame = level.var.frame.with_columns(
         (ions == "SHAREDK/2").alias("apb_Contaminant"),
@@ -174,7 +174,7 @@ def test_written_file_reads_back(diann: DiannInput, tmp_path: Path) -> None:
     assert root["provenance"]["export_rule"] == "msmu/v0_4/rules.json"
     record = level_part(psm)["export"]
     assert [entry["name"] for entry in record["summary"]] == ["exported_matrices", "absent_entries"]
-    assert record["provenance"]["source_level"] == "ion"
+    assert record["provenance"]["source_level"] == "peptidoform_ion"
     assert "parse" in level_part(psm) and "parse" in apb_part(back.uns["apb"])
     assert psm.uns["search_engine"] == "dia-nn"
     assert psm.uns["apb_export_status"] == "experimental", "msmu's wide file is experimental"
@@ -195,10 +195,10 @@ def test_refusals_name_the_problem(diann: DiannInput) -> None:
         Exporter("msmu", abundance="Q_Value").export(parsed)
 
     without_ion = replace(parsed, levels={})
-    with pytest.raises(ValueError, match="needs APB2's ion level"):
+    with pytest.raises(ValueError, match="needs APB2's peptidoform_ion level"):
         Exporter("msmu").export(without_ion)
 
-    level = parsed.levels["ion"]
+    level = parsed.levels["peptidoform_ion"]
     plexed = replace(level, obs=replace(level.obs, key_columns=("Run", "Channel")))
     with pytest.raises(ValueError, match="one observation per run"):
-        Exporter("msmu").export(replace(parsed, levels={"ion": plexed}))
+        Exporter("msmu").export(replace(parsed, levels={"peptidoform_ion": plexed}))

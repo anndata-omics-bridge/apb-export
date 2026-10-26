@@ -60,10 +60,10 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 
 | Target | File | APB2 levels | Layout |
 | --- | --- | --- | --- |
-| [msmu](src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | ion | `psm` modality, precursors by runs, experimental; a feature without a protein is left out and counted in the export record |
-| [prolfquapp](src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | ion, or peptide for MaxQuant; reading protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata`, factors from `apb2 annotate` columns; confidence layers `qValue` (precursor, per run), `pg_qValue` (protein group, per run), `pg_qValue_experiment` (protein group, library or experiment-wide, the same in every run) and `pep`, each where the vendor reports it; a feature without a protein is left out and counted in the export record; with `--fasta`, the leading protein's `fasta.id`, `description`, `IDcolumn` (accession), `gene_name`, `protein_length` and `nr_tryptic_peptides`, as prolfquapp's own FASTA annotation writes them; without one, `fasta.id`, `description` and `IDcolumn` repeat `protein_Id` |
+| [msmu](src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | peptidoform_ion | `psm` modality, precursors by runs, experimental; a feature without a protein is left out and counted in the export record |
+| [prolfquapp](src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | peptidoform_ion, or peptide for MaxQuant; reading protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata`, factors from `apb2 annotate` columns; confidence layers `qValue` (precursor, per run), `pg_qValue` (protein group, per run), `pg_qValue_experiment` (protein group, library or experiment-wide, the same in every run) and `pep`, each where the vendor reports it; a feature without a protein is left out and counted in the export record; with `--fasta`, the leading protein's `fasta.id`, `description`, `IDcolumn` (accession), `gene_name`, `protein_length` and `nr_tryptic_peptides`, as prolfquapp's own FASTA annotation writes them; without one, `fasta.id`, `description` and `IDcolumn` repeat `protein_Id` |
 | [ProteoPy](src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes; with `--fasta`, apb-fasta annotates the protein groups and adds `in_fasta`, `gene_id`, `description` and `fasta_organisms`, which ProteoPy does not read |
-| [AlphaPeptTools](src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | ion, peptide, protein | one wide modality per level, linked by id columns for `mulink_from_anndatas`; ion and peptide modalities carry `contaminant` and, with `--fasta`, `in_fasta`, `fasta_proteins` and `fasta_organisms`, which AlphaPeptTools does not read |
+| [AlphaPeptTools](src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | one wide modality per level, linked by id columns for `mulink_from_anndatas`; peptidoform_ion and peptide modalities carry `contaminant` and, with `--fasta`, `in_fasta`, `fasta_proteins` and `fasta_organisms`, which AlphaPeptTools does not read |
 
 ## Confidence, by meaning
 
@@ -94,7 +94,7 @@ Releasing, staging the examples and running the container are in [docs/deploy.md
 
 ## Limits
 
-- A result without the level a target reads is refused: msmu needs an `ion` level (Sage's `lfq.tsv` is peptide-level), ProteoPy a `protein` level
+- A result without the level a target reads is refused: msmu needs an `peptidoform_ion` level (Sage's `lfq.tsv` is peptide-level), ProteoPy a `protein` level
 - Label-free only: a result keyed by more than one observation column, as multiplexed designs are, is refused
 - `decoy` is apb2's `apb_Decoy`; most exports carry no decoys, and msmu's target-decoy q-values need them, so use `calculate_q=False` unless the vendor kept them
 - Group separators other than `;` pass through unchanged; no APB2 rule declares its separator

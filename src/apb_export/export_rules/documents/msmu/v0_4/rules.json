@@ -16,7 +16,7 @@
         }
       },
       "levels": {
-        "ion": {
+        "peptidoform_ion": {
           "modality": "psm",
           "axis": {"obs_keys": ["filename"], "var_keys": ["precursor"]},
           "measurements": {
