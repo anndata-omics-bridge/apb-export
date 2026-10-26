@@ -14,7 +14,6 @@ Modules compose downward only:
 | `rows` | Polars only; aligns sources to cell, feature, observation and `uns` rows |
 | `computed` | The conversions a computed entry's `how` names |
 | `sources` | APB references resolved against one level; catalogue lookups through apb-catalog; protein-level fields read through each protein group |
-| `web` | `apb-export-web`: FastAPI server and job runner; reaches the package only through `apb_export.api` |
 | `export_rules` | Schema models, loader, and the packaged `documents/<target>/<version>/rules.json` |
 
 ## Rules
