@@ -19,7 +19,7 @@ The closest `AGENTS.md` wins. Explicit user instructions override this file.
 
 ## Architecture
 
-Export rules declare what each target reads; one engine applies them. Packaged targets: msmu, prolfqua, ProteoPy, AlphaPeptTools and QPX; installed plugins add more through the `apb_export.targets` entry-point group. Modules compose downward only:
+Export rules declare what each target reads; one engine applies them. Packaged targets: msmu, prolfqua, ProteoPy, AlphaPeptTools, QFeatures and QPX; installed plugins add more through the `apb_export.targets` entry-point group. Modules compose downward only:
 
 - `cli`: one subcommand per target; APB2's `ParseRuleCompiler` reads the target's levels, apb2's `AnnotationCompiler` applies `--annotation`, then `Exporter` exports; refuses overwrite and the wrong file type, reports unreviewed catalogue answers
 - `api`: `Exporter(target, abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; `write(exported, path)` hands the result to APB2's `write_parsed_levels` with unprefixed var names; `targets()`, `levels` and `extension` describe the packaged rules

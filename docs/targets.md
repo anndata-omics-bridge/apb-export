@@ -28,6 +28,7 @@ HDF5 target files are written by APB2's `write_parsed_levels`, `.apb.json` sidec
 | prolfquapp | [v2_11](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | peptidoform_ion, or peptide for MaxQuant; reads protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata` |
 | ProteoPy | [v0_1](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes |
 | AlphaPeptTools | [v0_4](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | one wide modality per level, linked by id columns |
+| QFeatures | [v1_22](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/qfeatures/v1_22/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | AlphaPeptTools' layout; assays linked by `addAssayLink` on id columns |
 | QPX | [v1_1](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/qpx/v1_1/rules.json) | `.qpx` directory | peptidoform_ion and/or protein | QPX 1.1 Parquet tables, metadata and export manifest |
 
 ## QPX
@@ -77,6 +78,32 @@ msmu's `psm` modality, written wide. Experimental: msmu's own readers write one 
 - AlphaPeptTools: peptidoform_ion and peptide modalities carry `contaminant`; with `--fasta` also `in_fasta`, `fasta_proteins` and `fasta_organisms`
 - AlphaPeptTools on MaxQuant: runs named by raw file; with fractions, several raw files per experiment, only precursors are written and the export record lists the other levels as skipped
 - Neither tool reads these FASTA columns; they are kept for inspection
+
+## QFeatures
+
+The modalities `precursors`, `peptides` (where the vendor reports a peptide level) and `proteins` become QFeatures assays. Each finer assay links to the next coarser one on that one's key: `sequence` for peptides, `proteins` for protein groups. MaxQuant peptides name their protein group when proteinGroups.txt is converted with them.
+
+MuData reads the file from GitHub (`BiocManager::install("ilia-kats/MuData")`) until a Bioconductor release carries [MuData#11](https://github.com/ilia-kats/MuData/pull/11).
+
+```r
+library(QFeatures)
+mae <- MuData::readH5MU("qfeatures.h5mu")
+# as(x, "SummarizedExperiment") drops the rowData; X arrives unnamed; categorical columns as factors
+as_assay <- function(x) {
+  features <- rowData(x)
+  for (column in names(features)) {
+    if (is.factor(features[[column]])) features[[column]] <- as.character(features[[column]])
+  }
+  SummarizedExperiment(assays = list(intensity = assay(x)), rowData = features)
+}
+# Annotations sit in each modality's colData; the MuData's own colData is empty
+qf <- QFeatures(lapply(experiments(mae), as_assay), colData = colData(mae[[1]]))
+qf <- addAssayLink(qf, from = "precursors", to = "peptides", varFrom = "sequence", varTo = "sequence")
+qf <- addAssayLink(qf, from = "peptides", to = "proteins", varFrom = "proteins", varTo = "proteins")
+qf <- aggregateFeatures(qf, "precursors", fcol = "proteins", name = "aggregated", fun = colSums, na.rm = TRUE)
+```
+
+Without a peptide level, as for DIA-NN, link `precursors` to `proteins` on `proteins`. The Consumers workflow runs [check_qfeatures.R](https://github.com/anndata-omics-bridge/apb-export/blob/main/consumers/r/check_qfeatures.R) on a DIA-NN and a MaxQuant example.
 
 ## Plugin targets
 

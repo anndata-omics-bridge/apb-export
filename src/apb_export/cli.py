@@ -349,6 +349,36 @@ def alphapepttools(
     )
 
 
+@app.command
+def qfeatures(
+    data: Data,
+    output: Annotated[Path, Parameter(help="New .h5mu file for MuData::readH5MU and QFeatures")],
+    /,
+    *,
+    params: Params = None,
+    software: Software = None,
+    annotation: SampleAnnotation = None,
+    strict: Strict = False,
+    fasta: Fasta = (),
+) -> int:
+    """APB2's peptidoform_ion, peptide and protein levels as QFeatures assays, linked by id columns."""
+    return _write(
+        "qfeatures",
+        _exported(
+            "qfeatures",
+            data,
+            output,
+            params=params,
+            software=software,
+            abundance=None,
+            annotation=annotation,
+            strict=strict,
+            fasta=fasta,
+        ),
+        output,
+    )
+
+
 def _plugin_command(
     target: str,
     data: Data,

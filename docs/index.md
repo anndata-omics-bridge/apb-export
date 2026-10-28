@@ -12,6 +12,7 @@ APB2 converts the vendor output; apb-export applies the target's packaged export
 | prolfqua | `.h5ad` | peptidoform_ion, or peptide for MaxQuant | prolfquapp's `LFQData_from_anndata` |
 | ProteoPy | `.h5ad` | protein | ProteoPy |
 | AlphaPeptTools | `.h5mu` | peptidoform_ion, peptide, protein | `mulink_from_anndatas` |
+| QFeatures | `.h5mu` | peptidoform_ion, peptide, protein | `MuData::readH5MU`, then `QFeatures` |
 | QPX | `.qpx` directory | peptidoform_ion and/or protein | unchanged pMultiQC `--qpx-plugin` |
 
 [Targets and layouts](targets.md) describes what each file holds.
@@ -24,6 +25,7 @@ apb-export msmu report.tsv result.h5mu --params report.log.txt --fasta proteins.
 apb-export prolfqua report.tsv result.h5ad --params report.log.txt --annotation dataset.csv
 apb-export proteopy report.tsv proteins.h5ad --params report.log.txt
 apb-export alphapepttools report.tsv linked.h5mu --params report.log.txt
+apb-export qfeatures report.tsv qfeatures.h5mu --params report.log.txt
 apb-export qpx report.tsv result.qpx --params report.log.txt
 ```
 
@@ -77,4 +79,4 @@ make check
 
 ## Testing
 
-Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples and checks that msmu, prolfquapp, ProteoPy and AlphaPeptTools read them, msmu against its own `read_diann`.
+Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples and checks that msmu, prolfquapp, ProteoPy, AlphaPeptTools and QFeatures read them, msmu against its own `read_diann`.

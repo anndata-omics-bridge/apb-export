@@ -1,0 +1,80 @@
+{
+  "schema_version": "0.4",
+  "file_version": "1",
+  "target_name": "QFeatures",
+  "target_version_pattern": "^1\\.22\\.",
+  "tables": [
+    {
+      "output": {"extensions": [".h5mu"]},
+      "base": {
+        "measurements": {
+          "primary_layer": "intensity",
+          "layers": [{"name": "intensity", "source": {"measurements": "primary_layer"}}]
+        }
+      },
+      "levels": {
+        "peptidoform_ion": {
+          "modality": "precursors",
+          "axis": {"obs_keys": ["raw_name"], "var_keys": ["precursor_id"]},
+          "columns": {
+            "obs": [
+              {"name": "raw_name", "source": {"axis": "obs_keys"}},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [
+              {
+                "name": "precursor_id",
+                "source": {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}
+              },
+              {"name": "sequence", "source": {"catalog": "apb", "kind": "peptide", "location": "var"}},
+              {"name": "proteins", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}},
+              {"name": "contaminant", "how": "contaminant", "type": "boolean"},
+              {"name": "in_fasta", "source": {"fasta": "peptide_in_fasta"}, "type": "boolean", "required": false},
+              {"name": "fasta_proteins", "source": {"fasta": "fasta_matching_protein_ids"}, "required": false},
+              {"name": "fasta_organisms", "source": {"fasta": "fasta_matching_organisms"}, "required": false}
+            ]
+          }
+        },
+        "peptide": {
+          "modality": "peptides",
+          "required": false,
+          "axis": {"obs_keys": ["raw_name"], "var_keys": ["sequence"]},
+          "columns": {
+            "obs": [
+              {"name": "raw_name", "source": {"axis": "obs_keys"}},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [
+              {
+                "name": "sequence",
+                "source": {"catalog": "apb", "kind": "peptide", "location": "var"}
+              },
+              {"name": "proteins", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}, "required": false},
+              {"name": "contaminant", "how": "contaminant", "type": "boolean"},
+              {"name": "in_fasta", "source": {"fasta": "peptide_in_fasta"}, "type": "boolean", "required": false},
+              {"name": "fasta_proteins", "source": {"fasta": "fasta_matching_protein_ids"}, "required": false},
+              {"name": "fasta_organisms", "source": {"fasta": "fasta_matching_organisms"}, "required": false}
+            ]
+          }
+        },
+        "protein": {
+          "modality": "proteins",
+          "required": false,
+          "axis": {"obs_keys": ["raw_name"], "var_keys": ["proteins"]},
+          "columns": {
+            "obs": [
+              {"name": "raw_name", "source": {"axis": "obs_keys"}},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [
+              {
+                "name": "proteins",
+                "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

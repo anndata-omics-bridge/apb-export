@@ -22,6 +22,7 @@ from apb2.api import ParsedLevels, ParseRuleCompiler, read_parsed_levels, write_
 from apb_export.api import Exporter
 from conftest import (
     EXPERIMENTS,
+    GROUP_OF,
     GROUPS,
     PEPTIDES,
     PRECURSORS,
@@ -297,8 +298,8 @@ def test_prolfquapp_reads_maxquant_from_its_peptide_level(tmp_path: Path) -> Non
     assert list(config["hierarchy_keys"]) == ["protein_Id", "peptide_Id"]
     assert set(config["hierarchy"]) == set(config["hierarchy_keys"])
     assert dict(zip(var["peptide_Id"], var["protein_Id"], strict=True)) == {
-        sequence: razor for sequence, _, razor in PEPTIDES
-    }
+        sequence: GROUPS[GROUP_OF[row]][0] for row, (sequence, _, _) in enumerate(PEPTIDES)
+    }, "each peptide names the group its razor protein leads"
     assert list(adata.obs_names) == list(EXPERIMENTS)
     assert {"qValue", "pg_qValue"}.isdisjoint(adata.layers), "MaxQuant reports neither per run"
 
@@ -407,6 +408,19 @@ def test_alphapepttools_leaves_out_levels_it_cannot_align(tmp_path: Path) -> Non
     assert record["skipped_levels"] == ["peptide", "protein"]
 
 
+def test_qfeatures_assays_link_on_the_coarser_levels_key(tmp_path: Path) -> None:
+    """addAssayLink joins each assay's rowData column to the next coarser assay's key."""
+    parsed = _maxquant_levels(write_maxquant(tmp_path), "qfeatures")
+    mdata = _written("qfeatures", parsed, tmp_path)
+    assert isinstance(mdata, md.MuData)
+    precursors, peptides, proteins = (
+        _frame(_anndata(mdata[name]).var) for name in ("precursors", "peptides", "proteins")
+    )
+
+    assert set(precursors["sequence"]) <= set(peptides.index), "every precursor links"
+    assert set(peptides["proteins"].dropna()) <= set(proteins.index), "every peptide links"
+
+
 def test_prolfquapp_file_is_written_again_unchanged(diann: DiannInput, tmp_path: Path) -> None:
     _written("prolfqua", _annotated(_parsed(diann)), tmp_path)
 
@@ -431,6 +445,7 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
         "msmu": (("peptidoform_ion",), ".h5mu"),
         "prolfqua": (("peptide", "peptidoform_ion", "protein"), ".h5ad"),
         "proteopy": (("protein",), ".h5ad"),
+        "qfeatures": (("peptidoform_ion", "peptide", "protein"), ".h5mu"),
         "qpx": (("peptidoform_ion", "protein"), ".qpx"),
     }
 

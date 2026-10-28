@@ -15,7 +15,7 @@ from apb2.api import AnnotationCompiler, ParseRuleCompiler
 from apb_export.api import Exporter
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
-from conftest import RUNS, write_diann  # the tests' synthetic DIA-NN writer
+from conftest import RUNS, write_diann, write_maxquant  # the tests' synthetic vendor writers
 
 # msmu's own reader quantifies DIA-NN by Precursor.Quantity; compare like with like.
 ABUNDANCE = {"msmu": "Precursor_Quantity"}
@@ -46,6 +46,18 @@ def main(folder: Path) -> None:
                 path = folder / f"qpx-{level}.qpx"
                 exporter.write(exporter.export(single), path)
                 print(path)
+    # DIA-NN gives no peptide level; MaxQuant's three levels exercise every QFeatures link.
+    (folder / "maxquant").mkdir(exist_ok=True)
+    maxquant = write_maxquant(folder / "maxquant")
+    exporter = Exporter("qfeatures")
+    parsed = (
+        ParseRuleCompiler.detect(maxquant.folder, maxquant.params, requested_levels=exporter.levels)
+        .compile()
+        .parse()
+    )
+    path = folder / "qfeatures-maxquant.h5mu"
+    exporter.write(exporter.export(parsed), path)
+    print(path)
 
 
 if __name__ == "__main__":

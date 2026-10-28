@@ -43,6 +43,7 @@ def test_every_packaged_rule_validates_and_compiles() -> None:
         "msmu/v0_4/rules.json",
         "prolfqua/v2_11/rules.json",
         "proteopy/v0_1/rules.json",
+        "qfeatures/v1_22/rules.json",
         "qpx/v1_1/rules.json",
     )
     extensions = {
@@ -55,6 +56,7 @@ def test_every_packaged_rule_validates_and_compiles() -> None:
         "msmu": ".h5mu",
         "prolfqua": ".h5ad",
         "proteopy": ".h5ad",
+        "qfeatures": ".h5mu",
         "qpx": ".qpx",
     }
 

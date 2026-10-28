@@ -1,8 +1,9 @@
 name: Consumers
 
 # Each target's tool reads apb-export's synthetic exports. apb-export never installs these
-# tools: msmu, ProteoPy and AlphaPeptTools live in consumers/Dockerfile, rebuilt only when its
-# layers change; prolfquapp runs in its own published image.
+# tools: msmu, ProteoPy and AlphaPeptTools live in consumers/Dockerfile and QFeatures in
+# consumers/r/Dockerfile, each rebuilt only when its layers change; prolfquapp runs in its own
+# published image.
 on:
   workflow_dispatch:
   push:
@@ -115,6 +116,20 @@ jobs:
 
       - name: AlphaPeptTools
         run: docker run --rm -v "$PWD/examples:/examples" apb-export-consumers python /checks/check_alphapepttools.py /examples
+
+      - name: Build the R consumer image
+        uses: docker/build-push-action@v6
+        with:
+          context: consumers/r
+          load: true
+          tags: apb-export-consumers-r
+          cache-from: type=gha,scope=r
+          cache-to: type=gha,mode=max,scope=r
+
+      - name: QFeatures
+        run: >-
+          docker run --rm -v "$PWD/examples:/examples" apb-export-consumers-r
+          Rscript /checks/check_qfeatures.R /examples/qfeatures.h5mu /examples/qfeatures-maxquant.h5mu
 
       # Temporarily disabled pending investigation of the prolfquapp hierarchy check.
       - name: prolfquapp, in its own image
