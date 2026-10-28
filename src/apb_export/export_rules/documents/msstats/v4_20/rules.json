@@ -1,0 +1,58 @@
+{
+  "schema_version": "0.4",
+  "file_version": "1",
+  "target_name": "MSstats",
+  "target_version_pattern": "^4\\.20\\.",
+  "tables": [
+    {
+      "output": {"extensions": [".csv"]},
+      "levels": {
+        "peptidoform_ion": {
+          "axis": {"obs_keys": ["Run"], "var_keys": ["PrecursorId"]},
+          "measurements": {
+            "primary_layer": "Intensity",
+            "layers": [
+              {
+                "name": "Intensity",
+                "source": [
+                  {"catalog": "abundance", "kind": "intensity", "qualifiers": {"normalization": "none"}},
+                  {"measurements": "primary_layer"}
+                ],
+                "missing_values": [0]
+              },
+              {"name": "DetectionQValue", "source": {"catalog": "confidence", "kind": "q_value"}},
+              {
+                "name": "PEP",
+                "source": [
+                  {"catalog": "confidence", "kind": "pep"},
+                  {"catalog": "confidence", "kind": "pep", "location": "var"}
+                ]
+              }
+            ]
+          },
+          "columns": {
+            "obs": [
+              {"name": "Run", "source": {"axis": "obs_keys"}},
+              {"name": "Condition", "source": {"catalog": "apb", "kind": "condition", "location": "obs"}},
+              {"name": "BioReplicate", "source": {"catalog": "apb", "kind": "bioreplicate", "location": "obs"}}
+            ],
+            "var": [
+              {"name": "PrecursorId", "source": {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}},
+              {"name": "ProteinName", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}, "drop_missing": true},
+              {"name": "PeptideSequence", "source": {"catalog": "apb", "kind": "peptidoform", "location": "var"}},
+              {
+                "name": "PrecursorCharge",
+                "how": "proforma_charge",
+                "inputs": [{"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}],
+                "type": "integer"
+              },
+              {"name": "FragmentIon", "how": "constant", "value": null},
+              {"name": "ProductCharge", "how": "constant", "value": null, "type": "integer"},
+              {"name": "IsotopeLabelType", "how": "constant", "value": "L"}
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

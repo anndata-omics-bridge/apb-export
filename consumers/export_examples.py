@@ -15,7 +15,7 @@ from apb2.api import AnnotationCompiler, ParseRuleCompiler
 from apb_export.api import Exporter
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
-from conftest import RUNS, write_diann, write_maxquant  # the tests' synthetic vendor writers
+from conftest import RUNS, write_design, write_diann, write_maxquant  # the tests' synthetic inputs
 
 # msmu's own reader quantifies DIA-NN by Precursor.Quantity; compare like with like.
 ABUNDANCE = {"msmu": "Precursor_Quantity"}
@@ -28,6 +28,8 @@ def main(folder: Path) -> None:
     annotation = folder / "samples.tsv"
     rows = "".join(f"{run}\t{run[4]}\n" for run in RUNS)
     annotation.write_text("raw_file\tcondition\n" + rows, encoding="utf-8")
+    # MSstats reads Condition and BioReplicate, which apb-catalog finds in group and BioReplicate.
+    design = write_design(folder)
     for target in Exporter.targets():
         exporter = Exporter(target, abundance=ABUNDANCE.get(target))
         parsed = (
@@ -36,7 +38,8 @@ def main(folder: Path) -> None:
             .parse()
         )
         if target != "msmu":
-            parsed = AnnotationCompiler().compile(annotation).parse(parsed).annotate().parsed
+            table = design if target == "msstats" else annotation
+            parsed = AnnotationCompiler().compile(table).parse(parsed).annotate().parsed
         path = folder / f"{target}{exporter.extension}"
         exporter.write(exporter.export(parsed), path)
         print(path)

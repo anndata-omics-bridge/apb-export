@@ -41,6 +41,7 @@ def test_every_packaged_rule_validates_and_compiles() -> None:
     assert packaged_documents() == (
         "alphapepttools/v0_4/rules.json",
         "msmu/v0_4/rules.json",
+        "msstats/v4_20/rules.json",
         "prolfqua/v2_11/rules.json",
         "proteopy/v0_1/rules.json",
         "qfeatures/v1_22/rules.json",
@@ -54,6 +55,7 @@ def test_every_packaged_rule_validates_and_compiles() -> None:
     assert extensions == {
         "alphapepttools": ".h5mu",
         "msmu": ".h5mu",
+        "msstats": ".csv",
         "prolfqua": ".h5ad",
         "proteopy": ".h5ad",
         "qfeatures": ".h5mu",

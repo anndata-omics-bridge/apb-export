@@ -26,6 +26,7 @@ HDF5 target files are written by APB2's `write_parsed_levels`, `.apb.json` sidec
 | Target | Rule | File | APB2 levels | Layout |
 | --- | --- | --- | --- | --- |
 | msmu | [v0_4](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | peptidoform_ion | `psm` modality, precursors by runs, experimental |
+| MSstats | [v4_20](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/msstats/v4_20/rules.json) | `.csv` | peptidoform_ion | long table, one row per precursor and run, MSstats' column names |
 | prolfquapp | [v2_11](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | peptidoform_ion, or peptide for MaxQuant; reads protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata` |
 | ProteoPy | [v0_1](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes |
 | AlphaPeptTools | [v0_4](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | one wide modality per level, linked by id columns |
@@ -62,6 +63,25 @@ msmu's `psm` modality, written wide. Experimental: msmu's own readers write one 
 - Features without a protein: left out and counted in the export record, since msmu's protein inference would group them as one unnamed protein
 
 `peptide` is ProForma for every vendor (`AC[UNIMOD:4]K`). msmu's modification parser reads it, and `to_ptm` takes the tag as written, for example `"[UNIMOD:21]"`.
+
+## MSstats
+
+```bash
+apb-export msstats report.tsv msstats.csv --params report.log.txt --annotation design.tsv
+```
+
+```r
+input <- read.csv("msstats.csv")
+processed <- MSstats::dataProcess(input)
+```
+
+- One row per precursor and run that some layer holds; MSstats reads the columns by name, so their order does not matter
+- `Run`: the run key; `Condition` and `BioReplicate`: from the sample annotation, through apb-catalog: a prolfquapp-style table's `group…` (or `bait…`, `Experiment…`) and `BioReplicate…` (or `subject…`) columns, an SDRF's `factor value[…]` and `characteristics[biological replicate]`. Without them the export stops
+- `ProteinName`: the protein group; `PeptideSequence`: the ProForma peptidoform, modifications included; `PrecursorCharge`: the ion's charge; `PrecursorId`: the ProForma ion, the table's feature key
+- `FragmentIon`, `ProductCharge`: `NA`, as MSstatsConvert writes precursor-level input; `IsotopeLabelType`: `L`
+- `Intensity`: the `abundance` catalog's intensity without normalization, since MSstats normalizes itself, else APB2's primary layer; zeros written as `NA`; `--abundance` names another layer
+- `DetectionQValue`, `PEP`: run-level identification q-value and PEP where the tool reports them; no global or library q-values, and no rows are filtered
+- Features without a protein: left out and counted in the export record
 
 ## prolfquapp
 

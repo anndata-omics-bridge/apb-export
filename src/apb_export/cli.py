@@ -259,6 +259,38 @@ def prolfqua(
 
 
 @app.command
+def msstats(
+    data: Data,
+    output: Annotated[Path, Parameter(help="New .csv file for MSstats::dataProcess")],
+    /,
+    *,
+    params: Params = None,
+    software: Software = None,
+    abundance: Abundance = None,
+    annotation: SampleAnnotation = None,
+    strict: Strict = False,
+    fasta: Fasta = (),
+) -> int:
+    """APB2's peptidoform_ion level as MSstats' long table; the annotation gives Condition and
+    BioReplicate."""
+    return _write(
+        "msstats",
+        _exported(
+            "msstats",
+            data,
+            output,
+            params=params,
+            software=software,
+            abundance=abundance,
+            annotation=annotation,
+            strict=strict,
+            fasta=fasta,
+        ),
+        output,
+    )
+
+
+@app.command
 def proteopy(
     data: Data,
     output: Annotated[Path, Parameter(help="New .h5ad file for ProteoPy")],

@@ -17,7 +17,13 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import pytest
-from apb2.api import ParsedLevels, ParseRuleCompiler, read_parsed_levels, write_parsed_levels
+from apb2.api import (
+    AnnotationCompiler,
+    ParsedLevels,
+    ParseRuleCompiler,
+    read_parsed_levels,
+    write_parsed_levels,
+)
 
 from apb_export.api import Exporter
 from conftest import (
@@ -34,6 +40,7 @@ from conftest import (
     export_sources,
     level_part,
     observed,
+    write_design,
     write_diann,
     write_maxquant,
 )
@@ -434,6 +441,54 @@ def test_an_annotation_named_like_a_declared_column_is_refused(diann: DiannInput
         Exporter("proteopy").export(clash)
 
 
+MSSTATS_COLUMNS = [
+    "Run",
+    "Condition",
+    "BioReplicate",
+    "PrecursorId",
+    "ProteinName",
+    "PeptideSequence",
+    "PrecursorCharge",
+    "FragmentIon",
+    "ProductCharge",
+    "IsotopeLabelType",
+    "Intensity",
+    "DetectionQValue",
+    "PEP",
+]
+
+
+def _msstats(diann: DiannInput, folder: Path) -> pl.DataFrame:
+    """The MSstats table of the synthetic report annotated with ``write_design``."""
+    parsed = AnnotationCompiler().compile(write_design(folder)).parse(_parsed(diann)).annotate()
+    export = Exporter("msstats")
+    path = folder / "msstats.csv"
+    export.write(export.export(parsed.parsed), path)
+    return pl.read_csv(path, null_values="NA")
+
+
+def test_msstats_gets_its_columns_one_row_per_precursor_and_run(
+    diann: DiannInput, tmp_path: Path
+) -> None:
+    table = _msstats(diann, tmp_path)
+    design = {run: (run[4], run[4:]) for run in RUNS}
+
+    assert table.columns == MSSTATS_COLUMNS
+    assert table.height == diann.cells
+    for row in table.select("Run", "Condition", "BioReplicate").unique().iter_rows():
+        assert design[row[0]] == (row[1], row[2])
+    assert set(table.get_column("PrecursorCharge")) == {2}
+    assert table.get_column("FragmentIon").null_count() == table.height
+    assert table.get_column("ProductCharge").null_count() == table.height
+    assert set(table.get_column("IsotopeLabelType")) == {"L"}
+    assert "AAC[UNIMOD:4]LLK" in set(table.get_column("PeptideSequence")), "ProForma"
+
+
+def test_msstats_needs_the_condition_from_an_annotation(diann: DiannInput) -> None:
+    with pytest.raises(ValueError, match="Condition"):
+        Exporter("msstats").export(_parsed(diann))
+
+
 def test_the_api_names_each_targets_levels_and_file() -> None:
     found = {
         target: (Exporter(target).levels, Exporter(target).extension)
@@ -443,6 +498,7 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
     assert found == {
         "alphapepttools": (("peptidoform_ion", "peptide", "protein"), ".h5mu"),
         "msmu": (("peptidoform_ion",), ".h5mu"),
+        "msstats": (("peptidoform_ion",), ".csv"),
         "prolfqua": (("peptide", "peptidoform_ion", "protein"), ".h5ad"),
         "proteopy": (("protein",), ".h5ad"),
         "qfeatures": (("peptidoform_ion", "peptide", "protein"), ".h5mu"),

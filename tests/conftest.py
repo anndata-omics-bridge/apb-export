@@ -260,6 +260,14 @@ def write_maxquant(folder: Path, /, *, peptides: bool = True) -> MaxQuantInput:
     return MaxQuantInput(folder=folder, params=params)
 
 
+def write_design(folder: Path) -> Path:
+    """Write a prolfquapp-style sample table: each run's ``group`` (A or B) and ``BioReplicate``,
+    the columns apb-catalog reads as condition and biological replicate."""
+    path = folder / "design.tsv"
+    _table(path, ["raw_file", "group", "BioReplicate"], [[run, run[4], run[4:]] for run in RUNS])
+    return path
+
+
 # Each ion of the FragPipe example and how it was found in samples A and B: a match type is a
 # categorical layer, stored as codes, whose labels the FragPipe parsing rule declares.
 FRAGPIPE_IONS = (("PEPTIDEK", "P1", ("MS/MS", "MBR")), ("SECONDK", "P2", ("MS/MS", "unmatched")))

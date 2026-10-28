@@ -15,7 +15,7 @@ from apb_catalog.api import UnresolvedField
 
 from apb_export.api import Exporter
 from apb_export.cli import app, main
-from conftest import PRECURSORS, RUNS, DiannInput, column, write_maxquant
+from conftest import PRECURSORS, RUNS, DiannInput, column, write_design, write_maxquant
 
 
 def _run(*argv: str) -> int:
@@ -230,8 +230,13 @@ def test_every_target_writes_its_manifest(target: str, diann: DiannInput, tmp_pa
     fasta.write_text(">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE\nMPEPTIDEKAACLLKR\n")
     output = tmp_path / f"out{Exporter(target).extension}"
     common = ("--params", str(diann.log), "--fasta", str(fasta))
+    if target == "msstats":
+        common += ("--annotation", str(write_design(tmp_path)))
 
     assert _run(target, str(diann.report), str(output), *common) == 0
+    if target == "msstats":
+        assert not sidecar_path(output).exists(), "a table has no sidecar"
+        return
     if target == "qpx":
         manifest = json.loads((output / "export.json").read_text())
         assert manifest["format"] == "qpx"
