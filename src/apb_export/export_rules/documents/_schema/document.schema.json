@@ -715,7 +715,7 @@
     },
     "Output": {
       "additionalProperties": false,
-      "description": "What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.\n\n``.h5ad`` holds one level: the first listed that the result's software and levels allow.\n``.h5mu`` holds one modality per level. ``.csv`` holds one level as a long table, chosen\nas for ``.h5ad``.",
+      "description": "What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.\n\n``.h5ad`` holds one level: the first listed that the result's software and levels allow.\n``.h5mu`` holds one modality per level. ``.csv`` holds one level as a long table and\n``.txt`` one as a Perseus table, each chosen as for ``.h5ad``.",
       "properties": {
         "extensions": {
           "items": {
@@ -723,6 +723,7 @@
               ".h5mu",
               ".h5ad",
               ".csv",
+              ".txt",
               ".qpx"
             ],
             "type": "string"

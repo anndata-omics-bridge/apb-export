@@ -1,9 +1,9 @@
 name: Consumers
 
 # Each target's tool reads apb-export's synthetic exports. apb-export never installs these
-# tools: msmu, ProteoPy and AlphaPeptTools live in consumers/Dockerfile, QFeatures and MSstats in
-# consumers/r/Dockerfile, each rebuilt only when its layers change; prolfquapp runs in its own
-# published image.
+# tools: msmu, ProteoPy, AlphaPeptTools and perseuspy live in consumers/Dockerfile, QFeatures
+# and MSstats in consumers/r/Dockerfile, each rebuilt only when its layers change; prolfquapp
+# runs in its own published image.
 on:
   workflow_dispatch:
   push:
@@ -116,6 +116,9 @@ jobs:
 
       - name: AlphaPeptTools
         run: docker run --rm -v "$PWD/examples:/examples" apb-export-consumers python /checks/check_alphapepttools.py /examples
+
+      - name: Perseus, through perseuspy
+        run: docker run --rm -v "$PWD/examples:/examples" apb-export-consumers python /checks/check_perseus.py /examples
 
       - name: Build the R consumer image
         uses: docker/build-push-action@v6

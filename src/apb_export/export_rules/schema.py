@@ -248,6 +248,11 @@ class LayerEntry(ModelBase):
         default_factory=list,
         description="APB values treated as absent; apb2 lists vendor values here.",
     )
+    name_by_kind: dict[str, str] = Field(
+        default_factory=dict,
+        description="The written name per abundance kind of the resolved layer, as Perseus "
+        "names MaxLFQ values LFQ intensity; any other kind keeps name.",
+    )
 
 
 class Measurements(ModelBase):
@@ -348,11 +353,13 @@ class Output(ModelBase):
     """What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.
 
     ``.h5ad`` holds one level: the first listed that the result's software and levels allow.
-    ``.h5mu`` holds one modality per level. ``.csv`` holds one level as a long table, chosen
-    as for ``.h5ad``.
+    ``.h5mu`` holds one modality per level. ``.csv`` holds one level as a long table and
+    ``.txt`` one as a Perseus table, each chosen as for ``.h5ad``.
     """
 
-    extensions: list[Literal[".h5mu", ".h5ad", ".csv", ".qpx"]] = Field(min_length=1, max_length=1)
+    extensions: list[Literal[".h5mu", ".h5ad", ".csv", ".txt", ".qpx"]] = Field(
+        min_length=1, max_length=1
+    )
 
 
 class FeatureLink(ModelBase):

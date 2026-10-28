@@ -10,6 +10,7 @@ APB2 converts the vendor output; apb-export applies the target's packaged export
 | --- | --- | --- | --- |
 | [msmu](https://github.com/bertis-informatics/msmu) | `.h5mu` | peptidoform_ion | `msmu.read_h5mu` |
 | MSstats | `.csv` | peptidoform_ion | `MSstats::dataProcess` |
+| Perseus | `.txt` | protein | Perseus, or `perseuspy.pd.read_perseus` |
 | prolfqua | `.h5ad` | peptidoform_ion, or peptide for MaxQuant | prolfquapp's `LFQData_from_anndata` |
 | ProteoPy | `.h5ad` | protein | ProteoPy |
 | AlphaPeptTools | `.h5mu` | peptidoform_ion, peptide, protein | `mulink_from_anndatas` |
@@ -25,6 +26,7 @@ apb-export msmu report.tsv result.h5mu --params report.log.txt
 apb-export msmu report.tsv result.h5mu --params report.log.txt --fasta proteins.fasta
 apb-export prolfqua report.tsv result.h5ad --params report.log.txt --annotation dataset.csv
 apb-export msstats report.tsv msstats.csv --params report.log.txt --annotation design.tsv
+apb-export perseus report.tsv perseus.txt --params report.log.txt --annotation samples.tsv
 apb-export proteopy report.tsv proteins.h5ad --params report.log.txt
 apb-export alphapepttools report.tsv linked.h5mu --params report.log.txt
 apb-export qfeatures report.tsv qfeatures.h5mu --params report.log.txt
@@ -81,4 +83,4 @@ make check
 
 ## Testing
 
-Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples and checks that msmu, prolfquapp, ProteoPy, AlphaPeptTools, QFeatures and MSstats read them, msmu against its own `read_diann`.
+Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples and checks that msmu, prolfquapp, ProteoPy, AlphaPeptTools, QFeatures, MSstats and perseuspy read them, msmu against its own `read_diann`.

@@ -204,11 +204,12 @@ def _table(path: Path, header: list[str], rows: list[list[object]]) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def write_maxquant(folder: Path, /, *, peptides: bool = True) -> MaxQuantInput:
+def write_maxquant(folder: Path, /, *, peptides: bool = True, lfq: bool = False) -> MaxQuantInput:
     """Write MaxQuant 2.4 evidence, peptide and protein-group tables and an mqpar.xml.
 
-    ``peptides=False`` writes evidence.txt alone, as ProteoBench submissions carry it. The
-    q-value of group ``g`` is ``0.001 * (g + 1)``; the PEP of peptide ``p`` is ``0.01 * (p + 1)``.
+    ``peptides=False`` writes evidence.txt alone, as ProteoBench submissions carry it; ``lfq``
+    adds proteinGroups.txt's ``LFQ intensity`` columns, half the intensities. The q-value of
+    group ``g`` is ``0.001 * (g + 1)``; the PEP of peptide ``p`` is ``0.01 * (p + 1)``.
     """
     evidence: list[list[object]] = []
     for experiment, name in enumerate(EXPERIMENTS):
@@ -242,17 +243,20 @@ def write_maxquant(folder: Path, /, *, peptides: bool = True) -> MaxQuantInput:
             [*PEPTIDE_COLUMNS[:4], *intensities, *PEPTIDE_COLUMNS[4:]],
             peptide_rows,
         )
+        experiments = range(len(EXPERIMENTS))
+        lfq_columns = [f"LFQ intensity {name}" for name in EXPERIMENTS] if lfq else []
         group_rows: list[list[object]] = [
             [
                 *(group, 0.001 * (index + 1)),
-                *(5000.0 * (experiment + 1) for experiment in range(len(EXPERIMENTS))),
+                *(5000.0 * (experiment + 1) for experiment in experiments),
+                *(2500.0 * (experiment + 1) for experiment in experiments if lfq),
                 *(index, ";".join(map(str, members)), ";".join(map(str, members))),
             ]
             for index, (group, members) in enumerate(GROUPS)
         ]
         _table(
             folder / "proteinGroups.txt",
-            [*GROUP_COLUMNS[:2], *intensities, *GROUP_COLUMNS[2:]],
+            [*GROUP_COLUMNS[:2], *intensities, *lfq_columns, *GROUP_COLUMNS[2:]],
             group_rows,
         )
     params = folder / "mqpar.xml"

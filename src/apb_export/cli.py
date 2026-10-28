@@ -291,6 +291,38 @@ def msstats(
 
 
 @app.command
+def perseus(
+    data: Data,
+    output: Annotated[Path, Parameter(help="New .txt file for Perseus")],
+    /,
+    *,
+    params: Params = None,
+    software: Software = None,
+    abundance: Abundance = None,
+    annotation: SampleAnnotation = None,
+    strict: Strict = False,
+    fasta: Fasta = (),
+) -> int:
+    """APB2's protein level as Perseus loads MaxQuant's proteinGroups.txt; each annotation
+    column becomes a categorical row."""
+    return _write(
+        "perseus",
+        _exported(
+            "perseus",
+            data,
+            output,
+            params=params,
+            software=software,
+            abundance=abundance,
+            annotation=annotation,
+            strict=strict,
+            fasta=fasta,
+        ),
+        output,
+    )
+
+
+@app.command
 def proteopy(
     data: Data,
     output: Annotated[Path, Parameter(help="New .h5ad file for ProteoPy")],

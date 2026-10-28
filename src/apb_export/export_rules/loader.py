@@ -22,7 +22,7 @@ from apb_export.export_rules.schema import (
 _DOCUMENTS = resources.files("apb_export.export_rules").joinpath("documents")
 _RULES_FILE = "rules.json"
 
-_ONE_LEVEL = (".h5ad", ".csv")
+_ONE_LEVEL = (".h5ad", ".csv", ".txt")
 """Outputs that hold one level, the first of the table's levels that a result holds."""
 
 PLUGIN_GROUP = "apb_export.targets"
@@ -71,9 +71,9 @@ def _merge(base: dict[str, JsonValue], level: dict[str, JsonValue]) -> dict[str,
 def effective_rules(document: ExportRuleDocument, name: str) -> tuple[EffectiveRule, ...]:
     """Validate every table level of a rule document.
 
-    An ``.h5ad`` or ``.csv`` table's levels are alternatives in order: each before the last
-    names the software it is for, so a software-specific level precedes the one every software
-    takes.
+    An ``.h5ad``, ``.csv`` or ``.txt`` table's levels are alternatives in order: each before the
+    last names the software it is for, so a software-specific level precedes the one every
+    software takes.
 
     Raises:
         ValueError: The document has more than one table, such a level before the last

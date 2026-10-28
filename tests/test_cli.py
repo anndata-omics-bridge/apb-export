@@ -234,7 +234,7 @@ def test_every_target_writes_its_manifest(target: str, diann: DiannInput, tmp_pa
         common += ("--annotation", str(write_design(tmp_path)))
 
     assert _run(target, str(diann.report), str(output), *common) == 0
-    if target == "msstats":
+    if target in {"msstats", "perseus"}:
         assert not sidecar_path(output).exists(), "a table has no sidecar"
         return
     if target == "qpx":

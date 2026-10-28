@@ -124,6 +124,18 @@ class LevelSources:
         """Whether the caller named the abundance layer, which then becomes the target's X."""
         return self._abundance is not None
 
+    def abundance_kind(self, layer: str) -> str | None:
+        """What the level's layer measures, as the ``abundance`` catalogue's kind; ``None`` for a
+        layer the catalogue does not describe."""
+        fields = self._catalog("abundance", None).fields()
+        kinds = fields.filter(
+            (pl.col("level") == self._name)
+            & (pl.col("location") == "layers")
+            & (pl.col("name") == layer)
+            & pl.col("present")
+        ).get_column("qualifier.kind")
+        return kinds.item(0) if kinds.len() else None
+
     def resolve(self, source: Source) -> Resolved | None:
         """The first candidate the result carries, or ``None`` when it carries none.
 

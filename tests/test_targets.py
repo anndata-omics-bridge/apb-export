@@ -499,6 +499,7 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
         "alphapepttools": (("peptidoform_ion", "peptide", "protein"), ".h5mu"),
         "msmu": (("peptidoform_ion",), ".h5mu"),
         "msstats": (("peptidoform_ion",), ".csv"),
+        "perseus": (("protein",), ".txt"),
         "prolfqua": (("peptide", "peptidoform_ion", "protein"), ".h5ad"),
         "proteopy": (("protein",), ".h5ad"),
         "qfeatures": (("peptidoform_ion", "peptide", "protein"), ".h5mu"),

@@ -88,7 +88,7 @@ class Exporter:
 
         Args:
             exported: What :meth:`export` returned.
-            output: The new ``.h5ad``/``.h5mu``/``.csv`` file or ``.qpx`` directory.
+            output: The new ``.h5ad``/``.h5mu``/``.csv``/``.txt`` file or ``.qpx`` directory.
         """
         self._compiled.write(exported, output)
 

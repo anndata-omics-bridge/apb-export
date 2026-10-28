@@ -9,6 +9,7 @@ from typing import Protocol
 from apb2.api import ParsedLevels, write_parsed_levels
 
 from apb_export.long_table import LongTableOutput
+from apb_export.perseus_table import PerseusOutput
 from apb_export.qpx.output import QpxOutput
 
 
@@ -48,6 +49,7 @@ _OUTPUTS: dict[str, OutputFormat] = {
     ".h5ad": MatrixOutput(one_level=True),
     ".h5mu": MatrixOutput(one_level=False),
     ".csv": LongTableOutput(),
+    ".txt": PerseusOutput(),
     ".qpx": QpxOutput(),
 }
 

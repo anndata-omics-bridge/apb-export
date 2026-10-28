@@ -12,6 +12,8 @@ Rules follow APB2's rule schema read in reverse:
 - `software` on a level block: the vendor that block is for
 - `.h5ad` rules: list their levels in order and write the first one the result's software and levels allow
 - `.csv` rules: choose their level as `.h5ad` rules do and write it as a long table: one row per run and feature that some layer holds, obs columns, var columns and one column per layer, category codes written as the labels the parsing rule declares, missing as `NA`, no sidecar
+- `.txt` rules: choose their level as `.h5ad` rules do and write it as a Perseus table, described [below](#perseus)
+- `name_by_kind` on a layer: the layer's name per `abundance` kind of the layer it resolved to, such as `{"maxlfq": "LFQ intensity"}`; any other kind keeps `name`
 
 The published [JSON Schemas](https://github.com/anndata-omics-bridge/apb-export/tree/main/src/apb_export/export_rules/documents/_schema) describe the documents.
 
@@ -27,6 +29,7 @@ HDF5 target files are written by APB2's `write_parsed_levels`, `.apb.json` sidec
 | --- | --- | --- | --- | --- |
 | msmu | [v0_4](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | peptidoform_ion | `psm` modality, precursors by runs, experimental |
 | MSstats | [v4_20](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/msstats/v4_20/rules.json) | `.csv` | peptidoform_ion | long table, one row per precursor and run, MSstats' column names |
+| Perseus | [v2](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/perseus/v2/rules.json) | `.txt` | protein | wide, proteinGroups.txt's names, `#!{Type}` and `#!{C:…}` header rows |
 | prolfquapp | [v2_11](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | peptidoform_ion, or peptide for MaxQuant; reads protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata` |
 | ProteoPy | [v0_1](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes |
 | AlphaPeptTools | [v0_4](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | one wide modality per level, linked by id columns |
@@ -82,6 +85,22 @@ processed <- MSstats::dataProcess(input)
 - `Intensity`: the `abundance` catalog's intensity without normalization, since MSstats normalizes itself, else APB2's primary layer; zeros written as `NA`; `--abundance` names another layer
 - `DetectionQValue`, `PEP`: run-level identification q-value and PEP where the tool reports them; no global or library q-values, and no rows are filtered
 - Features without a protein: left out and counted in the export record
+
+## Perseus
+
+```bash
+apb-export perseus txt perseus.txt --params mqpar.xml --annotation samples.tsv
+```
+
+Perseus: Generic matrix upload, or read with `perseuspy.pd.read_perseus("perseus.txt")`.
+
+- One row per protein group; names as MaxQuant's `proteinGroups.txt`, so Perseus' usual steps run without renaming
+- `Protein IDs`: the protein group; `Gene names`: with `--fasta`; `Q-value`: the group's experiment-wide, else library, q-value, where reported
+- `Reverse`, `Potential contaminant`: `+` or empty, from APB2's decoy and contaminant flags, contaminants also from the FASTA check
+- `<prefix> <sample>`: APB2's primary layer, or `--abundance`'s; prefix by its `abundance` kind: `LFQ intensity` for MaxLFQ, `iBAQ` for iBAQ, else `Intensity`; zeros and missing values written as `NaN`
+- `#!{Type}`: sample columns `E` (main), numbers `N`, flags `C`, text `T`
+- `#!{C:<column>}`: one categorical row per annotation column, values under the sample columns
+- No sidecar
 
 ## prolfquapp
 

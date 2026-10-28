@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.4",
+  "file_version": "1",
+  "target_name": "Perseus",
+  "target_version_pattern": "^2\\.",
+  "tables": [
+    {
+      "output": {"extensions": [".txt"]},
+      "levels": {
+        "protein": {
+          "axis": {"obs_keys": ["Sample"], "var_keys": ["Protein IDs"]},
+          "measurements": {
+            "primary_layer": "Intensity",
+            "layers": [
+              {
+                "name": "Intensity",
+                "source": {"measurements": "primary_layer"},
+                "missing_values": [0],
+                "name_by_kind": {"maxlfq": "LFQ intensity", "ibaq": "iBAQ"}
+              }
+            ]
+          },
+          "columns": {
+            "obs": [
+              {"name": "Sample", "source": {"axis": "obs_keys"}},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [
+              {"name": "Protein IDs", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}},
+              {"name": "Gene names", "source": {"fasta": "fasta_gene_names"}, "required": false},
+              {
+                "name": "Q-value",
+                "source": [
+                  {"catalog": "confidence", "kind": "global_q_value", "location": "var"},
+                  {"catalog": "confidence", "kind": "library_q_value", "location": "var", "accept": "nonzero"}
+                ],
+                "type": "number",
+                "required": false
+              },
+              {"name": "Reverse", "source": {"catalog": "apb", "kind": "decoy", "location": "var"}, "type": "boolean"},
+              {"name": "Potential contaminant", "how": "contaminant", "type": "boolean"}
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -668,6 +668,14 @@
           },
           "title": "Missing Values",
           "type": "array"
+        },
+        "name_by_kind": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The written name per abundance kind of the resolved layer, as Perseus names MaxLFQ values LFQ intensity; any other kind keeps name.",
+          "title": "Name By Kind",
+          "type": "object"
         }
       },
       "required": [

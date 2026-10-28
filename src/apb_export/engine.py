@@ -202,6 +202,7 @@ class _LevelExport:
         self._level = parsed.levels[rule.level]
         self._sources = LevelSources(parsed, rule.level, abundance)
         self._provenance: dict[str, Provenance] = {}
+        self._written_names: dict[str, str] = {}
 
     def has_index(self) -> bool:
         """Whether the result carries the source of the level's variable index."""
@@ -230,10 +231,11 @@ class _LevelExport:
         self._key(obs, obs_key, "obs")
         self._key(var, var_key, "var")
         layers = {
-            entry.name: _layer_frame(values.values.filter(kept), entry)
+            self._written(entry, values): _layer_frame(values.values.filter(kept), entry)
             for entry, values in found
             if values is not None
         }
+        primary = self._written_names[primary]
         return ParsedLevel.build(
             obs=pl.DataFrame(obs),
             obs_keys=[obs_key],
@@ -265,6 +267,20 @@ class _LevelExport:
             raise ValueError(f"layer {entry.name!r} cannot take {_describe(resolved.provenance)}")
         self._provenance[key] = resolved.provenance
         return resolved
+
+    def _written(self, entry: LayerEntry, values: LayerValues) -> str:
+        """The layer's name in the export: the entry's, or the one its resolved layer's
+        abundance kind maps to; the provenance follows it."""
+        written = entry.name
+        kind = (
+            self._sources.abundance_kind(values.provenance["name"]) if entry.name_by_kind else None
+        )
+        if kind is not None and kind in entry.name_by_kind:
+            written = entry.name_by_kind[kind]
+            source = self._provenance.pop(f"layers.{entry.name}")
+            self._provenance[f"layers.{written}"] = {**source, "kind": kind}
+        self._written_names[entry.name] = written
+        return written
 
     def _bind_columns(self) -> dict[str, list[_Bound | AllValues]]:
         rule = self._rule.rule
@@ -466,7 +482,7 @@ class CompiledExport:
 
     @property
     def extension(self) -> str:
-        """The target's file suffix: ``.h5ad``, ``.h5mu``, ``.csv``, or ``.qpx``."""
+        """The target's file suffix: ``.h5ad``, ``.h5mu``, ``.csv``, ``.txt``, or ``.qpx``."""
         return self.output.extensions[0]
 
     def export(
@@ -600,7 +616,7 @@ class CompiledExport:
     def _exported_by(self, parsed: ParsedLevels) -> list[EffectiveRule]:
         """The levels that export this result: those for its software that it holds.
 
-        A one-level format (``.h5ad``, ``.csv``) takes the first of them; the others take all
+        A one-level format (``.h5ad``, ``.csv``, ``.txt``) takes the first of them; the others take all
         of them and need every required one.
         """
         software = _software(parsed)
