@@ -461,12 +461,12 @@ class CompiledExport:
 
     @property
     def writes_one_level(self) -> bool:
-        """Whether every export writes one level: an ``.h5ad`` rule, or a rule of one level."""
-        return self.extension == ".h5ad" or len(self.rules) == 1
+        """Whether every export writes one level: a one-level format, or a rule of one level."""
+        return self._format.one_level or len(self.rules) == 1
 
     @property
     def extension(self) -> str:
-        """The file the target reads: ``.h5ad`` for one AnnData, ``.h5mu`` for a MuData."""
+        """The target's file suffix: ``.h5ad``, ``.h5mu``, ``.csv``, or ``.qpx``."""
         return self.output.extensions[0]
 
     def export(
@@ -600,8 +600,8 @@ class CompiledExport:
     def _exported_by(self, parsed: ParsedLevels) -> list[EffectiveRule]:
         """The levels that export this result: those for its software that it holds.
 
-        An ``.h5ad`` export takes the first of them; an ``.h5mu`` export takes all of them and
-        needs every required one.
+        A one-level format (``.h5ad``, ``.csv``) takes the first of them; the others take all
+        of them and need every required one.
         """
         software = _software(parsed)
         rules = [
@@ -610,7 +610,7 @@ class CompiledExport:
             if rule.rule.software is None or software & set(rule.rule.software)
         ]
         held = [rule for rule in rules if rule.level in parsed.levels]
-        if self.extension == ".h5ad":
+        if self._format.one_level:
             missing = [] if held else [rule.level for rule in rules]
         else:
             missing = [rule.level for rule in rules if rule not in held and rule.rule.required]
@@ -622,4 +622,4 @@ class CompiledExport:
             )
         if not held:
             raise ValueError(f"{target} export reads no level of {sorted(software)} results")
-        return held[:1] if self.extension == ".h5ad" else held
+        return held[:1] if self._format.one_level else held

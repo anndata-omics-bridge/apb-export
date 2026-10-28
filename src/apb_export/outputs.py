@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
 from apb2.api import ParsedLevels, write_parsed_levels
 
+from apb_export.long_table import LongTableOutput
 from apb_export.qpx.output import QpxOutput
 
 
 class OutputFormat(Protocol):
-    """The operations that differ between matrix containers and QPX tables."""
+    """The operations that differ between matrix containers and tables."""
+
+    @property
+    def one_level(self) -> bool:
+        """Whether the format holds one level: the first listed that the result holds."""
+        ...
 
     def align(self, parsed: ParsedLevels, first_level: str) -> ParsedLevels:
         """Resolve the observation axes the format can represent."""
@@ -22,8 +29,11 @@ class OutputFormat(Protocol):
         ...
 
 
+@dataclass(frozen=True)
 class MatrixOutput:
     """AnnData/MuData require one shared observation axis, as before."""
+
+    one_level: bool
 
     def align(self, parsed: ParsedLevels, first_level: str) -> ParsedLevels:
         """Keep the observation group holding the first exported level."""
@@ -35,8 +45,9 @@ class MatrixOutput:
 
 
 _OUTPUTS: dict[str, OutputFormat] = {
-    ".h5ad": MatrixOutput(),
-    ".h5mu": MatrixOutput(),
+    ".h5ad": MatrixOutput(one_level=True),
+    ".h5mu": MatrixOutput(one_level=False),
+    ".csv": LongTableOutput(),
     ".qpx": QpxOutput(),
 }
 

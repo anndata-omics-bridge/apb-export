@@ -25,7 +25,8 @@ Export rules declare what each target reads; one engine applies them. Packaged t
 - `api`: `Exporter(target, abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; `write(exported, path)` hands the result to APB2's `write_parsed_levels` with unprefixed var names; `targets()`, `levels` and `extension` describe the packaged rules
 - `engine`: `CompiledExport`, one target's level rules checked once; picks the levels for the result's software, aligns several on one observation axis with APB2's `observation_groups()`, binds every entry's sources, and builds a `ParsedLevels`; a rule's `feature_links` become directed feature relations, fine to coarse, as mulink reads them
 - `rows`: Polars only; aligns sources to feature, observation and `uns` rows
-- `outputs`: selects HDF5 or QPX serialization once; HDF5 delegates to APB2, `qpx` writes target-specific Parquet tables from the exported levels
+- `outputs`: selects HDF5, QPX or long-table serialization once, and whether the format holds one level; HDF5 delegates to APB2, `qpx` writes target-specific Parquet tables from the exported levels
+- `long_table`: one level as a CSV, a row per observed cell, obs, var and layer columns side by side, categorical layers as their declared labels; no sidecar
 - `qpx`: QPX 1.1 types and serialization; resolves RT through the `chromatography` catalogue in the rule and converts its reviewed units to seconds; no vendor names in the serializer
 - `computed`: the conversions a computed entry's `how` names
 - `sources`: APB references resolved against one level, catalogue lookups through apb-catalog, and catalogued protein-level fields read through each variable's protein group, named whole or by its leading protein
@@ -33,7 +34,7 @@ Export rules declare what each target reads; one engine applies them. Packaged t
 
 Rules for this package:
 
-- **APB2 owns conversion and canonical APB persistence.** Use `ParseRuleCompiler`, `read_parsed_levels` and `write_parsed_levels`. HDF5 exports use APB2's writer settings; keys stay columns. QPX is a target-specific Parquet serialization of existing quantities, with its own export manifest; no aggregation, required grouping or report execution.
+- **APB2 owns conversion and canonical APB persistence.** Use `ParseRuleCompiler`, `read_parsed_levels` and `write_parsed_levels`. HDF5 exports use APB2's writer settings; keys stay columns. QPX is a target-specific Parquet serialization of existing quantities, with its own export manifest, and `.csv` a long-table serialization without a sidecar; no aggregation, required grouping or report execution.
 
 - **Export rules read apb2's rule schema in reverse.** Keep apb2's key names; an entry's `name` is the target field and its `source` an APB reference every vendor shares.
 - **Meanings come from apb-catalog, never vendor column names.** A vendor without a catalogued field, or a field apb2 left out, gets no column (q-value) or NaN (PEP); an unreviewed rule is an error, not a guess. Library and global q-values are var sources only; do not add layer candidates for them. In a candidate list, a catalogue candidate the catalogue reviewed but cannot pick (ambiguous, or a requested qualifier unknown) passes to the next candidate and is recorded as `passed`; the last candidate still raises.

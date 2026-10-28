@@ -22,6 +22,9 @@ from apb_export.export_rules.schema import (
 _DOCUMENTS = resources.files("apb_export.export_rules").joinpath("documents")
 _RULES_FILE = "rules.json"
 
+_ONE_LEVEL = (".h5ad", ".csv")
+"""Outputs that hold one level, the first of the table's levels that a result holds."""
+
 PLUGIN_GROUP = "apb_export.targets"
 """The entry-point group through which installed packages add export targets."""
 
@@ -68,11 +71,12 @@ def _merge(base: dict[str, JsonValue], level: dict[str, JsonValue]) -> dict[str,
 def effective_rules(document: ExportRuleDocument, name: str) -> tuple[EffectiveRule, ...]:
     """Validate every table level of a rule document.
 
-    An ``.h5ad`` table's levels are alternatives in order: each before the last names the
-    software it is for, so a software-specific level precedes the one every software takes.
+    An ``.h5ad`` or ``.csv`` table's levels are alternatives in order: each before the last
+    names the software it is for, so a software-specific level precedes the one every software
+    takes.
 
     Raises:
-        ValueError: The document has more than one table, an ``.h5ad`` level before the last
+        ValueError: The document has more than one table, such a level before the last
             names no software, a level's declarations are invalid, or an ``.h5mu`` level lacks
             a modality.
     """
@@ -98,8 +102,11 @@ def effective_rules(document: ExportRuleDocument, name: str) -> tuple[EffectiveR
                 )
             )
         unnamed = [rule.level for rule in rules[:-1] if rule.rule.software is None]
-        if ".h5ad" in table.output.extensions and unnamed:
-            raise ValueError(f"{name}: .h5ad levels {unnamed} precede another but name no software")
+        one_level = [ext for ext in table.output.extensions if ext in _ONE_LEVEL]
+        if one_level and unnamed:
+            raise ValueError(
+                f"{name}: {one_level[0]} levels {unnamed} precede another but name no software"
+            )
     return tuple(rules)
 
 

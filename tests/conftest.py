@@ -260,6 +260,46 @@ def write_maxquant(folder: Path, /, *, peptides: bool = True) -> MaxQuantInput:
     return MaxQuantInput(folder=folder, params=params)
 
 
+# Each ion of the FragPipe example and how it was found in samples A and B: a match type is a
+# categorical layer, stored as codes, whose labels the FragPipe parsing rule declares.
+FRAGPIPE_IONS = (("PEPTIDEK", "P1", ("MS/MS", "MBR")), ("SECONDK", "P2", ("MS/MS", "unmatched")))
+FRAGPIPE_SAMPLES = ("A", "B")
+FRAGPIPE_PER_SAMPLE = (
+    "Spectral Count",
+    "Apex Retention Time",
+    "Retention Time Start",
+    "Retention Time End",
+    "Retention Time FWHM",
+    "Intensity",
+    "Match Type",
+)
+
+
+def write_fragpipe(folder: Path) -> Path:
+    """Write a FragPipe 22 ``combined_ion.tsv``; an unmatched ion's intensity is 0."""
+    fixed = ["Peptide Sequence", "Modified Sequence", "Charge", "M/Z", "Protein"]
+    fixed += ["Mapped Proteins", "Protein ID", "Gene", "Assigned Modifications"]
+    header = fixed + [
+        f"{sample} {field}" for field in FRAGPIPE_PER_SAMPLE for sample in FRAGPIPE_SAMPLES
+    ]
+    rows: list[list[object]] = []
+    for index, (sequence, protein, matches) in enumerate(FRAGPIPE_IONS):
+        row: list[object] = [sequence, sequence, 2, 465.7, f"sp|{protein}|{protein}_HUMAN", ""]
+        row += [protein, f"G{index}", ""]
+        for field in FRAGPIPE_PER_SAMPLE:
+            for sample, match in enumerate(matches):
+                if field == "Match Type":
+                    row.append(match)
+                elif field == "Intensity":
+                    row.append(0 if match == "unmatched" else 1000 * (index + 1) + sample)
+                else:
+                    row.append(1 + index + sample)
+        rows.append(row)
+    path = folder / "combined_ion.tsv"
+    _table(path, header, rows)
+    return path
+
+
 def apb_part(namespace: Mapping[str, Any]) -> dict[str, Any]:
     """One stored APB part, decoded."""
     codec = UnsJsonCodec()

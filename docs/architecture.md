@@ -1,6 +1,6 @@
 # Architecture
 
-Export rules declare what each target reads; one engine applies them. APB2 owns conversion and canonical APB persistence. HDF5 exports use its writer; QPX has a target-specific serializer of the exported quantities.
+Export rules declare what each target reads; one engine applies them. APB2 owns conversion and canonical APB persistence. HDF5 exports use its writer; QPX and the `.csv` long table have target-specific serializers of the exported quantities.
 
 ## Modules
 
@@ -14,7 +14,8 @@ Modules compose downward only:
 | `rows` | Polars only; aligns sources to cell, feature, observation and `uns` rows |
 | `computed` | The conversions a computed entry's `how` names |
 | `sources` | APB references resolved against one level; catalogue lookups through apb-catalog; protein-level fields read through each protein group |
-| `outputs` | Selects the serializer once: HDF5 through APB2, or target-specific QPX Parquet |
+| `outputs` | Selects the serializer once: HDF5 through APB2, target-specific QPX Parquet, or the `.csv` long table; each format says whether it holds one level |
+| `long_table` | One level as a CSV: a row per observation and feature some layer holds, obs columns, var columns and layers side by side, categories as their labels, missing as `NA` |
 | `qpx` | QPX 1.1 nested types, sparse quantities, run/sample metadata and export manifest; RT conversion uses catalogued original units |
 | `export_rules` | Schema models, loader, and the packaged `documents/<target>/<version>/rules.json` |
 

@@ -11,6 +11,7 @@ Rules follow APB2's rule schema read in reverse:
 - `"level": "protein"` on a catalogued source: read through each variable's protein group, named whole or by its leading protein; a cell takes its group's value in its run; a var column's value, the group's, repeats in every run
 - `software` on a level block: the vendor that block is for
 - `.h5ad` rules: list their levels in order and write the first one the result's software and levels allow
+- `.csv` rules: choose their level as `.h5ad` rules do and write it as a long table: one row per run and feature that some layer holds, obs columns, var columns and one column per layer, category codes written as the labels the parsing rule declares, missing as `NA`, no sidecar
 
 The published [JSON Schemas](https://github.com/anndata-omics-bridge/apb-export/tree/main/src/apb_export/export_rules/documents/_schema) describe the documents.
 

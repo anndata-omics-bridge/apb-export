@@ -158,6 +158,11 @@ def _write(view: str, frame: pl.DataFrame, output: Path, record: dict[str, str])
 class QpxOutput:
     """Separate QPX views can represent every observation group without discarding levels."""
 
+    @property
+    def one_level(self) -> bool:
+        """QPX writes a view for each level it reads."""
+        return False
+
     def align(self, parsed: ParsedLevels, first_level: str) -> ParsedLevels:
         """Use APB2's safe run aliases, retaining levels from every observation group."""
         del first_level

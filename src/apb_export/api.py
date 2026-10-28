@@ -57,7 +57,7 @@ class Exporter:
 
     @property
     def extension(self) -> str:
-        """The target's file suffix, or ``.qpx`` for a QPX directory."""
+        """The target's file suffix: ``.h5ad``, ``.h5mu``, ``.csv``, ``.txt``, or ``.qpx`` for a QPX directory."""
         return self._compiled.extension
 
     def export(self, parsed: ParsedLevels) -> ParsedLevels:
@@ -83,10 +83,12 @@ class Exporter:
 
         HDF5 exports use APB2's writer with unprefixed variable names and its sidecar.
         QPX exports contain Parquet tables and an export manifest in a new directory.
+        ``.csv`` exports are the long table and ``.txt`` exports the Perseus table, both
+        without a sidecar.
 
         Args:
             exported: What :meth:`export` returned.
-            output: The new ``.h5ad``/``.h5mu`` file or ``.qpx`` directory.
+            output: The new ``.h5ad``/``.h5mu``/``.csv`` file or ``.qpx`` directory.
         """
         self._compiled.write(exported, output)
 
