@@ -19,13 +19,13 @@ The closest `AGENTS.md` wins. Explicit user instructions override this file.
 
 ## Architecture
 
-Export rules declare what each target reads; one engine applies them. Packaged targets: msmu, MSstats, Perseus, prolfqua, ProteoPy, AlphaPeptTools, QFeatures and QPX; installed plugins add more through the `apb_export.targets` entry-point group. Modules compose downward only:
+Export rules declare what each target reads; one engine applies them. Packaged targets: msmu, MSstats, Perseus, prolfqua, ProteoPy, exploreDE, AlphaPeptTools, QFeatures and QPX; installed plugins add more through the `apb_export.targets` entry-point group. Modules compose downward only:
 
 - `cli`: one subcommand per target; APB2's `ParseRuleCompiler` reads the target's levels, apb2's `AnnotationCompiler` applies `--annotation`, then `Exporter` exports; refuses overwrite and the wrong file type, reports unreviewed catalogue answers
 - `api`: `Exporter(target, abundance=...).export(parsed)`, the family's shape: configuration bound once, one verb on `ParsedLevels`; `write(exported, path)` hands the result to APB2's `write_parsed_levels` with unprefixed var names; `targets()`, `levels` and `extension` describe the packaged rules
 - `engine`: `CompiledExport`, one target's level rules checked once; picks the levels for the result's software, aligns several on one observation axis with APB2's `observation_groups()`, binds every entry's sources, and builds a `ParsedLevels`; a rule's `feature_links` become directed feature relations, fine to coarse, as mulink reads them
 - `rows`: Polars only; aligns sources to feature, observation and `uns` rows
-- `outputs`: selects HDF5, QPX, long-table or Perseus serialization once, and whether the format holds one level; HDF5 delegates to APB2, `qpx` writes target-specific Parquet tables from the exported levels
+- `outputs`: selects HDF5, QPX, long-table or Perseus serialization once, and whether the format holds one level; HDF5 delegates to APB2, `.h5ads` writes one APB2 `.h5ad` per level into a directory, `qpx` writes target-specific Parquet tables from the exported levels
 - `long_table`: one level as a CSV, a row per observed cell, obs, var and layer columns side by side, categorical layers as their declared labels; no sidecar
 - `perseus_table`: one level as Perseus' tab-separated table, var columns then `<layer> <sample>` columns typed `E`, booleans as `+`, obs annotation columns as `#!{C:…}` rows; no sidecar
 - `qpx`: QPX 1.1 types and serialization; resolves RT through the `chromatography` catalogue in the rule and converts its reviewed units to seconds; no vendor names in the serializer

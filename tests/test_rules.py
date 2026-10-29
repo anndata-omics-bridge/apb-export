@@ -40,6 +40,7 @@ def test_the_published_artifacts_are_the_schemas_the_models_declare() -> None:
 def test_every_packaged_rule_validates_and_compiles() -> None:
     assert packaged_documents() == (
         "alphapepttools/v0_4/rules.json",
+        "explorede/v1_0/rules.json",
         "msmu/v0_4/rules.json",
         "msstats/v4_20/rules.json",
         "perseus/v2/rules.json",
@@ -55,6 +56,7 @@ def test_every_packaged_rule_validates_and_compiles() -> None:
 
     assert extensions == {
         "alphapepttools": ".h5mu",
+        "explorede": ".h5ads",
         "msmu": ".h5mu",
         "msstats": ".csv",
         "perseus": ".txt",

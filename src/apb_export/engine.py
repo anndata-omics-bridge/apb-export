@@ -9,6 +9,7 @@ feature links become one of its directed feature relations.
 from __future__ import annotations
 
 import copy
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from importlib.metadata import version
@@ -34,6 +35,8 @@ from apb_export.export_rules.schema import (
     LayerEntry,
     LayerMinimum,
     MeasurementSource,
+    Rename,
+    ShortName,
     SourcedEntry,
 )
 from apb_export.outputs import output_for
@@ -90,6 +93,16 @@ def _absent(entry: ColumnEntry, group: str) -> _Bound | None:
     return _Bound(entry, (), {"location": "absent", "filled": str(entry.fill_value)}, True)
 
 
+def _check_takes(
+    entry: ColumnEntry, resolved: Sequence[Resolved], group: str, takes: tuple[type[object], ...]
+) -> None:
+    for item in resolved:
+        if not isinstance(item, takes):
+            raise ValueError(
+                f"{group} entry {entry.name!r} cannot take {_describe(item.provenance)}"
+            )
+
+
 def _bind(
     entry: ColumnEntry, sources: LevelSources, group: str, takes: tuple[type[object], ...]
 ) -> _Bound | None:
@@ -109,6 +122,8 @@ def _bind(
                 f"{group} entry {entry.name!r} cannot take {_describe(reduced.provenance)}"
             )
         return _Bound(entry, (reduced,), {**reduced.provenance, "how": entry.how})
+    if isinstance(entry, ShortName):
+        return _bind_short_name(entry, sources, group, takes)
     found = (
         [sources.resolve(entry.source)]
         if isinstance(entry, SourcedEntry)
@@ -117,13 +132,23 @@ def _bind(
     resolved = [item for item in found if item is not None]
     if len(resolved) < len(found):
         return _absent(entry, group)
-    for item in resolved:
-        if not isinstance(item, takes):
-            raise ValueError(
-                f"{group} entry {entry.name!r} cannot take {_describe(item.provenance)}"
-            )
+    _check_takes(entry, resolved, group, takes)
     if isinstance(entry, SourcedEntry):
         return _Bound(entry, tuple(resolved), resolved[0].provenance)
+    inputs = ", ".join(_describe(item.provenance) for item in resolved)
+    return _Bound(entry, tuple(resolved), {"how": entry.how, "inputs": inputs})
+
+
+def _bind_short_name(
+    entry: ShortName, sources: LevelSources, group: str, takes: tuple[type[object], ...]
+) -> _Bound | None:
+    """The inputs the result carries, then ``append``; absent inputs are passed over."""
+    found = [item for item in map(sources.resolve, entry.inputs) if item is not None]
+    appended = None if entry.append is None else sources.resolve(entry.append)
+    if not found or (entry.append is not None and appended is None):
+        return _absent(entry, group)
+    resolved = [*found, *([] if appended is None else [appended])]
+    _check_takes(entry, resolved, group, takes)
     inputs = ", ".join(_describe(item.provenance) for item in resolved)
     return _Bound(entry, tuple(resolved), {"how": entry.how, "inputs": inputs})
 
@@ -186,12 +211,28 @@ def _software(parsed: ParsedLevels) -> set[str]:
 
 
 def _layer_frame(values: pl.DataFrame, entry: LayerEntry) -> pl.DataFrame:
-    """A layer as APB2 keeps it, features by observations, declared missing values blanked."""
+    """A layer as APB2 keeps it, features by observations, declared missing values blanked,
+    then transformed."""
     numbers = values.select(pl.all().cast(pl.Float64))
     if entry.missing_values:
         absent = pl.all().is_in(entry.missing_values)
         numbers = numbers.select(pl.when(absent).then(None).otherwise(pl.all()).name.keep())
+    if entry.transform == "log2":
+        numbers = numbers.select(pl.when(pl.all() > 0).then(pl.all().log(2)).name.keep())
     return numbers.cast(pl.Float32 if entry.width == 32 else pl.Float64)
+
+
+def _renamed(values: pl.Series, renames: Sequence[Rename]) -> pl.Series:
+    """An annotation column under its own name, or named by the first matching rename as text
+    whose categories are sorted, whatever order the runs come in."""
+    for rename in renames:
+        if re.search(rename.pattern, values.name):
+            name = re.sub(rename.pattern, rename.replacement, values.name)
+            if rename.identifier:
+                name = re.sub(r"[^a-z0-9_]", "_", name.lower())
+            text = values.cast(pl.Utf8)
+            return text.cast(pl.Enum(sorted(text.drop_nulls().unique()))).alias(name)
+    return values
 
 
 class _LevelExport:
@@ -311,7 +352,9 @@ class _LevelExport:
         for item in bound:
             if isinstance(item, AllValues):
                 names = self._sources.annotations()
-                columns.extend(self._sources.annotation(name) for name in names)
+                columns.extend(
+                    _renamed(self._sources.annotation(name), item.rename) for name in names
+                )
             else:
                 columns.append(_series(item, rows, self._rule.rule.accession_syntax))
         names = [column.name for column in columns]

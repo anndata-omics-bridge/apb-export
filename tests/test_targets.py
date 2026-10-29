@@ -484,6 +484,144 @@ def test_msstats_gets_its_columns_one_row_per_precursor_and_run(
     assert "AAC[UNIMOD:4]LLK" in set(table.get_column("PeptideSequence")), "ProForma"
 
 
+def _sdrf(folder: Path) -> Path:
+    """An SDRF with one characteristic and two factor values per run."""
+    path = folder / "samples.sdrf.tsv"
+    header = (
+        "source name\tcharacteristics[organism]\tcomment[data file]"
+        "\tfactor value[Condition]\tfactor value[spiked compound]"
+    )
+    rows = [
+        f"s{index}\tHomo sapiens\t{run}.raw\t{run[4]}\tyeast{1 - index % 2}"
+        for index, run in enumerate(RUNS)
+    ]
+    path.write_text("\n".join([header, *rows]) + "\n", encoding="utf-8")
+    return path
+
+
+def _explorede_files(parsed: ParsedLevels, folder: Path) -> dict[str, ad.AnnData]:
+    """Export for exploreDE and read each level's file, by its name in the directory."""
+    export = Exporter("explorede")
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "explorede.h5ads"
+    export.write(export.export(parsed), path)
+    return {file.stem: ad.read_h5ad(file) for file in sorted(path.glob("*.h5ad"))}
+
+
+def _explorede(
+    parsed: ParsedLevels, annotation: Path, folder: Path, level: str = "protein"
+) -> ad.AnnData:
+    annotated = AnnotationCompiler().compile(annotation).parse(parsed).annotate().parsed
+    return _explorede_files(annotated, folder)[level]
+
+
+def test_explorede_writes_exploreDE_1_0_without_differential_expression(
+    diann: DiannInput, tmp_path: Path
+) -> None:
+    adata = _explorede(_parsed(diann), _sdrf(tmp_path), tmp_path)
+    obs, var, uns = _frame(adata.obs), _frame(adata.var), adata.uns
+
+    assert (uns["schema_version"], uns["omics_type"], uns["feature_id_kind"]) == (
+        "exploreDE/1.0",
+        "proteomics",
+        "protein",
+    )
+    assert (list(uns["hierarchy"]["levels"]), uns["hierarchy"]["unit"]) == (["protein"], "protein")
+    assert (uns["de"], uns["enrichment"], uns["enrichment_support"]) == ({}, {}, {})
+    assert uns["provenance"]["source_format"] == "apb-export"
+    assert "prolfquapp" not in uns, "it would send the file to exploreDE's prolfquapp reader"
+    assert not adata.varm, "no contrasts"
+    assert list(obs.index) == list(obs["sample_label"]) == list(RUNS)
+    factors = [name for name in obs.columns if name.startswith("factor_")]
+    assert factors == ["factor_condition", "factor_spiked_compound"], "SDRF factor values only"
+    assert isinstance(obs["factor_condition"].dtype, pd.CategoricalDtype)
+    assert list(obs["factor_condition"]) == ["A", "A", "B", "B"]
+    assert list(obs["factor_spiked_compound"].cat.categories) == ["yeast0", "yeast1"]
+    assert "characteristics_organism" in obs.columns, "other columns pass unprefixed"
+    assert list(var.index) == list(var["label_protein_id"])
+    assert var.index.is_unique
+    labels = dict(zip(var.index, var["label_gene_symbol"], strict=True))
+    assert labels["sp|P2|P2_HUMAN"] == "P2_HUMAN", "a UniProt member by its entry name"
+    assert labels["P5;CON__P6"] == "P5", "a group by its first member"
+
+
+def test_explorede_intensities_are_log2_with_zeros_missing(
+    diann: DiannInput, tmp_path: Path
+) -> None:
+    report = pl.read_csv(diann.report, separator="\t")
+    zero = (pl.col("Run") == "run_A1") & (pl.col("Protein.Group") == "P1")
+    report = report.with_columns(
+        pl.when(zero).then(0.0).otherwise(pl.col("PG.MaxLFQ")).alias("PG.MaxLFQ")
+    )
+    report.write_csv(diann.report, separator="\t")
+    adata = _explorede(_parsed(diann), _sdrf(tmp_path), tmp_path)
+    raw = np.asarray(adata.layers["intensities_raw"])
+    intensities = np.asarray(adata.layers["intensities"])
+
+    np.testing.assert_array_equal(np.asarray(adata.X), intensities)
+    np.testing.assert_allclose(intensities, np.log2(raw))
+    cell = (list(adata.obs_names).index("run_A1"), list(adata.var_names).index("P1"))
+    assert np.isnan(raw[cell]) and np.isnan(intensities[cell]), "a vendor zero is missing"
+    assert np.isfinite(intensities[0]).sum() > 1
+
+
+def test_explorede_takes_the_prolfquapp_grouping_column_as_its_factor(
+    diann: DiannInput, tmp_path: Path
+) -> None:
+    obs = _frame(_explorede(_parsed(diann), write_design(tmp_path), tmp_path).obs)
+
+    assert [name for name in obs.columns if name.startswith("factor_")] == ["factor_group"]
+    assert "BioReplicate" in obs.columns
+
+
+def _features_by_protein(adata: ad.AnnData, kind: str, levels: list[str]) -> pd.DataFrame:
+    """The var of a non-protein exploreDE export, checked for its kind and feature names."""
+    var = _frame(adata.var)
+    assert adata.uns["feature_id_kind"] == kind
+    assert list(adata.uns["hierarchy"]["levels"]) == levels
+    assert var.index.is_unique
+    for feature, protein in zip(var.index, var["label_protein_id"], strict=True):
+        assert feature.startswith(f"{protein}_")
+    return var
+
+
+def test_explorede_writes_a_file_for_each_level_the_result_holds(
+    diann: DiannInput, tmp_path: Path
+) -> None:
+    (tmp_path / "maxquant").mkdir()
+    maxquant = write_maxquant(tmp_path / "maxquant")
+    levels = Exporter("explorede").levels
+    compiler = ParseRuleCompiler.detect(maxquant.folder, maxquant.params, requested_levels=levels)
+    files = _explorede_files(compiler.compile().parse(), tmp_path / "out")
+
+    assert levels == ("protein", "peptide", "peptidoform_ion")
+    assert set(files) == {"protein", "peptide", "precursor"}
+    assert set(_explorede_files(_parsed(diann), tmp_path / "diann")) == {"protein", "precursor"}
+
+
+def test_explorede_names_peptides_by_protein_and_sequence(tmp_path: Path) -> None:
+    maxquant = write_maxquant(tmp_path)
+    levels = Exporter("explorede").levels
+    compiler = ParseRuleCompiler.detect(maxquant.folder, maxquant.params, requested_levels=levels)
+    adata = _explorede_files(compiler.compile().parse(), tmp_path / "out")["peptide"]
+
+    var = _features_by_protein(adata, "peptide", ["protein", "peptide"])
+    assert {feature.rsplit("_", 1)[1] for feature in var.index} <= {p[0] for p in PEPTIDES}
+    obs = _frame(adata.obs)
+    assert not [name for name in obs.columns if name.startswith("factor_")], (
+        "MaxQuant's own columns"
+    )
+
+
+def test_explorede_names_precursors_by_protein_and_ion(diann: DiannInput, tmp_path: Path) -> None:
+    adata = _explorede(_parsed(diann), _sdrf(tmp_path), tmp_path, "precursor")
+
+    _features_by_protein(adata, "precursor", ["protein", "peptide", "precursor"])
+    assert "P1_PEPTIDEK/2" in adata.var_names
+    assert _frame(adata.var).loc["P1_PEPTIDEK/2", "label_gene_symbol"] == "P1_PEPTIDEK/2"
+    assert "factor_condition" in _frame(adata.obs).columns
+
+
 def test_msstats_needs_the_condition_from_an_annotation(diann: DiannInput) -> None:
     with pytest.raises(ValueError, match="Condition"):
         Exporter("msstats").export(_parsed(diann))
@@ -497,6 +635,7 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
 
     assert found == {
         "alphapepttools": (("peptidoform_ion", "peptide", "protein"), ".h5mu"),
+        "explorede": (("protein", "peptide", "peptidoform_ion"), ".h5ads"),
         "msmu": (("peptidoform_ion",), ".h5mu"),
         "msstats": (("peptidoform_ion",), ".csv"),
         "perseus": (("protein",), ".txt"),

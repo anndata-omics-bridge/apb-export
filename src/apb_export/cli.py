@@ -354,6 +354,38 @@ def proteopy(
 
 
 @app.command
+def explorede(
+    data: Data,
+    output: Annotated[Path, Parameter(help="New .h5ads directory for exploreDE")],
+    /,
+    *,
+    params: Params = None,
+    software: Software = None,
+    annotation: SampleAnnotation = None,
+    strict: Strict = False,
+    fasta: Fasta = (),
+) -> int:
+    """APB2's protein, peptide and peptidoform_ion levels, those the result holds, as
+    exploreDE/1.0 files without differential expression, one .h5ad each; SDRF factor values
+    and prolfquapp grouping columns become their factors."""
+    return _write(
+        "explorede",
+        _exported(
+            "explorede",
+            data,
+            output,
+            params=params,
+            software=software,
+            abundance=None,
+            annotation=annotation,
+            strict=strict,
+            fasta=fasta,
+        ),
+        output,
+    )
+
+
+@app.command
 def qpx(
     data: Data,
     output: Annotated[Path, Parameter(help="New .qpx directory containing QPX Parquet tables")],

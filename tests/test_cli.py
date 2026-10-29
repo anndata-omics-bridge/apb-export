@@ -209,6 +209,24 @@ def test_proteopy_annotates_its_protein_groups_from_the_fasta(
     assert (bool(absent["in_fasta"]), absent["gene_id"]) == (False, "")
 
 
+def test_explorede_labels_features_by_the_fasta_gene_name(
+    diann: DiannInput, tmp_path: Path
+) -> None:
+    fasta = tmp_path / "proteins.fasta"
+    fasta.write_text(">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE\nMPEPTIDEKAACLLKR\n")
+    output = tmp_path / "out.h5ads"
+    common = ("--params", str(diann.log), "--fasta", str(fasta))
+
+    assert _run("explorede", str(diann.report), str(output), *common) == 0
+
+    protein = ad.read_h5ad(output / "protein.h5ad").var
+    precursor = ad.read_h5ad(output / "precursor.h5ad").var
+    assert isinstance(protein, pd.DataFrame) and isinstance(precursor, pd.DataFrame)
+    assert protein.loc["P1", "label_gene_symbol"] == "ONE"
+    assert protein.loc["P7", "label_gene_symbol"] == "P7", "no gene name: the accession"
+    assert precursor.loc["P1_PEPTIDEK/2", "label_gene_symbol"] == "ONE_PEPTIDEK/2"
+
+
 def test_proteopy_and_alphapepttools_write_their_files_and_sidecars(
     diann: DiannInput, tmp_path: Path
 ) -> None:
@@ -229,11 +247,11 @@ def test_every_target_writes_its_manifest(target: str, diann: DiannInput, tmp_pa
     fasta = tmp_path / "proteins.fasta"
     fasta.write_text(">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE\nMPEPTIDEKAACLLKR\n")
     output = tmp_path / f"out{Exporter(target).extension}"
-    common = ("--params", str(diann.log), "--fasta", str(fasta))
+    data, common = str(diann.report), ("--params", str(diann.log), "--fasta", str(fasta))
     if target == "msstats":
         common += ("--annotation", str(write_design(tmp_path)))
 
-    assert _run(target, str(diann.report), str(output), *common) == 0
+    assert _run(target, data, str(output), *common) == 0
     if target in {"msstats", "perseus"}:
         assert not sidecar_path(output).exists(), "a table has no sidecar"
         return
@@ -241,6 +259,11 @@ def test_every_target_writes_its_manifest(target: str, diann: DiannInput, tmp_pa
         manifest = json.loads((output / "export.json").read_text())
         assert manifest["format"] == "qpx"
         assert set(manifest["tables"]) == {"feature", "pg", "run", "sample"}
+        return
+    if target == "explorede":
+        for level in ("protein", "precursor"):
+            sidecar = json.loads(sidecar_path(output / f"{level}.h5ad").read_text())
+            assert sidecar["artifact"]["name"] == f"{level}.h5ad"
         return
     # APB2 checks each sidecar against its published schema before writing it.
     sidecar = json.loads(sidecar_path(output).read_text(encoding="utf-8"))

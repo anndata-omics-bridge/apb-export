@@ -1,0 +1,136 @@
+{
+  "schema_version": "0.4",
+  "file_version": "1",
+  "target_name": "exploreDE",
+  "target_version_pattern": "^3\\.8\\.",
+  "tables": [
+    {
+      "output": {"extensions": [".h5ads"]},
+      "base": {
+        "axis": {"obs_keys": ["sample_id"], "var_keys": ["feature_id"]},
+        "measurements": {
+          "primary_layer": "X",
+          "layers": [
+            {"name": "X", "source": {"measurements": "primary_layer"}, "missing_values": [0], "transform": "log2"},
+            {"name": "intensities", "source": {"measurements": "primary_layer"}, "missing_values": [0], "transform": "log2"},
+            {"name": "intensities_raw", "source": {"measurements": "primary_layer"}, "missing_values": [0]}
+          ]
+        }
+      },
+      "levels": {
+        "protein": {
+          "modality": "protein",
+          "required": false,
+          "columns": {
+            "obs": [
+              {"name": "sample_id", "source": {"axis": "obs_keys"}},
+              {"name": "sample_label", "source": {"axis": "obs_keys"}},
+              {
+                "name": "annotations",
+                "how": "all_values",
+                "rename": [
+                  {"pattern": "^factor_value_(.+)$", "replacement": "factor_\\1", "identifier": true},
+                  {"pattern": "(?i)^((?:group|bait).*)$", "replacement": "factor_\\1", "identifier": true}
+                ]
+              }
+            ],
+            "var": [
+              {"name": "feature_id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}},
+              {"name": "label_protein_id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}},
+              {"name": "label_gene_symbol", "how": "short_name", "inputs": [{"fasta": "fasta_gene_names"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}]},
+              {"name": "description", "source": {"fasta": "fasta_descriptions"}, "required": false}
+            ]
+          },
+          "uns": [
+            {"name": "feature_id_kind", "how": "constant", "value": "protein"},
+            {"name": "hierarchy", "how": "constant", "value": {"levels": ["protein"], "unit": "protein"}}
+          ]
+        },
+        "peptide": {
+          "modality": "peptide",
+          "required": false,
+          "columns": {
+            "obs": [
+              {"name": "sample_id", "source": {"axis": "obs_keys"}},
+              {"name": "sample_label", "source": {"axis": "obs_keys"}},
+              {
+                "name": "annotations",
+                "how": "all_values",
+                "rename": [
+                  {"pattern": "^factor_value_(.+)$", "replacement": "factor_\\1", "identifier": true},
+                  {"pattern": "(?i)^((?:group|bait).*)$", "replacement": "factor_\\1", "identifier": true}
+                ]
+              }
+            ],
+            "var": [
+              {
+                "name": "feature_id",
+                "how": "join_nonempty",
+                "inputs": [{"catalog": "apb", "kind": "protein_assignment", "location": "var"}, {"catalog": "apb", "kind": "peptide", "location": "var"}],
+                "separator": "_"
+              },
+              {"name": "label_protein_id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}, "drop_missing": true},
+              {
+                "name": "label_gene_symbol",
+                "how": "short_name",
+                "inputs": [{"fasta": "reported_leading_gene_name"}, {"fasta": "reported_leading_id"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}],
+                "append": {"catalog": "apb", "kind": "peptide", "location": "var"}
+              },
+              {"name": "description", "source": {"fasta": "reported_leading_description"}, "required": false}
+            ]
+          },
+          "uns": [
+            {"name": "feature_id_kind", "how": "constant", "value": "peptide"},
+            {"name": "hierarchy", "how": "constant", "value": {"levels": ["protein", "peptide"], "unit": "peptide"}}
+          ]
+        },
+        "peptidoform_ion": {
+          "modality": "precursor",
+          "required": false,
+          "columns": {
+            "obs": [
+              {"name": "sample_id", "source": {"axis": "obs_keys"}},
+              {"name": "sample_label", "source": {"axis": "obs_keys"}},
+              {
+                "name": "annotations",
+                "how": "all_values",
+                "rename": [
+                  {"pattern": "^factor_value_(.+)$", "replacement": "factor_\\1", "identifier": true},
+                  {"pattern": "(?i)^((?:group|bait).*)$", "replacement": "factor_\\1", "identifier": true}
+                ]
+              }
+            ],
+            "var": [
+              {
+                "name": "feature_id",
+                "how": "join_nonempty",
+                "inputs": [{"catalog": "apb", "kind": "protein_assignment", "location": "var"}, {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}],
+                "separator": "_"
+              },
+              {"name": "label_protein_id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}, "drop_missing": true},
+              {
+                "name": "label_gene_symbol",
+                "how": "short_name",
+                "inputs": [{"fasta": "reported_leading_gene_name"}, {"fasta": "reported_leading_id"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}],
+                "append": {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}
+              },
+              {"name": "description", "source": {"fasta": "reported_leading_description"}, "required": false}
+            ]
+          },
+          "uns": [
+            {"name": "feature_id_kind", "how": "constant", "value": "precursor"},
+            {"name": "hierarchy", "how": "constant", "value": {"levels": ["protein", "peptide", "precursor"], "unit": "precursor"}}
+          ]
+        }
+      },
+      "uns": [
+        {"name": "schema_version", "how": "constant", "value": "exploreDE/1.0"},
+        {"name": "omics_type", "how": "constant", "value": "proteomics"},
+        {"name": "de", "how": "constant", "value": {}},
+        {"name": "enrichment", "how": "constant", "value": {}},
+        {"name": "enrichment_support", "how": "constant", "value": {}},
+        {"name": "provenance", "how": "constant", "value": {"source_format": "apb-export"}}
+      ]
+    }
+  ]
+}

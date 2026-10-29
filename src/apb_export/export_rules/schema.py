@@ -6,9 +6,10 @@ description says so: an entry's ``name`` is the target field and its ``source`` 
 
 from __future__ import annotations
 
+import re
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
 type SchemaVersion = Literal["0.4"]
 type ColumnType = Literal["string", "integer", "number", "boolean"]
@@ -201,6 +202,20 @@ class Lowercase(EntryBase):
     inputs: list[Reference] = Field(min_length=1, max_length=1)
 
 
+class ShortName(EntryBase):
+    """Per row, the first input holding a non-empty value, cut to its first ``separator``
+    member and, for a ``db|ACC|NAME`` member, to ``NAME``; ``append`` follows after ``_``.
+
+    An input the result does not carry, such as a FASTA column without a FASTA check, is passed
+    over; ``append`` is required.
+    """
+
+    how: Literal["short_name"]
+    inputs: list[Reference] = Field(min_length=1, description="Candidates per row, in order.")
+    separator: str = Field(default=";", min_length=1, description="Between group members.")
+    append: Reference | None = None
+
+
 class AnnotationMap(EntryBase):
     """Every obs annotation column mapped to its own name; ``uns`` only."""
 
@@ -223,6 +238,7 @@ type ComputedEntry = Annotated[
     | Accessions
     | Contaminant
     | Lowercase
+    | ShortName
     | AnnotationMap
     | LayerMinimum,
     Field(discriminator="how"),
@@ -230,11 +246,34 @@ type ComputedEntry = Annotated[
 type ColumnEntry = SourcedEntry | ComputedEntry
 
 
+class Rename(ModelBase):
+    """An annotation column whose name matches ``pattern`` is written as text with sorted
+    categories, named as ``re.sub(pattern, replacement, name)`` gives it."""
+
+    pattern: str = Field(min_length=1, description="A Python regular expression.")
+    replacement: str = Field(min_length=1)
+    identifier: bool = Field(
+        default=False,
+        description="The new name in lower case, each character outside a-z, 0-9 and _ becoming _.",
+    )
+
+    @field_validator("pattern")
+    @classmethod
+    def _compiles(cls, pattern: str) -> str:
+        re.compile(pattern)
+        return pattern
+
+
 class AllValues(ModelBase):
-    """Every obs annotation column the APB level carries, each under its own name."""
+    """Every obs annotation column the APB level carries, each under its own name unless a
+    rename matches it."""
 
     name: str = Field(min_length=1)
     how: Literal["all_values"]
+    rename: list[Rename] = Field(
+        default_factory=list,
+        description="Tried in order; the first whose pattern matches a column renames it.",
+    )
 
 
 class LayerEntry(ModelBase):
@@ -252,6 +291,11 @@ class LayerEntry(ModelBase):
         default_factory=dict,
         description="The written name per abundance kind of the resolved layer, as Perseus "
         "names MaxLFQ values LFQ intensity; any other kind keeps name.",
+    )
+    transform: Literal["log2"] | None = Field(
+        default=None,
+        description="Applied after missing_values: log2, a value that is not positive becoming "
+        "missing.",
     )
 
 
@@ -353,11 +397,12 @@ class Output(ModelBase):
     """What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.
 
     ``.h5ad`` holds one level: the first listed that the result's software and levels allow.
-    ``.h5mu`` holds one modality per level. ``.csv`` holds one level as a long table and
+    ``.h5mu`` holds one modality per level; ``.h5ads`` is a directory of one ``.h5ad`` per level,
+    named by its modality. ``.csv`` holds one level as a long table and
     ``.txt`` one as a Perseus table, each chosen as for ``.h5ad``.
     """
 
-    extensions: list[Literal[".h5mu", ".h5ad", ".csv", ".txt", ".qpx"]] = Field(
+    extensions: list[Literal[".h5mu", ".h5ad", ".h5ads", ".csv", ".txt", ".qpx"]] = Field(
         min_length=1, max_length=1
     )
 

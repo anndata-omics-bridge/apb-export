@@ -102,7 +102,7 @@
     },
     "AllValues": {
       "additionalProperties": false,
-      "description": "Every obs annotation column the APB level carries, each under its own name.",
+      "description": "Every obs annotation column the APB level carries, each under its own name unless a\nrename matches it.",
       "properties": {
         "name": {
           "minLength": 1,
@@ -113,6 +113,14 @@
           "const": "all_values",
           "title": "How",
           "type": "string"
+        },
+        "rename": {
+          "description": "Tried in order; the first whose pattern matches a column renames it.",
+          "items": {
+            "$ref": "#/$defs/Rename"
+          },
+          "title": "Rename",
+          "type": "array"
         }
       },
       "required": [
@@ -371,7 +379,8 @@
           "layer_minimum": "#/$defs/LayerMinimum",
           "lowercase": "#/$defs/Lowercase",
           "proforma_charge": "#/$defs/ProformaCharge",
-          "sequence_length": "#/$defs/SequenceLength"
+          "sequence_length": "#/$defs/SequenceLength",
+          "short_name": "#/$defs/ShortName"
         },
         "propertyName": "how"
       },
@@ -396,6 +405,9 @@
         },
         {
           "$ref": "#/$defs/Lowercase"
+        },
+        {
+          "$ref": "#/$defs/ShortName"
         },
         {
           "$ref": "#/$defs/AnnotationMap"
@@ -676,6 +688,20 @@
           "description": "The written name per abundance kind of the resolved layer, as Perseus names MaxLFQ values LFQ intensity; any other kind keeps name.",
           "title": "Name By Kind",
           "type": "object"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "const": "log2",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Applied after missing_values: log2, a value that is not positive becoming missing.",
+          "title": "Transform"
         }
       },
       "required": [
@@ -956,6 +982,35 @@
         }
       ]
     },
+    "Rename": {
+      "additionalProperties": false,
+      "description": "An annotation column whose name matches ``pattern`` is written as text with sorted\ncategories, named as ``re.sub(pattern, replacement, name)`` gives it.",
+      "properties": {
+        "pattern": {
+          "description": "A Python regular expression.",
+          "minLength": 1,
+          "title": "Pattern",
+          "type": "string"
+        },
+        "replacement": {
+          "minLength": 1,
+          "title": "Replacement",
+          "type": "string"
+        },
+        "identifier": {
+          "default": false,
+          "description": "The new name in lower case, each character outside a-z, 0-9 and _ becoming _.",
+          "title": "Identifier",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "pattern",
+        "replacement"
+      ],
+      "title": "Rename",
+      "type": "object"
+    },
     "RuleSource": {
       "additionalProperties": false,
       "description": "A top-level field of the apb2 rule stored with the level, such as ``software_name``.",
@@ -1055,6 +1110,90 @@
         "inputs"
       ],
       "title": "SequenceLength",
+      "type": "object"
+    },
+    "ShortName": {
+      "additionalProperties": false,
+      "description": "Per row, the first input holding a non-empty value, cut to its first ``separator``\nmember and, for a ``db|ACC|NAME`` member, to ``NAME``; ``append`` follows after ``_``.\n\nAn input the result does not carry, such as a FASTA column without a FASTA check, is passed\nover; ``append`` is required.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
+          "title": "Drop Missing",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "short_name",
+          "title": "How",
+          "type": "string"
+        },
+        "inputs": {
+          "description": "Candidates per row, in order.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "separator": {
+          "default": ";",
+          "description": "Between group members.",
+          "minLength": 1,
+          "title": "Separator",
+          "type": "string"
+        },
+        "append": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "inputs"
+      ],
+      "title": "ShortName",
       "type": "object"
     },
     "Source": {

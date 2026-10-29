@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Protocol
 
@@ -45,9 +45,40 @@ class MatrixOutput:
         write_parsed_levels(exported, output, var_name_prefix=False)
 
 
+class H5adPerLevel:
+    """A new ``.h5ads`` directory holding one APB2 ``.h5ad`` per exported level, named by it."""
+
+    @property
+    def one_level(self) -> bool:
+        """Every level the result holds gets its own file."""
+        return False
+
+    def align(self, parsed: ParsedLevels, first_level: str) -> ParsedLevels:
+        """Keep the levels of every observation group: each file has its own axis."""
+        del first_level
+        return replace(
+            parsed,
+            levels={
+                name: level
+                for group in parsed.observation_groups()
+                for name, level in group.levels.items()
+            },
+        )
+
+    def write(self, exported: ParsedLevels, output: Path) -> None:
+        """Write each level with APB2's writer and its sidecar, refusing an existing directory."""
+        if output.exists():
+            raise FileExistsError(f"refusing to overwrite {output}")
+        output.mkdir()
+        for name, level in exported.levels.items():
+            one = replace(exported, levels={name: level})
+            write_parsed_levels(one, output / f"{name}.h5ad", var_name_prefix=False)
+
+
 _OUTPUTS: dict[str, OutputFormat] = {
     ".h5ad": MatrixOutput(one_level=True),
     ".h5mu": MatrixOutput(one_level=False),
+    ".h5ads": H5adPerLevel(),
     ".csv": LongTableOutput(),
     ".txt": PerseusOutput(),
     ".qpx": QpxOutput(),

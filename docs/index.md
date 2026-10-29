@@ -13,6 +13,7 @@ APB2 converts the vendor output; apb-export applies the target's packaged export
 | Perseus | `.txt` | protein | Perseus, or `perseuspy.pd.read_perseus` |
 | prolfqua | `.h5ad` | peptidoform_ion, or peptide for MaxQuant | prolfquapp's `LFQData_from_anndata` |
 | ProteoPy | `.h5ad` | protein | ProteoPy |
+| [exploreDE](https://github.com/fgcz/exploreDE) | `.h5ads` directory, one `.h5ad` per level | protein, peptide, peptidoform_ion, those present | `exploreDE::exploreDE()` on each file |
 | AlphaPeptTools | `.h5mu` | peptidoform_ion, peptide, protein | `mulink_from_anndatas` |
 | QFeatures | `.h5mu` | peptidoform_ion, peptide, protein | `MuData::readH5MU`, then `QFeatures` |
 | QPX | `.qpx` directory | peptidoform_ion and/or protein | unchanged pMultiQC `--qpx-plugin` |

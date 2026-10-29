@@ -258,7 +258,8 @@
           "layer_minimum": "#/$defs/LayerMinimum",
           "lowercase": "#/$defs/Lowercase",
           "proforma_charge": "#/$defs/ProformaCharge",
-          "sequence_length": "#/$defs/SequenceLength"
+          "sequence_length": "#/$defs/SequenceLength",
+          "short_name": "#/$defs/ShortName"
         },
         "propertyName": "how"
       },
@@ -283,6 +284,9 @@
         },
         {
           "$ref": "#/$defs/Lowercase"
+        },
+        {
+          "$ref": "#/$defs/ShortName"
         },
         {
           "$ref": "#/$defs/AnnotationMap"
@@ -715,13 +719,14 @@
     },
     "Output": {
       "additionalProperties": false,
-      "description": "What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.\n\n``.h5ad`` holds one level: the first listed that the result's software and levels allow.\n``.h5mu`` holds one modality per level. ``.csv`` holds one level as a long table and\n``.txt`` one as a Perseus table, each chosen as for ``.h5ad``.",
+      "description": "What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.\n\n``.h5ad`` holds one level: the first listed that the result's software and levels allow.\n``.h5mu`` holds one modality per level; ``.h5ads`` is a directory of one ``.h5ad`` per level,\nnamed by its modality. ``.csv`` holds one level as a long table and\n``.txt`` one as a Perseus table, each chosen as for ``.h5ad``.",
       "properties": {
         "extensions": {
           "items": {
             "enum": [
               ".h5mu",
               ".h5ad",
+              ".h5ads",
               ".csv",
               ".txt",
               ".qpx"
@@ -931,6 +936,90 @@
         "inputs"
       ],
       "title": "SequenceLength",
+      "type": "object"
+    },
+    "ShortName": {
+      "additionalProperties": false,
+      "description": "Per row, the first input holding a non-empty value, cut to its first ``separator``\nmember and, for a ``db|ACC|NAME`` member, to ``NAME``; ``append`` follows after ``_``.\n\nAn input the result does not carry, such as a FASTA column without a FASTA check, is passed\nover; ``append`` is required.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
+          "title": "Drop Missing",
+          "type": "boolean"
+        },
+        "how": {
+          "const": "short_name",
+          "title": "How",
+          "type": "string"
+        },
+        "inputs": {
+          "description": "Candidates per row, in order.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "minItems": 1,
+          "title": "Inputs",
+          "type": "array"
+        },
+        "separator": {
+          "default": ";",
+          "description": "Between group members.",
+          "minLength": 1,
+          "title": "Separator",
+          "type": "string"
+        },
+        "append": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "how",
+        "inputs"
+      ],
+      "title": "ShortName",
       "type": "object"
     },
     "Source": {

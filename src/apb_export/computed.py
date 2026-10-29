@@ -17,6 +17,7 @@ from apb_export.export_rules.schema import (
     Lowercase,
     ProformaCharge,
     SequenceLength,
+    ShortName,
 )
 
 type Computed = (
@@ -26,6 +27,7 @@ type Computed = (
     | Accessions
     | Contaminant
     | Lowercase
+    | ShortName
     | LayerMinimum
 )
 
@@ -79,6 +81,23 @@ def _accessions(series: pl.Series, syntax: AccessionSyntax) -> pl.Series:
     return frame.select(rewritten).to_series()
 
 
+def _short_name(entry: ShortName, inputs: Sequence[pl.Series]) -> pl.Series:
+    names = inputs[:-1] if entry.append is not None else inputs
+    frame = pl.DataFrame(
+        {f"input{index}": series.cast(pl.Utf8) for index, series in enumerate(inputs)}
+    )
+    first = pl.coalesce(
+        pl.when(pl.col(name).fill_null("") != "").then(pl.col(name))
+        for name in frame.columns[: len(names)]
+    )
+    member = first.str.split(entry.separator).list.first()
+    fields = member.str.split("|")
+    short = pl.when(fields.list.len() == 3).then(fields.list.get(2)).otherwise(member)
+    if entry.append is not None:
+        short = pl.concat_str([short, pl.col(frame.columns[-1])], separator="_")
+    return frame.select(short).to_series()
+
+
 def compute(
     entry: Computed, inputs: Sequence[pl.Series], syntax: Mapping[str, AccessionSyntax]
 ) -> pl.Series:
@@ -96,5 +115,7 @@ def compute(
             return inputs[0]
         case Lowercase():
             return inputs[0].cast(pl.Utf8).str.to_lowercase()
+        case ShortName():
+            return _short_name(entry, inputs)
         case LayerMinimum():
             return inputs[0]
