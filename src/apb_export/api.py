@@ -3,8 +3,9 @@
 APB2 owns conversion and persistence: ``ParseRuleCompiler`` reads vendor files into
 ``ParsedLevels``, ``read_parsed_levels`` loads a stored result, ``write_parsed_levels`` writes
 one. Each target's packaged export rule declares what that tool reads; ``Exporter`` applies one
-and writes the target's format: HDF5 through APB2, or a QPX Parquet directory. The command composes
-conversion, annotation and export.
+and writes the target's format: HDF5 through APB2, one ``.h5ad`` per level in a ``.h5ads``
+directory, a ``.csv`` long table, a ``.txt`` Perseus table, or a QPX Parquet directory. The
+command composes conversion, annotation and export.
 
 A plugin package adds a target through the `apb_export.targets` entry-point group.
 """
@@ -57,7 +58,8 @@ class Exporter:
 
     @property
     def extension(self) -> str:
-        """The target's file suffix: ``.h5ad``, ``.h5mu``, ``.csv``, ``.txt``, or ``.qpx`` for a QPX directory."""
+        """The target's file suffix: ``.h5ad``, ``.h5mu``, ``.csv`` or ``.txt``, or the directory
+        suffix ``.qpx`` or ``.h5ads``."""
         return self._compiled.extension
 
     def export(self, parsed: ParsedLevels) -> ParsedLevels:

@@ -12,7 +12,7 @@ apb-export TARGET DATA OUTPUT [OPTIONS]
 
 | Command | Writes |
 | --- | --- |
-| `msmu` | APB2's peptidoform_ion level as msmu's `psm` modality: one feature per run and precursor |
+| `msmu` | APB2's peptidoform_ion level as msmu's `psm` modality, precursors by runs; experimental |
 | `msstats` | APB2's peptidoform_ion level as MSstats' long table in a new `.csv`; the annotation gives Condition and BioReplicate |
 | `perseus` | APB2's protein level as Perseus loads MaxQuant's proteinGroups.txt, in a new `.txt`; each annotation column becomes a categorical row |
 | `prolfqua` | APB2's peptidoform_ion level for prolfquapp; the annotation's columns become its factors |
@@ -40,6 +40,6 @@ apb-export TARGET DATA OUTPUT [OPTIONS]
 | `--fasta` | all | FASTA files, or their protein-fasta database: check the peptides and annotate the protein groups first |
 | `--sdrf` | plugin targets | SDRF-Proteomics sample table: every run must match one of its rows, whose columns fill the sample metadata |
 
-`--abundance` applies only to targets that write one level, so `alphapepttools` and `qfeatures` have none. With `--fasta`, msmu also flags the FASTA's contaminants.
+`--abundance` applies only to targets that write one level, so `alphapepttools`, `explorede`, `qfeatures` and `qpx` have none. With `--fasta`, msmu also flags the FASTA's contaminants.
 
 The command reports catalogue answers that are not yet reviewed and stops on them.

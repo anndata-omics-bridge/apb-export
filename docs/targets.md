@@ -56,7 +56,7 @@ multiqc --qpx-plugin result.qpx -o report
 - `export.json` records versions, source mappings and table sizes. HDF5 targets continue to use APB2's sidecar; the QPX directory has its own manifest
 - The schema snapshot comes from [qpx 1.1.6](https://github.com/bigbio/qpx/tree/v1.1.6), with its Apache-2.0 license included. pMultiQC's QPX reader does not provide organism-based feature grouping
 
-Report generation belongs to the proposed `apb-pmultiqc` application. [pMultiQC PR #751](https://github.com/bigbio/pmultiqc/pull/751) fixes upstream RT plots for missing/all-null RT; the released reader can log a plot exception for such valid inputs. Consumer checks require populated reports and no plot errors.
+Report generation belongs to the [apb-pmultiqc](https://github.com/anndata-omics-bridge/apb-pmultiqc) application. [pMultiQC PR #751](https://github.com/bigbio/pmultiqc/pull/751), merged on 29 October 2026, fixes upstream RT plots for missing/all-null RT; until a release contains it, the released reader (0.0.48) can log a plot exception for such valid inputs. Consumer checks require populated reports and no plot errors.
 
 ## msmu
 
@@ -161,7 +161,7 @@ toy = "toy_plugin.export_rule"
 - Layout: `<package>/<version>/rules.json`, one version per target, the same schema as the packaged documents
 - `Exporter.targets()` lists the target and `Exporter("toy")` applies it; a target named like a packaged one, or by two plugins, is refused
 - Command: `apb-export toy DATA OUTPUT` with `--params`, `--software`, `--fasta`, `--sdrf` and `--strict`; no `--abundance`, so the rule's primary layers become X
-- Rule features no packaged target uses yet: `qualifiers` on a catalogued source, `obs` sources naming SDRF or annotation columns, the table's own `uns` entries, and `feature_links`
+- Rule features no packaged target uses yet: `obs` sources naming SDRF or annotation columns, and `feature_links`
 - The web app offers only the packaged targets it describes
 
 ## Confidence, by meaning

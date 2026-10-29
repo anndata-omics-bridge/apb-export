@@ -1,6 +1,6 @@
 # APB Export
 
-[APB2](https://anndata-omics-bridge.github.io/apb2/) results exported as the AnnData and MuData files downstream tools open: one export rule per target, one subcommand per target.
+[APB2](https://anndata-omics-bridge.github.io/apb2/) results exported as the AnnData, MuData, CSV, Perseus and QPX files downstream tools open: one export rule per target, one subcommand per target.
 
 APB2 converts the vendor output; apb-export applies the target's packaged export rule and writes the format that tool reads. HDF5 files get APB2's `<file>.apb.json` sidecar; QPX Parquet tables have an export manifest. Field meanings come from [apb-catalog](https://anndata-omics-bridge.github.io/apb-catalog/), never from vendor column names.
 
@@ -62,7 +62,7 @@ parsed = ParseRuleCompiler.detect(
 exporter.write(exporter.export(parsed), Path("result.h5mu"))
 ```
 
-`write` uses APB2's writer for HDF5 and a target-specific serializer for QPX. Stored APB results work through `apb2.api.read_parsed_levels` and the same exporter API. `Exporter.targets()` lists the packaged targets; `extension` names the suffix or `.qpx` directory.
+`write` uses APB2's writer for HDF5, `.h5ads` included, and target-specific serializers for QPX, the `.csv` long table and the `.txt` Perseus table. Stored APB results work through `apb2.api.read_parsed_levels` and the same exporter API. `Exporter.targets()` lists the packaged targets; `extension` names the suffix or `.qpx` or `.h5ads` directory.
 
 ## Install
 
@@ -84,4 +84,4 @@ make check
 
 ## Testing
 
-Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples and checks that msmu, prolfquapp, ProteoPy, AlphaPeptTools, QFeatures, MSstats and perseuspy read them, msmu against its own `read_diann`.
+Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples, validates the QPX ones with qpx and the released pMultiQC, and checks that msmu, ProteoPy, AlphaPeptTools, QFeatures, MSstats and perseuspy read them, msmu against its own `read_diann`. prolfquapp's check is disabled for now.

@@ -1,5 +1,5 @@
 site_name: APB Export
-site_description: APB2 results exported as the AnnData and MuData files downstream tools open.
+site_description: APB2 results exported as the AnnData, MuData, CSV, Perseus and QPX files downstream tools open.
 site_url: https://anndata-omics-bridge.github.io/apb-export/
 repo_url: https://github.com/anndata-omics-bridge/apb-export
 repo_name: anndata-omics-bridge/apb-export

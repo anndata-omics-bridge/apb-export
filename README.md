@@ -4,14 +4,17 @@
 
 **Web app: <https://apps-dev.bfabric.org/apb-export/>**: upload a vendor result, check its QC and download the export, without installing anything.
 
-APB2 results exported as downstream AnnData, MuData and QPX Parquet: one export rule per target, one subcommand per target. HDF5 files get APB2's `<file>.apb.json` sidecar, which APB Studio's viewer reads. QPX tables and their export manifest live in a new `.qpx` directory. Each target fixes the APB2 levels it reads; `--abundance` picks which layer of a single-level target becomes X, and `--annotation` attaches an SDRF or prolfquapp-style sample table, as `apb2 annotate` does.
+APB2 results exported as downstream AnnData, MuData, CSV long tables, Perseus tables and QPX Parquet: one export rule per target, one subcommand per target. HDF5 files get APB2's `<file>.apb.json` sidecar, which APB Studio's viewer reads; exploreDE's `.h5ad` files, one per level, live in a new `.h5ads` directory. QPX tables and their export manifest live in a new `.qpx` directory; the `.csv` and `.txt` tables have no sidecar. Each target fixes the APB2 levels it reads; `--abundance` picks which layer of a single-level target becomes X, and `--annotation` attaches an SDRF or prolfquapp-style sample table, as `apb2 annotate` does.
 
 ```bash
 apb-export msmu report.tsv result.h5mu --params report.log.txt
 apb-export msmu report.tsv result.h5mu --params report.log.txt --fasta proteins.fasta
 apb-export prolfqua report.tsv result.h5ad --params report.log.txt --annotation dataset.csv
+apb-export msstats report.tsv msstats.csv --params report.log.txt --annotation design.tsv
+apb-export perseus report.tsv perseus.txt --params report.log.txt --annotation samples.tsv
 apb-export proteopy report.tsv proteins.h5ad --params report.log.txt
 apb-export alphapepttools report.tsv linked.h5mu --params report.log.txt
+apb-export qfeatures report.tsv qfeatures.h5mu --params report.log.txt
 apb-export qpx report.tsv result.qpx --params report.log.txt
 ```
 
@@ -41,7 +44,7 @@ parsed = ParseRuleCompiler.detect(
 exporter.write(exporter.export(parsed), Path("result.h5mu"))
 ```
 
-`write` uses APB2's `write_parsed_levels` for HDF5 and a target-specific serializer for QPX. An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file suffix or `.qpx` directory.
+`write` uses APB2's `write_parsed_levels` for HDF5, `.h5ads` included, and target-specific serializers for QPX, the `.csv` long table and the `.txt` Perseus table. An APB2 result already on disk works the same way through `apb2.api.read_parsed_levels`. `Exporter.targets()` lists the packaged targets; `extension` names the file suffix or `.qpx` or `.h5ads` directory.
 
 QPX exports existing precursor and/or protein quantities, with no aggregation or required grouping, FASTA or SDRF. RT is resolved through APB Catalog's `chromatography` set and converted from its reviewed unit to seconds. [QPX layout and pMultiQC](docs/targets.md#qpx) describes the tables, missing metadata and report compatibility.
 
@@ -64,10 +67,13 @@ The layout above is declared in [msmu's export rule](src/apb_export/export_rules
 | Target | File | APB2 levels | Layout |
 | --- | --- | --- | --- |
 | [msmu](src/apb_export/export_rules/documents/msmu/v0_4/rules.json) | `.h5mu` | peptidoform_ion | `psm` modality, precursors by runs, experimental; a feature without a protein is left out and counted in the export record |
+| [MSstats](src/apb_export/export_rules/documents/msstats/v4_20/rules.json) | `.csv` | peptidoform_ion | long table, one row per precursor and run, MSstats' column names |
+| [Perseus](src/apb_export/export_rules/documents/perseus/v2/rules.json) | `.txt` | protein | wide, proteinGroups.txt's names, `#!{Type}` and `#!{C:…}` header rows |
 | [prolfquapp](src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | peptidoform_ion, or peptide for MaxQuant; reading protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata`, factors from `apb2 annotate` columns; confidence layers `qValue` (precursor, per run), `pg_qValue` (protein group, per run), `pg_qValue_experiment` (protein group, library or experiment-wide, the same in every run) and `pep`, each where the vendor reports it; a feature without a protein is left out and counted in the export record; with `--fasta`, the leading protein's `fasta.id`, `description`, `IDcolumn` (accession), `gene_name`, `protein_length` and `nr_tryptic_peptides`, as prolfquapp's own FASTA annotation writes them; without one, `fasta.id`, `description` and `IDcolumn` repeat `protein_Id` |
 | [ProteoPy](src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes; with `--fasta`, apb-fasta annotates the protein groups and adds `in_fasta`, `gene_id`, `description` and `fasta_organisms`, which ProteoPy does not read |
 | [exploreDE](src/apb_export/export_rules/documents/explorede/v1_0/rules.json) | `.h5ads` directory | protein, peptide, peptidoform_ion, those present | `exploreDE/1.0` without differential expression, one file per level the result holds: `protein.h5ad`, `peptide.h5ad`, `precursor.h5ad`; log2 `intensities` with vendor zeros missing, linear `intensities_raw`, X a copy of `intensities`; SDRF `factor value[…]` and prolfquapp `group`/`bait` columns become `factor_<name>` with sorted categories, other annotation columns pass unprefixed; `feature_id` is the protein group, or `<protein>_<peptide>` and `<protein>_<ProForma ion>`; `label_gene_symbol` is the leading protein's FASTA gene name, else its entry name or accession, with the peptide or precursor appended; `uns` holds exploreDE's identity keys and empty `de`, `enrichment` and `enrichment_support` |
 | [AlphaPeptTools](src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | one wide modality per level, linked by id columns for `mulink_from_anndatas`; peptidoform_ion and peptide modalities carry `contaminant` and, with `--fasta`, `in_fasta`, `fasta_proteins` and `fasta_organisms`, which AlphaPeptTools does not read |
+| [QFeatures](src/apb_export/export_rules/documents/qfeatures/v1_22/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | AlphaPeptTools' layout; assays linked by `addAssayLink` on id columns |
 | [QPX](src/apb_export/export_rules/documents/qpx/v1_1/rules.json) | `.qpx` directory | peptidoform_ion and/or protein | QPX 1.1 feature/protein Parquet, optional annotations and export manifest; existing primary quantities, catalogued RT in seconds |
 
 ## Confidence, by meaning
@@ -97,12 +103,15 @@ The upload page, server and deployment now belong to [APB Export UI](https://git
 
 ## Development
 
-The development release expects APB2 and apb-catalog checked out beside this repository, on `main`, as CI checks them out:
+The development release expects APB2, apb-catalog and apb-fasta, with apb-fasta's protein_fasta and Prozor, checked out beside this repository, on `main`, as CI checks them out:
 
 ```text
 anndata_bridge/
 ├── apb2/
 ├── apb-catalog/
+├── apb-fasta/
+├── protein_fasta/
+├── prozor/
 └── apb-export/
 ```
 
@@ -112,4 +121,4 @@ make check
 make check-full
 ```
 
-Tests use synthetic vendor files only and install none of the target tools. Whether the tools read the files is checked in [consumers/](consumers): the [Consumers workflow](.github/workflows/consumers.yml) exports the synthetic examples, builds one image with msmu, ProteoPy and AlphaPeptTools, runs prolfquapp's check in prolfquapp's own image, and runs each tool's check, msmu's comparison with its own `read_diann` among them.
+Tests use synthetic vendor files only and install none of the target tools. Whether the tools read the files is checked in [consumers/](consumers): the [Consumers workflow](.github/workflows/consumers.yml) exports the synthetic examples, validates the QPX ones with qpx and the released pMultiQC, builds one image with msmu, ProteoPy, AlphaPeptTools and perseuspy and one R image with QFeatures and MSstats, and runs each tool's check, msmu's comparison with its own `read_diann` among them. prolfquapp's check, in prolfquapp's own image, is disabled for now.

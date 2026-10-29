@@ -1,4 +1,4 @@
-"""``apb-export``: vendor output in, the AnnData or MuData a downstream tool opens.
+"""``apb-export``: vendor output in, the file or directory a downstream tool opens.
 
 One subcommand per target, each reading the APB2 levels its export rule names: APB2 converts
 the vendor files, apb2's sample annotation attaches ``--annotation`` or ``--sdrf``, apb-fasta
@@ -32,7 +32,7 @@ from apb_export.api import Exporter
 
 app = App(
     name="apb-export",
-    help="Export vendor output as downstream AnnData, MuData or QPX Parquet.",
+    help="Export vendor output as downstream AnnData, MuData, CSV, Perseus tables or QPX Parquet.",
 )
 
 Data = Annotated[Path, Parameter(help="Vendor table or vendor-result directory")]
