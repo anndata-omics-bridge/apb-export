@@ -52,13 +52,13 @@ def test_the_sample_columns_are_named_by_the_abundance_kind(tmp_path: Path) -> N
     assert lines[2][4:] == ["2500.0", "5000.0", "7500.0", "10000.0"]
 
 
-def test_an_unlisted_kind_keeps_the_entry_name_and_missing_values_are_nan(
+def test_a_maxlfq_layer_is_named_lfq_intensity_and_missing_values_are_nan(
     diann: DiannInput, tmp_path: Path
 ) -> None:
-    """DIA-NN 1.8.1's MaxLFQ is catalogued as an unknown kind."""
+    """DIA-NN 1.8.1's PG_MaxLFQ is catalogued as maxlfq, as MaxQuant's LFQ_Intensity is."""
     lines = _write(_diann(diann), tmp_path / "perseus.txt")
 
-    assert lines[0][4:] == [f"Intensity {run}" for run in RUNS]
+    assert lines[0][4:] == [f"LFQ intensity {run}" for run in RUNS]
     assert "NaN" in {value for line in lines[2:] for value in line[4:]}
 
 
@@ -107,7 +107,7 @@ def test_the_table_reads_back_with_its_types(tmp_path: Path) -> None:
 
 def test_a_name_used_twice_is_refused(diann: DiannInput) -> None:
     (level,) = Exporter("perseus").export(_diann(diann)).levels.values()
-    level.var.frame = level.var.frame.with_columns(pl.lit(1.0).alias("Intensity run_A1"))
+    level.var.frame = level.var.frame.with_columns(pl.lit(1.0).alias("LFQ intensity run_A1"))
 
-    with pytest.raises(ValueError, match=r"would name \['Intensity run_A1'\] twice"):
+    with pytest.raises(ValueError, match=r"would name \['LFQ intensity run_A1'\] twice"):
         perseus_table(level)

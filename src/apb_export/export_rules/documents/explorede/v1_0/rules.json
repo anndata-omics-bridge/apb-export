@@ -2,7 +2,7 @@
   "schema_version": "0.4",
   "file_version": "1",
   "target_name": "exploreDE",
-  "target_version_pattern": "^3\\.8\\.",
+  "target_version_pattern": "^3\\.(8|9)\\.",
   "tables": [
     {
       "output": {"extensions": [".h5ads"]},
