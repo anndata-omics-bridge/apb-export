@@ -15,7 +15,7 @@
               {
                 "name": "Intensity",
                 "source": [
-                  {"catalog": "abundance", "kind": "intensity", "qualifiers": {"normalization": "none"}},
+                  {"catalog": "abundance", "kind": "intensity"},
                   {"measurements": "primary_layer"}
                 ],
                 "missing_values": [0]

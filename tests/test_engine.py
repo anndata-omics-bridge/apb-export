@@ -12,14 +12,14 @@ import anndata as ad
 import mudata as md
 import pandas as pd
 import pytest
-from apb2.api import ParsedLevels, ParseRuleCompiler
+from apb2.api import AnnotationCompiler, ParsedLevels, ParseRuleCompiler
 from apb_catalog.api import UnresolvedField
 
 from apb_export.api import Exporter
 from apb_export.engine import CompiledExport
 from apb_export.export_rules.loader import effective_rules
 from apb_export.export_rules.schema import ExportRuleDocument
-from conftest import DiannInput, export_sources, read_back, write_diann
+from conftest import RUNS, DiannInput, export_sources, read_back, write_diann
 
 # The confidence set catalogues no per-precursor PEP for DIA-NN, so this candidate never resolves.
 UNOFFERED = {"catalog": "confidence", "kind": "pep", "location": "var"}
@@ -96,30 +96,35 @@ def test_a_candidate_the_catalogue_does_not_offer_falls_through(diann: DiannInpu
     assert _var(psm).loc["PEPTIDEK/2", "q_value"] == pytest.approx(0.001), "Q.Value, not global"
 
 
-def _with_abundance(source: object) -> CompiledExport:
-    """msmu's rule with its abundance layer read from ``source``."""
+# A prolfquapp table with both a group and a bait column: apb-catalog's condition is ambiguous.
+CONDITION = {"catalog": "apb", "kind": "condition", "location": "obs"}
+
+
+def _with_condition(source: object) -> CompiledExport:
+    """msmu's rule with a ``condition`` obs entry read from ``source``."""
     document = _msmu_document()
-    _ion(document)["measurements"]["layers"][0]["source"] = source
+    _ion(document)["columns"]["obs"].append({"name": "condition", "source": source})
     return _compiled(document)
 
 
-# DIA-NN's peptidoform_ion level offers two intensities, Precursor_Quantity and Precursor_Normalised.
-ANY_INTENSITY = {"catalog": "abundance", "kind": "intensity"}
+def _two_conditions(diann: DiannInput) -> ParsedLevels:
+    """The DIA-NN result annotated with a table that names a condition twice."""
+    design = diann.report.with_name("design.tsv")
+    rows = [f"{run}\t{run[4]}\tbait_{run[4]}" for run in RUNS]
+    design.write_text("\n".join(["raw_file\tgroup\tbait", *rows]) + "\n", encoding="utf-8")
+    return AnnotationCompiler().compile(design).parse(_parsed(diann)).annotate().parsed
 
 
 def test_a_candidate_the_catalogue_cannot_pick_passes_to_the_next(diann: DiannInput) -> None:
-    psm = _psm(_with_abundance([ANY_INTENSITY, {"measurements": "primary_layer"}]), diann)
+    compiled = _with_condition([CONDITION, {"axis": "obs_keys"}])
+    psm = _modality(compiled.export(_two_conditions(diann)), diann.report.with_name("psm.h5mu"))
 
-    assert export_sources(psm)["layers.abundance"] == {
-        "location": "layers",
-        "name": "Precursor_Normalised",
-        "passed": "abundance intensity ambiguous",
-    }
+    assert export_sources(psm)["obs.condition"]["passed"] == "apb condition ambiguous"
 
 
 def test_the_last_candidate_the_catalogue_cannot_pick_is_an_error(diann: DiannInput) -> None:
-    with pytest.raises(UnresolvedField, match="Precursor_Quantity"):
-        _psm(_with_abundance([ANY_INTENSITY]), diann)
+    with pytest.raises(UnresolvedField, match="ambiguous"):
+        _with_condition(CONDITION).export(_two_conditions(diann))
 
 
 def test_absent_optional_sources_are_filled_or_left_out(diann: DiannInput) -> None:

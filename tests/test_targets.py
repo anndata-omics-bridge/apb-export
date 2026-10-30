@@ -235,7 +235,6 @@ def test_prolfquapp_reads_the_intensity_without_normalization(diann: DiannInput)
         "name": "Precursor_Quantity",
         "catalog": "abundance",
         "kind": "intensity",
-        "normalization": "none",
     }, "prolfquapp normalizes intensities itself"
 
 
@@ -260,7 +259,7 @@ def test_prolfquapp_warns_and_takes_the_primary_layer_without_an_un_normalized_o
     with caplog.at_level(logging.WARNING, logger="apb_catalog"):
         adata = _anndata(_written("prolfqua", without, diann.report.parent))
 
-    assert "SHOULD field kind=intensity, normalization=none on peptidoform_ion" in caplog.text
+    assert "SHOULD field kind=intensity on peptidoform_ion" in caplog.text
     assert export_sources(adata)["layers.intensity"] == {
         "location": "layers",
         "name": ion.primary_layer_name,

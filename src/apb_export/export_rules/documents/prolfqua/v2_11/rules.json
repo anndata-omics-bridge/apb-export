@@ -12,7 +12,7 @@
           "primary_layer": "intensity",
           "layers": [
             {"name": "intensity", "source": [
-              {"catalog": "abundance", "kind": "intensity", "qualifiers": {"normalization": "none"}, "enforce": "MUST"},
+              {"catalog": "abundance", "kind": "intensity", "enforce": "MUST"},
               {"measurements": "primary_layer"}
             ]},
             {
