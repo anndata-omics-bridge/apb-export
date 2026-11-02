@@ -45,7 +45,7 @@ def test_maxquant_proteins_get_proteingroups_names_and_types(tmp_path: Path) -> 
     assert not sidecar_path(tmp_path / "perseus.txt").exists(), "a table has no sidecar"
 
 
-def test_the_sample_columns_are_named_by_the_abundance_kind(tmp_path: Path) -> None:
+def test_the_sample_columns_are_named_by_the_abundance_key(tmp_path: Path) -> None:
     lines = _write(_maxquant(tmp_path), tmp_path / "perseus.txt", abundance="LFQ_Intensity")
 
     assert lines[0][4:] == [f"LFQ intensity {name}" for name in EXPERIMENTS]

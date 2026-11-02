@@ -7,7 +7,7 @@ Each target's layout is declared in its export rule, not coded. One engine check
 Rules follow APB2's rule schema read in reverse:
 
 - `name`: the target's field
-- `source`: an APB field every vendor shares: the run key, the primary layer, or a catalogued meaning `{"catalog": <set>, "kind": ..., "location": ...}`. APB's own columns come from apb-catalog's `apb` set, such as `{"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}` for `ProForma_ion` or kind `protein_assignment` for the column a rule marks with that role, so no rule names an APB column. `"enforce": "MUST"` makes the set's MUST fields binding and logs a warning for a missing SHOULD field; prolfqua's intensity sets it
+- `source`: an APB field every vendor shares: the run key, the primary layer, or a catalogued meaning `{"catalog": <set>, "key": ..., "location": ...}`, by one of the set's keys. APB's own columns come from apb-catalog's `apb` set, such as `{"catalog": "apb", "key": "peptidoform_ion", "location": "var"}` for `ProForma_ion` or key `protein_assignment` for the column a rule marks with that role, so no rule names an APB column. `"enforce": "MUST"` makes the set's MUST fields binding and logs a warning for a missing SHOULD field; prolfqua's intensity sets it
 - `"level": "protein"` on a catalogued source: read through each variable's protein group, named whole or by its leading protein; a cell takes its group's value in its run; a var column's value, the group's, repeats in every run
 - `software` on a level block: the vendor that block is for
 - `.h5ad` rules: list their levels in order and write the first one the result's software and levels allow
@@ -16,7 +16,7 @@ Rules follow APB2's rule schema read in reverse:
 - `transform` on a layer: `log2`, applied after `missing_values`; a value that is not positive becomes missing
 - `how: "short_name"`: per row, the first input holding a value, cut to its first group member and, for `db|ACC|NAME`, to `NAME`; inputs the result lacks, such as FASTA columns without `--fasta`, are passed over; `append` follows after `_`
 - `rename` on an `all_values` entry: annotation columns whose name matches a `pattern` are written as text, categories sorted, under `re.sub(pattern, replacement, name)`, the first matching rename winning; `identifier` lower-cases that name and turns every character outside `a-z0-9_` into `_`
-- `name_by_kind` on a layer: the layer's name per `abundance` kind of the layer it resolved to, such as `{"maxlfq": "LFQ intensity"}`; any other kind keeps `name`
+- `name_by_key` on a layer: the layer's name per `abundance` key of the layer it resolved to, such as `{"maxlfq": "LFQ intensity"}`; any other key keeps `name`
 
 The published [JSON Schemas](https://github.com/anndata-omics-bridge/apb-export/tree/main/src/apb_export/export_rules/documents/_schema) describe the documents.
 
@@ -50,7 +50,7 @@ multiqc --qpx-plugin result.qpx -o report
 - Existing primary precursor quantities become `apb.feature.parquet`; existing primary protein quantities become `apb.pg.parquet`. Either level suffices; no quantities are aggregated or inferred
 - Feature quantities use nested `intensities`; protein quantities use flat `label`, `intensity`, and `grouped_runs`, as pMultiQC 0.0.48 reads. Identifiers are opaque integers per table; complete protein-group membership is retained even when distinct groups share a leading protein
 - Missing measurements produce no quantity row; measured zeroes remain zero. Float32 intensities follow QPX 1.1; infinite or overflowing values are refused
-- `rt` is read only through APB Catalog's `chromatography` set, kind `retention_time`, with original units `minute` or `second`. Minutes become seconds; missing RT remains null. An unknown unit is an unresolved catalogue answer, so the exporter never assumes one
+- `rt` is read only through APB Catalog's `chromatography` set, key `retention_time`, with original units `minute` or `second`. Minutes become seconds; missing RT remains null. An unknown unit is an unresolved catalogue answer, so the exporter never assumes one
 - Unknown spectral values remain typed nulls; unknown scan references and peptide-count lists are empty lists. No spectral measurements or peptide counts are fabricated
 - `apb.run.parquet` and `apb.sample.parquet` provide technical identities keyed by run, with optional supplied observation annotations. QPX requires organism and tissue strings, so missing values use the explicit marker `not available`; no organism or grouping column is required from the user
 - `export.json` records versions, source mappings and table sizes. HDF5 targets continue to use APB2's sidecar; the QPX directory has its own manifest
@@ -101,7 +101,7 @@ Perseus: Generic matrix upload, or read with `perseuspy.pd.read_perseus("perseus
 - One row per protein group; names as MaxQuant's `proteinGroups.txt`, so Perseus' usual steps run without renaming
 - `Protein IDs`: the protein group; `Gene names`: with `--fasta`; `Q-value`: the group's experiment-wide, else library, q-value, where reported
 - `Reverse`, `Potential contaminant`: `+` or empty, from APB2's decoy and contaminant flags, contaminants also from the FASTA check
-- `<prefix> <sample>`: APB2's primary layer, or `--abundance`'s; prefix by its `abundance` kind: `LFQ intensity` for MaxLFQ, `iBAQ` for iBAQ, else `Intensity`; zeros and missing values written as `NaN`
+- `<prefix> <sample>`: APB2's primary layer, or `--abundance`'s; prefix by its `abundance` key: `LFQ intensity` for MaxLFQ, `iBAQ` for iBAQ, else `Intensity`; zeros and missing values written as `NaN`
 - `#!{Type}`: sample columns `E` (main), numbers `N`, flags `C`, text `T`
 - `#!{C:<column>}`: one categorical row per annotation column, values under the sample columns
 - No sidecar

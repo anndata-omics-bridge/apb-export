@@ -95,15 +95,16 @@ def test_quantities_and_confidence_come_from_the_report(diann: DiannInput) -> No
     assert var.loc["YEASTPEPK/2", "PEP"] == pytest.approx(0.03)
     assert _x(psm, "q_value")[run, column] == pytest.approx(0.006), "the run's value as a layer"
     assert _x(psm, "PEP")[run, column] == pytest.approx(0.03)
-    assert export_sources(psm)["var.q_value"]["kind"] == "global_q_value"
-    assert export_sources(psm)["var.q_value"]["how"] == "layer_minimum"
+    source = export_sources(psm)["var.q_value"]
+    assert (source["key"], source["location"]) == ("q_value", "var"), "the experiment-wide one"
+    assert source["how"] == "layer_minimum"
 
 
 def test_library_q_value_wins_when_match_between_runs_filled_it(tmp_path: Path) -> None:
     diann = write_diann(tmp_path, library_q=0.0005)
     psm = _psm(Exporter("msmu"), _parsed(diann), diann.report.parent)
 
-    assert export_sources(psm)["var.q_value"]["kind"] == "library_q_value"
+    assert export_sources(psm)["var.q_value"]["key"] == "library_q_value"
     assert _var(psm).loc["PEPTIDEK/2", "q_value"] == pytest.approx(0.0005)
 
 

@@ -59,7 +59,7 @@
                 "name": "sequence",
                 "source": {
                   "catalog": "apb",
-                  "kind": "peptide",
+                  "key": "peptide",
                   "location": "var"
                 },
                 "required": true
@@ -68,7 +68,7 @@
                 "name": "peptidoform",
                 "source": {
                   "catalog": "apb",
-                  "kind": "peptidoform",
+                  "key": "peptidoform",
                   "location": "var"
                 },
                 "required": true
@@ -80,7 +80,7 @@
                 "inputs": [
                   {
                     "catalog": "apb",
-                    "kind": "peptidoform_ion",
+                    "key": "peptidoform_ion",
                     "location": "var"
                   }
                 ]
@@ -89,7 +89,7 @@
                 "name": "is_decoy",
                 "source": {
                   "catalog": "apb",
-                  "kind": "decoy",
+                  "key": "decoy",
                   "location": "var"
                 },
                 "required": true,
@@ -99,7 +99,7 @@
                 "name": "proteins",
                 "source": {
                   "catalog": "apb",
-                  "kind": "protein_assignment",
+                  "key": "protein_assignment",
                   "location": "var"
                 },
                 "required": false
@@ -121,7 +121,7 @@
                 "name": "rt_second",
                 "source": {
                   "catalog": "chromatography",
-                  "kind": "retention_time",
+                  "key": "retention_time",
                   "qualifiers": {
                     "unit": "second"
                   }
@@ -131,7 +131,7 @@
                 "name": "rt_minute",
                 "source": {
                   "catalog": "chromatography",
-                  "kind": "retention_time",
+                  "key": "retention_time",
                   "qualifiers": {
                     "unit": "minute"
                   }
@@ -167,7 +167,7 @@
                 "name": "proteins",
                 "source": {
                   "catalog": "apb",
-                  "kind": "protein_assignment",
+                  "key": "protein_assignment",
                   "location": "var"
                 },
                 "required": true
@@ -176,7 +176,7 @@
                 "name": "is_decoy",
                 "source": {
                   "catalog": "apb",
-                  "kind": "decoy",
+                  "key": "decoy",
                   "location": "var"
                 },
                 "required": true,

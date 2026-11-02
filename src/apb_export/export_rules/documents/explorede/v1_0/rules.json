@@ -35,9 +35,9 @@
               }
             ],
             "var": [
-              {"name": "feature_id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}},
-              {"name": "label_protein_id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}},
-              {"name": "label_gene_symbol", "how": "short_name", "inputs": [{"fasta": "fasta_gene_names"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}]},
+              {"name": "feature_id", "source": {"catalog": "apb", "key": "protein_assignment", "location": "var"}},
+              {"name": "label_protein_id", "source": {"catalog": "apb", "key": "protein_assignment", "location": "var"}},
+              {"name": "label_gene_symbol", "how": "short_name", "inputs": [{"fasta": "fasta_gene_names"}, {"catalog": "apb", "key": "protein_assignment", "location": "var"}]},
               {"name": "description", "source": {"fasta": "fasta_descriptions"}, "required": false}
             ]
           },
@@ -66,15 +66,15 @@
               {
                 "name": "feature_id",
                 "how": "join_nonempty",
-                "inputs": [{"catalog": "apb", "kind": "protein_assignment", "location": "var"}, {"catalog": "apb", "kind": "peptide", "location": "var"}],
+                "inputs": [{"catalog": "apb", "key": "protein_assignment", "location": "var"}, {"catalog": "apb", "key": "peptide", "location": "var"}],
                 "separator": "_"
               },
-              {"name": "label_protein_id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}, "drop_missing": true},
+              {"name": "label_protein_id", "source": {"catalog": "apb", "key": "protein_assignment", "location": "var"}, "drop_missing": true},
               {
                 "name": "label_gene_symbol",
                 "how": "short_name",
-                "inputs": [{"fasta": "reported_leading_gene_name"}, {"fasta": "reported_leading_id"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}],
-                "append": {"catalog": "apb", "kind": "peptide", "location": "var"}
+                "inputs": [{"fasta": "reported_leading_gene_name"}, {"fasta": "reported_leading_id"}, {"catalog": "apb", "key": "protein_assignment", "location": "var"}],
+                "append": {"catalog": "apb", "key": "peptide", "location": "var"}
               },
               {"name": "description", "source": {"fasta": "reported_leading_description"}, "required": false}
             ]
@@ -104,15 +104,15 @@
               {
                 "name": "feature_id",
                 "how": "join_nonempty",
-                "inputs": [{"catalog": "apb", "kind": "protein_assignment", "location": "var"}, {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}],
+                "inputs": [{"catalog": "apb", "key": "protein_assignment", "location": "var"}, {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}],
                 "separator": "_"
               },
-              {"name": "label_protein_id", "source": {"catalog": "apb", "kind": "protein_assignment", "location": "var"}, "drop_missing": true},
+              {"name": "label_protein_id", "source": {"catalog": "apb", "key": "protein_assignment", "location": "var"}, "drop_missing": true},
               {
                 "name": "label_gene_symbol",
                 "how": "short_name",
-                "inputs": [{"fasta": "reported_leading_gene_name"}, {"fasta": "reported_leading_id"}, {"catalog": "apb", "kind": "protein_assignment", "location": "var"}],
-                "append": {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}
+                "inputs": [{"fasta": "reported_leading_gene_name"}, {"fasta": "reported_leading_id"}, {"catalog": "apb", "key": "protein_assignment", "location": "var"}],
+                "append": {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}
               },
               {"name": "description", "source": {"fasta": "reported_leading_description"}, "required": false}
             ]

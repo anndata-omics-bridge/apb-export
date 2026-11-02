@@ -311,15 +311,13 @@ class _LevelExport:
 
     def _written(self, entry: LayerEntry, values: LayerValues) -> str:
         """The layer's name in the export: the entry's, or the one its resolved layer's
-        abundance kind maps to; the provenance follows it."""
+        abundance key maps to; the provenance follows it."""
         written = entry.name
-        kind = (
-            self._sources.abundance_kind(values.provenance["name"]) if entry.name_by_kind else None
-        )
-        if kind is not None and kind in entry.name_by_kind:
-            written = entry.name_by_kind[kind]
+        key = self._sources.abundance_key(values.provenance["name"]) if entry.name_by_key else None
+        if key is not None and key in entry.name_by_key:
+            written = entry.name_by_key[key]
             source = self._provenance.pop(f"layers.{entry.name}")
-            self._provenance[f"layers.{written}"] = {**source, "kind": kind}
+            self._provenance[f"layers.{written}"] = {**source, "key": key}
         self._written_names[entry.name] = written
         return written
 

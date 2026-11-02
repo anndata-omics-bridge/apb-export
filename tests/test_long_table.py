@@ -40,8 +40,7 @@ def _document(var: list[dict[str, Any]] | None = None) -> dict[str, Any]:
                                     "name": "q_value",
                                     "source": {
                                         "catalog": "confidence",
-                                        "kind": "q_value",
-                                        "qualifiers": {"stage": "identification"},
+                                        "key": "q_value",
                                     },
                                 },
                             ],
@@ -54,7 +53,7 @@ def _document(var: list[dict[str, Any]] | None = None) -> dict[str, Any]:
                                     "name": "precursor",
                                     "source": {
                                         "catalog": "apb",
-                                        "kind": "peptidoform_ion",
+                                        "key": "peptidoform_ion",
                                         "location": "var",
                                     },
                                 },
@@ -62,7 +61,7 @@ def _document(var: list[dict[str, Any]] | None = None) -> dict[str, Any]:
                                     "name": "proteins",
                                     "source": {
                                         "catalog": "apb",
-                                        "kind": "protein_assignment",
+                                        "key": "protein_assignment",
                                         "location": "var",
                                     },
                                 },
@@ -141,7 +140,7 @@ def test_the_csv_reads_back_with_na_for_missing(diann: DiannInput, tmp_path: Pat
 
 
 def test_a_name_used_twice_is_refused(diann: DiannInput) -> None:
-    precursor = {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}
+    precursor = {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}
     clash = [{"name": "precursor", "source": precursor}, {"name": "Run", "source": precursor}]
     level = _exported(diann, _document(var=clash))
 

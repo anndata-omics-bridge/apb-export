@@ -214,16 +214,14 @@ def test_without_an_sdrf_the_run_is_the_assay(toy: str, diann: DiannInput, tmp_p
     assert "sample_id" not in obs.columns
 
 
-def test_qualifiers_choose_the_catalogue_answer(
-    toy: str, diann: DiannInput, tmp_path: Path
-) -> None:
+def test_keys_choose_the_catalogue_answer(toy: str, diann: DiannInput, tmp_path: Path) -> None:
     """DIA-NN's q-value rates the identification; it reports none for the MS1 peak."""
     ion = _modality(_export(diann, tmp_path), "peptidoform_ion")
 
     assert "q_value" in ion.layers
     assert "ms1_q_value" not in ion.layers
     source = export_sources(ion)["layers.q_value"]
-    assert (source["catalog"], source["stage"]) == ("confidence", "identification")
+    assert (source["catalog"], source["key"]) == ("confidence", "q_value")
 
 
 def test_apb_fasta_supplies_group_specificity(toy: str, diann: DiannInput, tmp_path: Path) -> None:
@@ -264,7 +262,7 @@ def test_an_optional_level_without_its_index_is_left_out(diann: DiannInput, tmp_
     document = _document()
     document["tables"][0]["levels"]["protein"]["columns"]["var"][0]["source"] = {
         "catalog": "apb",
-        "kind": "peptidoform_fragment",
+        "key": "peptidoform_fragment",
         "location": "var",
     }
     compiled = _compiled(document)
@@ -281,10 +279,11 @@ def test_an_optional_level_without_its_index_is_left_out(diann: DiannInput, tmp_
 
 
 def test_a_required_layer_the_result_lacks_stops_the_export(diann: DiannInput) -> None:
-    """DIA-NN reports no experiment-wide precursor q-value, which this variant requires."""
+    """DIA-NN reports its library q-value once per precursor, not per run, as this variant
+    requires."""
     document = _document()
     layers = document["tables"][0]["base"]["measurements"]["layers"]
-    layers[1]["source"]["kind"] = "global_q_value"
+    layers[1]["source"]["key"] = "library_q_value"
     compiled = _compiled(document)
     parsed = ParseRuleCompiler.detect(diann.report, diann.log, compiled.levels).compile().parse()
 

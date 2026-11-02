@@ -70,11 +70,12 @@ class FastaSource(ModelBase):
 
 
 class CatalogueSource(ModelBase):
-    """A field found by meaning through apb-catalog; the set ``apb`` holds APB's own fields,
-    such as ``ProForma_ion`` (kind ``peptidoform_ion``) or the column a rule marks with a role."""
+    """A field found by meaning through apb-catalog, asked by one of the set's keys; the set
+    ``apb`` holds APB's own fields, such as ``ProForma_ion`` (key ``peptidoform_ion``) or the
+    column a rule marks with a role."""
 
     catalog: str = Field(min_length=1)
-    kind: str = Field(min_length=1)
+    key: str = Field(min_length=1)
     location: Literal["layers", "var", "obs"] = "layers"
     enforce: Literal["MUST", "SHOULD"] | None = Field(
         default=None,
@@ -96,8 +97,8 @@ class CatalogueSource(ModelBase):
     )
     qualifiers: dict[str, str] = Field(
         default_factory=dict,
-        description="Further qualifiers of the request, such as an origin when the vendor and "
-        "apb-fasta both answer one kind.",
+        description="Further qualifiers of the request, besides those its key fixes, such as an "
+        "origin when the vendor and apb-fasta both answer one key.",
     )
 
 
@@ -287,10 +288,10 @@ class LayerEntry(ModelBase):
         default_factory=list,
         description="APB values treated as absent; apb2 lists vendor values here.",
     )
-    name_by_kind: dict[str, str] = Field(
+    name_by_key: dict[str, str] = Field(
         default_factory=dict,
-        description="The written name per abundance kind of the resolved layer, as Perseus "
-        "names MaxLFQ values LFQ intensity; any other kind keeps name.",
+        description="The written name per abundance key of the resolved layer, as Perseus "
+        "names MaxLFQ values LFQ intensity; any other key keeps name.",
     )
     transform: Literal["log2"] | None = Field(
         default=None,

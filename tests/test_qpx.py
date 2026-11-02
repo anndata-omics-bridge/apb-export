@@ -180,7 +180,7 @@ def test_rt_uses_catalogue_units_without_vendor_names_in_the_serializer(
         "location": "layers",
         "name": "RT_Observed",
         "catalog": "chromatography",
-        "kind": "retention_time",
+        "key": "retention_time",
         "unit": "second",
     }
     output = tmp_path / "seconds.qpx"

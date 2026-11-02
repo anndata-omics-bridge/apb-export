@@ -22,8 +22,8 @@ from apb_export.export_rules.schema import ExportRuleDocument
 from conftest import RUNS, DiannInput, export_sources, read_back, write_diann
 
 # The confidence set catalogues no per-precursor PEP for DIA-NN, so this candidate never resolves.
-UNOFFERED = {"catalog": "confidence", "kind": "pep", "location": "var"}
-RUN_Q_VALUE = {"catalog": "confidence", "kind": "q_value"}
+UNOFFERED = {"catalog": "confidence", "key": "pep", "location": "var"}
+RUN_Q_VALUE = {"catalog": "confidence", "key": "q_value"}
 
 
 def _parsed(diann: DiannInput) -> ParsedLevels:
@@ -78,7 +78,8 @@ def test_an_all_zero_global_q_value_leaves_the_run_q_value_to_stand_in(tmp_path:
     psm = _modality(Exporter("msmu").export(parsed), tmp_path / "psm.h5mu")
 
     assert "Global_Q_Value" not in parsed.levels["peptidoform_ion"].var.frame.columns
-    assert export_sources(psm)["var.q_value"]["kind"] == "q_value"
+    source = export_sources(psm)["var.q_value"]
+    assert (source["key"], source["location"]) == ("q_value", "layers"), "the run's q-value"
 
 
 def test_a_candidate_the_catalogue_does_not_offer_falls_through(diann: DiannInput) -> None:
@@ -92,12 +93,13 @@ def test_a_candidate_the_catalogue_does_not_offer_falls_through(diann: DiannInpu
     }
     psm = _psm(_with_var({"q_value": q_value}), diann)
 
-    assert export_sources(psm)["var.q_value"]["kind"] == "q_value"
+    source = export_sources(psm)["var.q_value"]
+    assert (source["key"], source["location"]) == ("q_value", "layers"), "the run's q-value"
     assert _var(psm).loc["PEPTIDEK/2", "q_value"] == pytest.approx(0.001), "Q.Value, not global"
 
 
 # A prolfquapp table with both a group and a bait column: apb-catalog's condition is ambiguous.
-CONDITION = {"catalog": "apb", "kind": "condition", "location": "obs"}
+CONDITION = {"catalog": "apb", "key": "condition", "location": "obs"}
 
 
 def _with_condition(source: object) -> CompiledExport:

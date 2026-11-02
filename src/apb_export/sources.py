@@ -124,17 +124,17 @@ class LevelSources:
         """Whether the caller named the abundance layer, which then becomes the target's X."""
         return self._abundance is not None
 
-    def abundance_kind(self, layer: str) -> str | None:
-        """What the level's layer measures, as the ``abundance`` catalogue's kind; ``None`` for a
+    def abundance_key(self, layer: str) -> str | None:
+        """What the level's layer measures, as the ``abundance`` catalogue's key; ``None`` for a
         layer the catalogue does not describe."""
         fields = self._catalog("abundance", None).fields()
-        kinds = fields.filter(
+        keys = fields.filter(
             (pl.col("level") == self._name)
             & (pl.col("location") == "layers")
             & (pl.col("name") == layer)
             & pl.col("present")
-        ).get_column("qualifier.kind")
-        return kinds.item(0) if kinds.len() else None
+        ).get_column("key")
+        return keys.item(0) if keys.len() else None
 
     def resolve(self, source: Source) -> Resolved | None:
         """The first candidate the result carries, or ``None`` when it carries none.
@@ -162,7 +162,7 @@ class LevelSources:
                     or reference is candidates[-1]
                 ):
                     raise
-                passed.append(f"{reference.catalog} {reference.kind} {error.resolution.status}")
+                passed.append(f"{reference.catalog} {reference.key} {error.resolution.status}")
                 continue
             if resolved is not None:
                 if not passed:
@@ -175,12 +175,12 @@ class LevelSources:
     def contaminants(self) -> VarValues:
         """apb2's vendor contaminant marking, merged with apb-fasta's FASTA match if present.
 
-        The marking is the ``apb`` set's kind ``contaminant``, which every apb2 rule writes.
+        The marking is the ``apb`` set's key ``contaminant``, which every apb2 rule writes.
 
         Raises:
             ValueError: The level lacks the marking.
         """
-        marked = self._catalog("apb", None).var(self._name, kind="contaminant")
+        marked = self._catalog("apb", None).var(self._name, key="contaminant")
         if marked is None:
             raise ValueError(f"export needs apb2's contaminant marking on level {self._name!r}")
         provenance: Provenance = {"location": "var", "name": marked.name, "catalog": "apb"}
@@ -259,18 +259,18 @@ class LevelSources:
             return self._through_protein_group(reference, reference.level)
         catalog = self._catalog(reference.catalog, reference.enforce)
         qualifiers = reference.qualifiers
-        found: Provenance = {"catalog": reference.catalog, "kind": reference.kind, **qualifiers}
+        found: Provenance = {"catalog": reference.catalog, "key": reference.key, **qualifiers}
         if reference.location == "obs":
-            values = catalog.obs(self._name, kind=reference.kind, **qualifiers)
+            values = catalog.obs(self._name, key=reference.key, **qualifiers)
             if values is None:
                 return None
             return ObsValues(values, {"location": "obs", "name": values.name, **found})
         if reference.location == "var":
-            column = catalog.var(self._name, kind=reference.kind, **qualifiers)
+            column = catalog.var(self._name, key=reference.key, **qualifiers)
             if column is None or (reference.accept == "nonzero" and not _column_has_values(column)):
                 return None
             return VarValues(column, {"location": "var", "name": column.name, **found})
-        layer = catalog.layer(self._name, kind=reference.kind, **qualifiers)
+        layer = catalog.layer(self._name, key=reference.key, **qualifiers)
         if layer is None or (reference.accept == "nonzero" and not _has_values(layer)):
             return None
         provenance = {"location": "layers", "name": layer.layer_name, **found}
@@ -289,14 +289,14 @@ class LevelSources:
         coarse = self._parsed.levels[level]
         catalog = self._catalog(reference.catalog, reference.enforce)
         if reference.location != "layers":
-            column = catalog.var(level, kind=reference.kind)
+            column = catalog.var(level, key=reference.key)
             if column is None or (reference.accept == "nonzero" and not _column_has_values(column)):
                 return None
             table = column.cast(pl.Float64).to_numpy()[:, np.newaxis]
             runs = np.zeros(self._level.obs.frame.height, dtype=np.int64)
             name = column.name
         else:
-            layer = catalog.layer(level, kind=reference.kind)
+            layer = catalog.layer(level, key=reference.key)
             if layer is None or (reference.accept == "nonzero" and not _has_values(layer)):
                 return None
             table = layer.decoded_values().select(pl.all().cast(pl.Float64)).to_numpy()
@@ -321,7 +321,7 @@ class LevelSources:
             "level": level,
             "through": assignment,
             "catalog": reference.catalog,
-            "kind": reference.kind,
+            "key": reference.key,
         }
         return LayerValues(values, provenance)
 

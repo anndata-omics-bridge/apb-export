@@ -33,18 +33,18 @@
                 "source": [
                   {
                     "catalog": "proteobench_entrapment",
-                    "kind": "library_q_value",
+                    "key": "library_q_value",
                     "location": "var",
                     "accept": "nonzero"
                   },
                   {
                     "catalog": "proteobench_entrapment",
-                    "kind": "global_q_value",
+                    "key": "q_value",
                     "location": "var"
                   },
                   {
                     "catalog": "confidence",
-                    "kind": "q_value"
+                    "key": "q_value"
                   }
                 ],
                 "width": 32
@@ -53,7 +53,7 @@
                 "name": "PEP",
                 "source": {
                   "catalog": "confidence",
-                  "kind": "pep"
+                  "key": "pep"
                 },
                 "width": 32
               }
@@ -64,36 +64,36 @@
               {"name": "filename", "source": {"axis": "obs_keys"}}
             ],
             "var": [
-              {"name": "precursor", "source": {"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}},
+              {"name": "precursor", "source": {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}},
               {
                 "name": "proteins",
                 "how": "accessions",
-                "inputs": [{"catalog": "apb", "kind": "fasta_accessions", "location": "var"}],
+                "inputs": [{"catalog": "apb", "key": "fasta_accessions", "location": "var"}],
                 "syntax": "msmu",
                 "drop_missing": true
               },
-              {"name": "peptide", "source": {"catalog": "apb", "kind": "peptidoform", "location": "var"}},
-              {"name": "stripped_peptide", "source": {"catalog": "apb", "kind": "peptide", "location": "var"}},
+              {"name": "peptide", "source": {"catalog": "apb", "key": "peptidoform", "location": "var"}},
+              {"name": "stripped_peptide", "source": {"catalog": "apb", "key": "peptide", "location": "var"}},
               {
                 "name": "charge",
                 "how": "proforma_charge",
-                "inputs": [{"catalog": "apb", "kind": "peptidoform_ion", "location": "var"}],
+                "inputs": [{"catalog": "apb", "key": "peptidoform_ion", "location": "var"}],
                 "type": "integer"
               },
               {
                 "name": "peptide_length",
                 "how": "sequence_length",
-                "inputs": [{"catalog": "apb", "kind": "peptide", "location": "var"}],
+                "inputs": [{"catalog": "apb", "key": "peptide", "location": "var"}],
                 "type": "integer"
               },
-              {"name": "decoy", "source": {"catalog": "apb", "kind": "decoy", "location": "var"}, "type": "integer"},
+              {"name": "decoy", "source": {"catalog": "apb", "key": "decoy", "location": "var"}, "type": "integer"},
               {"name": "contaminant", "how": "contaminant", "type": "integer"},
               {
                 "name": "PEP",
                 "how": "layer_minimum",
                 "source": {
                   "catalog": "confidence",
-                  "kind": "pep"
+                  "key": "pep"
                 },
                 "type": "number",
                 "required": false,
@@ -105,18 +105,18 @@
                 "source": [
                   {
                     "catalog": "proteobench_entrapment",
-                    "kind": "library_q_value",
+                    "key": "library_q_value",
                     "location": "var",
                     "accept": "nonzero"
                   },
                   {
                     "catalog": "proteobench_entrapment",
-                    "kind": "global_q_value",
+                    "key": "q_value",
                     "location": "var"
                   },
                   {
                     "catalog": "confidence",
-                    "kind": "q_value"
+                    "key": "q_value"
                   }
                 ],
                 "type": "number",

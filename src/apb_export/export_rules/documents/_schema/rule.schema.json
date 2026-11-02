@@ -237,16 +237,16 @@
     },
     "CatalogueSource": {
       "additionalProperties": false,
-      "description": "A field found by meaning through apb-catalog; the set ``apb`` holds APB's own fields,\nsuch as ``ProForma_ion`` (kind ``peptidoform_ion``) or the column a rule marks with a role.",
+      "description": "A field found by meaning through apb-catalog, asked by one of the set's keys; the set\n``apb`` holds APB's own fields, such as ``ProForma_ion`` (key ``peptidoform_ion``) or the\ncolumn a rule marks with a role.",
       "properties": {
         "catalog": {
           "minLength": 1,
           "title": "Catalog",
           "type": "string"
         },
-        "kind": {
+        "key": {
           "minLength": 1,
-          "title": "Kind",
+          "title": "Key",
           "type": "string"
         },
         "location": {
@@ -304,14 +304,14 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Further qualifiers of the request, such as an origin when the vendor and apb-fasta both answer one kind.",
+          "description": "Further qualifiers of the request, besides those its key fixes, such as an origin when the vendor and apb-fasta both answer one key.",
           "title": "Qualifiers",
           "type": "object"
         }
       },
       "required": [
         "catalog",
-        "kind"
+        "key"
       ],
       "title": "CatalogueSource",
       "type": "object"
@@ -681,12 +681,12 @@
           "title": "Missing Values",
           "type": "array"
         },
-        "name_by_kind": {
+        "name_by_key": {
           "additionalProperties": {
             "type": "string"
           },
-          "description": "The written name per abundance kind of the resolved layer, as Perseus names MaxLFQ values LFQ intensity; any other kind keeps name.",
-          "title": "Name By Kind",
+          "description": "The written name per abundance key of the resolved layer, as Perseus names MaxLFQ values LFQ intensity; any other key keeps name.",
+          "title": "Name By Key",
           "type": "object"
         },
         "transform": {
