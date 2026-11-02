@@ -217,7 +217,8 @@ def test_precursor_quantities_do_not_require_a_protein_assignment(
     parsed: ParsedLevels, diann: DiannInput, tmp_path: Path
 ) -> None:
     level = parsed.levels["peptidoform_ion"]
-    del level.var.roles["protein_assignment"]
+    assignment = level.var.roles.pop("protein_assignment")
+    level.var = replace(level.var, frame=level.var.frame.drop(assignment))
     exporter = Exporter("qpx")
     output = tmp_path / "unassigned.qpx"
     exporter.write(exporter.export(replace(parsed, levels={"peptidoform_ion": level})), output)
