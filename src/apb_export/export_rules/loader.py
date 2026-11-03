@@ -56,15 +56,46 @@ class EffectiveRule:
     feature_links: tuple[FeatureLink, ...] = ()
 
 
+_KEYWISE = ("axis", "columns", "measurements", "accession_syntax")
+"""Blocks a level merges into the base's key by key."""
+_NAMED = (("columns", "obs"), ("columns", "var"), ("measurements", "layers"))
+"""Entry lists, inside a block, that a level merges into the base's by entry name."""
+
+
+def _name(entry: JsonValue) -> str | None:
+    name = entry.get("name") if isinstance(entry, dict) else None
+    return name if isinstance(name, str) else None
+
+
+def _by_name(base: JsonValue, level: JsonValue) -> JsonValue:
+    """Base entries in order, each replaced by the level's entry of its name, then the level's
+    other entries; a value that is no list of entries stays the level's, for validation to
+    report."""
+    if not isinstance(base, list) or not isinstance(level, list):
+        return base if level is None else level
+    named = {name: entry for entry in level if (name := _name(entry)) is not None}
+    taken = {_name(entry) for entry in base} - {None}
+    replaced = [named.get(name, entry) if (name := _name(entry)) else entry for entry in base]
+    return [*replaced, *(entry for entry in level if _name(entry) not in taken)]
+
+
 def _merge(base: dict[str, JsonValue], level: dict[str, JsonValue]) -> dict[str, JsonValue]:
-    """The level overrides base keys; named ``accession_syntax`` blocks combine."""
+    """The level merges into the base: ``axis``, ``columns``, ``measurements`` and
+    ``accession_syntax`` key by key; ``columns.obs``, ``columns.var``, ``measurements.layers``
+    and ``uns`` by entry name, a level entry replacing the base's of its name in place; any other
+    key is the level's."""
     merged = {**base, **level}
-    syntax: dict[str, JsonValue] = {}
-    for block in (base.get("accession_syntax"), level.get("accession_syntax")):
-        if isinstance(block, dict):
-            syntax.update(block)
-    if syntax:
-        merged["accession_syntax"] = syntax
+    for key in _KEYWISE:
+        base_block, level_block = base.get(key), level.get(key)
+        if isinstance(base_block, dict) and isinstance(level_block, dict):
+            block = {**base_block, **level_block}
+            for parent, entries in _NAMED:
+                if parent == key:
+                    block[entries] = _by_name(base_block.get(entries), level_block.get(entries))
+            merged[key] = block
+    merged["uns"] = _by_name(base.get("uns"), level.get("uns"))
+    if merged["uns"] is None:
+        del merged["uns"]
     return merged
 
 
@@ -86,7 +117,7 @@ def effective_rules(document: ExportRuleDocument, name: str) -> tuple[EffectiveR
     for table in document.tables:
         for level, block in table.levels.items():
             rule = LevelRule.model_validate(_merge(table.base, block))
-            if ".h5mu" in table.output.extensions and rule.modality is None:
+            if table.output == ".h5mu" and rule.modality is None:
                 raise ValueError(f"{name}: level {level!r} writes .h5mu but names no modality")
             rules.append(
                 EffectiveRule(
@@ -102,7 +133,7 @@ def effective_rules(document: ExportRuleDocument, name: str) -> tuple[EffectiveR
                 )
             )
         unnamed = [rule.level for rule in rules[:-1] if rule.rule.software is None]
-        one_level = [ext for ext in table.output.extensions if ext in _ONE_LEVEL]
+        one_level = [table.output] if table.output in _ONE_LEVEL else []
         if one_level and unnamed:
             raise ValueError(
                 f"{name}: {one_level[0]} levels {unnamed} precede another but name no software"

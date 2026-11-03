@@ -1,130 +1,142 @@
 {
-  "schema_version": "0.4",
-  "file_version": "2",
+  "schema_version": "0.5",
+  "file_version": "3",
   "target_name": "prolfquapp",
   "target_version_pattern": "^2\\.11\\.",
   "tables": [
     {
-      "output": {"extensions": [".h5ad"]},
+      "output": ".h5ad",
       "base": {
-        "axis": {"obs_keys": ["sampleName"], "var_keys": ["feature_id"]},
+        "axis": {"obs_key": "sampleName", "var_key": "feature_id"},
         "measurements": {
           "primary_layer": "intensity",
           "layers": [
-            {"name": "intensity", "source": [
-              {"catalog": "abundance", "key": "intensity", "enforce": "MUST"},
-              {"measurements": "primary_layer"}
-            ]},
+            {
+              "name": "intensity",
+              "source": {"catalog": "abundance", "layers": "intensity"},
+              "fallback": [{"measurements": "primary_layer"}]
+            },
             {
               "name": "qValue",
-              "source": [
-                {
-                  "catalog": "confidence",
-                  "key": "q_value"
-                },
-                {
-                  "catalog": "proteobench_entrapment",
-                  "key": "q_value",
-                  "location": "var"
-                }
-              ]
+              "source": {"catalog": "confidence", "layers": "q_value"},
+              "fallback": [{"catalog": "proteobench_entrapment", "var": "q_value"}],
+              "required": false
             },
             {
               "name": "pg_qValue",
-              "source": {
-                "catalog": "confidence",
-                "key": "q_value",
-                "level": "protein"
-              }
+              "source": {"catalog": "confidence", "layers": "q_value", "from_level": "protein"},
+              "required": false
             },
             {
               "name": "pg_qValue_experiment",
-              "source": [
-                {
-                  "catalog": "confidence",
-                  "key": "library_q_value",
-                  "location": "var",
-                  "level": "protein",
-                  "accept": "nonzero"
-                },
-                {
-                  "catalog": "confidence",
-                  "key": "q_value",
-                  "location": "var",
-                  "level": "protein"
-                }
-              ]
+              "source": {
+                "catalog": "confidence",
+                "var": "library_q_value",
+                "from_level": "protein",
+                "accept": "nonzero"
+              },
+              "fallback": [{"catalog": "confidence", "var": "q_value", "from_level": "protein"}],
+              "required": false
             },
             {
               "name": "pep",
-              "source": [
-                {"catalog": "confidence", "key": "pep"},
-                {
-                  "catalog": "confidence",
-                  "key": "pep",
-                  "location": "var"
-                }
-              ]
+              "source": {"catalog": "confidence", "layers": "pep"},
+              "fallback": [{"catalog": "confidence", "var": "pep"}],
+              "required": false
             }
           ]
-        }
+        },
+        "columns": {
+          "obs": [
+            {"name": "sampleName", "source": {"axis": "obs_key"}},
+            {"name": "raw.file", "source": {"axis": "obs_key"}},
+            {"name": "annotations", "how": "all_values"}
+          ],
+          "var": [
+            {
+              "name": "feature_id",
+              "how": "join_nonempty",
+              "inputs": [
+                {"catalog": "apb", "var": "protein_assignment"},
+                {"catalog": "apb", "var": "peptide"}
+              ],
+              "separator": "~"
+            },
+            {
+              "name": "protein_Id",
+              "source": {"catalog": "apb", "var": "protein_assignment"},
+              "drop_missing": true
+            },
+            {
+              "name": "IDcolumn",
+              "source": {"fasta": "reported_leading_accession"},
+              "fallback": [{"catalog": "apb", "var": "protein_assignment"}]
+            },
+            {
+              "name": "fasta.id",
+              "source": {"fasta": "reported_leading_id"},
+              "fallback": [{"catalog": "apb", "var": "protein_assignment"}]
+            },
+            {
+              "name": "description",
+              "source": {"fasta": "reported_leading_description"},
+              "fallback": [{"catalog": "apb", "var": "protein_assignment"}]
+            },
+            {
+              "name": "gene_name",
+              "source": {"fasta": "reported_leading_gene_name"},
+              "required": false
+            },
+            {
+              "name": "protein_length",
+              "source": {"fasta": "reported_leading_protein_length"},
+              "type": "number",
+              "required": false
+            },
+            {
+              "name": "nr_tryptic_peptides",
+              "source": {"fasta": "reported_leading_tryptic_peptides"},
+              "type": "number",
+              "required": false
+            },
+            {"name": "peptide_Id", "source": {"catalog": "apb", "var": "peptide"}},
+            {"name": "nr_children", "how": "constant", "value": 1, "type": "integer"}
+          ]
+        },
+        "uns": [
+          {"name": "X_layer_name", "how": "constant", "value": "intensity"},
+          {"name": "prolfquapp.artifact_type", "how": "constant", "value": "lfqdata"},
+          {"name": "prolfquapp.schema_version", "how": "constant", "value": "1.0.0"},
+          {
+            "name": "prolfquapp.source_software",
+            "source": {"rule": "software_name"},
+            "required": false,
+            "fill_value": "unknown"
+          },
+          {
+            "name": "prolfquapp.protein_annotation",
+            "how": "constant",
+            "value": {
+              "pID": "protein_Id",
+              "full_id": "protein_Id",
+              "description": "description",
+              "cleaned_ids": "IDcolumn",
+              "exp_nr_children": "nrPeptides",
+              "pattern_contaminants": "^zz|^CON|Cont_",
+              "pattern_decoys": "^REV_|^rev"
+            }
+          },
+          {
+            "name": "prolfquapp.layer_names",
+            "how": "constant",
+            "value": ["intensity", "qValue", "pg_qValue", "pg_qValue_experiment", "pep"]
+          }
+        ]
       },
       "levels": {
         "peptide": {
           "software": ["MaxQuant"],
-          "columns": {
-            "obs": [
-              {"name": "sampleName", "source": {"axis": "obs_keys"}},
-              {"name": "raw.file", "source": {"axis": "obs_keys"}},
-              {"name": "annotations", "how": "all_values"}
-            ],
-            "var": [
-              {
-                "name": "feature_id",
-                "how": "join_nonempty",
-                "inputs": [{"catalog": "apb", "key": "protein_assignment", "location": "var"}, {"catalog": "apb", "key": "peptide", "location": "var"}],
-                "separator": "~"
-              },
-              {"name": "protein_Id", "source": {"catalog": "apb", "key": "protein_assignment", "location": "var"}, "drop_missing": true},
-              {
-                "name": "IDcolumn",
-                "source": [{"fasta": "reported_leading_accession"}, {"catalog": "apb", "key": "protein_assignment", "location": "var"}]
-              },
-              {
-                "name": "fasta.id",
-                "source": [{"fasta": "reported_leading_id"}, {"catalog": "apb", "key": "protein_assignment", "location": "var"}]
-              },
-              {
-                "name": "description",
-                "source": [{"fasta": "reported_leading_description"}, {"catalog": "apb", "key": "protein_assignment", "location": "var"}]
-              },
-              {"name": "gene_name", "source": {"fasta": "reported_leading_gene_name"}, "required": false},
-              {
-                "name": "protein_length",
-                "source": {"fasta": "reported_leading_protein_length"},
-                "type": "number",
-                "required": false
-              },
-              {
-                "name": "nr_tryptic_peptides",
-                "source": {"fasta": "reported_leading_tryptic_peptides"},
-                "type": "number",
-                "required": false
-              },
-              {"name": "peptide_Id", "source": {"catalog": "apb", "key": "peptide", "location": "var"}},
-              {"name": "nr_children", "how": "constant", "value": 1, "type": "integer"}
-            ]
-          },
           "uns": [
-            {"name": "X_layer_name", "how": "constant", "value": "intensity"},
-            {"name": "prolfquapp.artifact_type", "how": "constant", "value": "lfqdata"},
-            {"name": "prolfquapp.schema_version", "how": "constant", "value": "1.0.0"},
-            {
-              "name": "prolfquapp.source_software",
-              "source": {"rule": "software_name"},
-              "required": false,
-              "fill_value": "unknown"
-            },
             {
               "name": "prolfquapp.analysis_configuration",
               "how": "constant",
@@ -144,82 +156,26 @@
                 "min_peptides_protein": 2
               }
             },
-            {"name": "prolfquapp.analysis_configuration.factors", "how": "annotation_map"},
-            {
-              "name": "prolfquapp.protein_annotation",
-              "how": "constant",
-              "value": {
-                "pID": "protein_Id",
-                "full_id": "protein_Id",
-                "description": "description",
-                "cleaned_ids": "IDcolumn",
-                "exp_nr_children": "nrPeptides",
-                "pattern_contaminants": "^zz|^CON|Cont_",
-                "pattern_decoys": "^REV_|^rev"
-              }
-            },
-            {
-              "name": "prolfquapp.layer_names",
-              "how": "constant",
-              "value": ["intensity", "qValue", "pg_qValue", "pg_qValue_experiment", "pep"]
-            }
+            {"name": "prolfquapp.analysis_configuration.factors", "how": "annotation_map"}
           ]
         },
         "peptidoform_ion": {
           "columns": {
-            "obs": [
-              {"name": "sampleName", "source": {"axis": "obs_keys"}},
-              {"name": "raw.file", "source": {"axis": "obs_keys"}},
-              {"name": "annotations", "how": "all_values"}
-            ],
             "var": [
               {
                 "name": "feature_id",
                 "how": "join_nonempty",
-                "inputs": [{"catalog": "apb", "key": "protein_assignment", "location": "var"}, {"catalog": "apb", "key": "peptide", "location": "var"}, {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}],
+                "inputs": [
+                  {"catalog": "apb", "var": "protein_assignment"},
+                  {"catalog": "apb", "var": "peptide"},
+                  {"catalog": "apb", "var": "peptidoform_ion"}
+                ],
                 "separator": "~"
               },
-              {"name": "protein_Id", "source": {"catalog": "apb", "key": "protein_assignment", "location": "var"}, "drop_missing": true},
-              {
-                "name": "IDcolumn",
-                "source": [{"fasta": "reported_leading_accession"}, {"catalog": "apb", "key": "protein_assignment", "location": "var"}]
-              },
-              {
-                "name": "fasta.id",
-                "source": [{"fasta": "reported_leading_id"}, {"catalog": "apb", "key": "protein_assignment", "location": "var"}]
-              },
-              {
-                "name": "description",
-                "source": [{"fasta": "reported_leading_description"}, {"catalog": "apb", "key": "protein_assignment", "location": "var"}]
-              },
-              {"name": "gene_name", "source": {"fasta": "reported_leading_gene_name"}, "required": false},
-              {
-                "name": "protein_length",
-                "source": {"fasta": "reported_leading_protein_length"},
-                "type": "number",
-                "required": false
-              },
-              {
-                "name": "nr_tryptic_peptides",
-                "source": {"fasta": "reported_leading_tryptic_peptides"},
-                "type": "number",
-                "required": false
-              },
-              {"name": "peptide_Id", "source": {"catalog": "apb", "key": "peptide", "location": "var"}},
-              {"name": "precursor_Id", "source": {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}},
-              {"name": "nr_children", "how": "constant", "value": 1, "type": "integer"}
+              {"name": "precursor_Id", "source": {"catalog": "apb", "var": "peptidoform_ion"}}
             ]
           },
           "uns": [
-            {"name": "X_layer_name", "how": "constant", "value": "intensity"},
-            {"name": "prolfquapp.artifact_type", "how": "constant", "value": "lfqdata"},
-            {"name": "prolfquapp.schema_version", "how": "constant", "value": "1.0.0"},
-            {
-              "name": "prolfquapp.source_software",
-              "source": {"rule": "software_name"},
-              "required": false,
-              "fill_value": "unknown"
-            },
             {
               "name": "prolfquapp.analysis_configuration",
               "how": "constant",
@@ -243,25 +199,7 @@
                 "min_peptides_protein": 2
               }
             },
-            {"name": "prolfquapp.analysis_configuration.factors", "how": "annotation_map"},
-            {
-              "name": "prolfquapp.protein_annotation",
-              "how": "constant",
-              "value": {
-                "pID": "protein_Id",
-                "full_id": "protein_Id",
-                "description": "description",
-                "cleaned_ids": "IDcolumn",
-                "exp_nr_children": "nrPeptides",
-                "pattern_contaminants": "^zz|^CON|Cont_",
-                "pattern_decoys": "^REV_|^rev"
-              }
-            },
-            {
-              "name": "prolfquapp.layer_names",
-              "how": "constant",
-              "value": ["intensity", "qValue", "pg_qValue", "pg_qValue_experiment", "pep"]
-            }
+            {"name": "prolfquapp.analysis_configuration.factors", "how": "annotation_map"}
           ]
         }
       }

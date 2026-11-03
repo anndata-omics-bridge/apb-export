@@ -1,107 +1,55 @@
 {
-  "schema_version": "0.4",
-  "file_version": "1",
+  "schema_version": "0.5",
+  "file_version": "2",
   "target_name": "QPX",
   "target_version_pattern": "^1\\.1\\.",
   "tables": [
     {
-      "output": {
-        "extensions": [
-          ".qpx"
-        ]
-      },
+      "output": ".qpx",
       "base": {
         "required": false,
         "measurements": {
           "primary_layer": "intensity",
           "layers": [
-            {
-              "name": "intensity",
-              "source": {
-                "measurements": "primary_layer"
-              },
-              "required": true
-            }
+            {"name": "intensity", "source": {"measurements": "primary_layer"}, "required": true}
           ]
         }
       },
       "levels": {
         "peptidoform_ion": {
-          "axis": {
-            "obs_keys": [
-              "run_file_name"
-            ],
-            "var_keys": [
-              "feature_key"
-            ]
-          },
+          "axis": {"obs_key": "run_file_name", "var_key": "feature_key"},
           "columns": {
             "obs": [
-              {
-                "name": "run_file_name",
-                "source": {
-                  "axis": "obs_keys"
-                }
-              },
-              {
-                "name": "annotations",
-                "how": "all_values"
-              }
+              {"name": "run_file_name", "source": {"axis": "obs_key"}},
+              {"name": "annotations", "how": "all_values"}
             ],
             "var": [
-              {
-                "name": "feature_key",
-                "source": {
-                  "axis": "var_keys"
-                }
-              },
+              {"name": "feature_key", "source": {"axis": "var_key"}},
               {
                 "name": "sequence",
-                "source": {
-                  "catalog": "apb",
-                  "key": "peptide",
-                  "location": "var"
-                },
+                "source": {"catalog": "apb", "var": "peptide"},
                 "required": true
               },
               {
                 "name": "peptidoform",
-                "source": {
-                  "catalog": "apb",
-                  "key": "peptidoform",
-                  "location": "var"
-                },
+                "source": {"catalog": "apb", "var": "peptidoform"},
                 "required": true
               },
               {
                 "name": "charge",
                 "type": "integer",
                 "how": "proforma_charge",
-                "inputs": [
-                  {
-                    "catalog": "apb",
-                    "key": "peptidoform_ion",
-                    "location": "var"
-                  }
-                ]
+                "source": {"catalog": "apb", "var": "peptidoform_ion"}
               },
               {
                 "name": "is_decoy",
-                "source": {
-                  "catalog": "apb",
-                  "key": "decoy",
-                  "location": "var"
-                },
+                "source": {"catalog": "apb", "var": "decoy"},
                 "required": true,
                 "type": "boolean"
               },
               {
                 "name": "proteins",
-                "source": {
-                  "catalog": "apb",
-                  "key": "protein_assignment",
-                  "location": "var"
-                },
+                "source": {"catalog": "apb", "var": "protein_assignment"},
                 "required": false
               }
             ]
@@ -110,83 +58,48 @@
           "measurements": {
             "primary_layer": "intensity",
             "layers": [
-              {
-                "name": "intensity",
-                "source": {
-                  "measurements": "primary_layer"
-                },
-                "required": true
-              },
+              {"name": "intensity", "source": {"measurements": "primary_layer"}, "required": true},
               {
                 "name": "rt_second",
                 "source": {
                   "catalog": "chromatography",
-                  "key": "retention_time",
-                  "qualifiers": {
-                    "unit": "second"
-                  }
-                }
+                  "layers": "retention_time",
+                  "qualifiers": {"unit": "second"}
+                },
+                "required": false
               },
               {
                 "name": "rt_minute",
                 "source": {
                   "catalog": "chromatography",
-                  "key": "retention_time",
-                  "qualifiers": {
-                    "unit": "minute"
-                  }
-                }
+                  "layers": "retention_time",
+                  "qualifiers": {"unit": "minute"}
+                },
+                "required": false
               }
             ]
           }
         },
         "protein": {
-          "axis": {
-            "obs_keys": [
-              "run_file_name"
-            ],
-            "var_keys": [
-              "proteins"
-            ]
-          },
+          "axis": {"obs_key": "run_file_name", "var_key": "proteins"},
           "columns": {
             "obs": [
-              {
-                "name": "run_file_name",
-                "source": {
-                  "axis": "obs_keys"
-                }
-              },
-              {
-                "name": "annotations",
-                "how": "all_values"
-              }
+              {"name": "run_file_name", "source": {"axis": "obs_key"}},
+              {"name": "annotations", "how": "all_values"}
             ],
             "var": [
               {
                 "name": "proteins",
-                "source": {
-                  "catalog": "apb",
-                  "key": "protein_assignment",
-                  "location": "var"
-                },
+                "source": {"catalog": "apb", "var": "protein_assignment"},
                 "required": true
               },
               {
                 "name": "is_decoy",
-                "source": {
-                  "catalog": "apb",
-                  "key": "decoy",
-                  "location": "var"
-                },
+                "source": {"catalog": "apb", "var": "decoy"},
                 "required": true,
                 "type": "boolean"
               },
-              {
-                "name": "contaminant",
-                "how": "contaminant",
-                "type": "boolean"
-              }
+              {"name": "contaminant", "how": "contaminant", "type": "boolean"}
             ]
           },
           "modality": "pg"

@@ -1,11 +1,11 @@
 {
-  "schema_version": "0.4",
-  "file_version": "3",
+  "schema_version": "0.5",
+  "file_version": "4",
   "target_name": "msmu",
   "target_version_pattern": "^0\\.4\\.",
   "tables": [
     {
-      "output": {"extensions": [".h5mu"]},
+      "output": ".h5mu",
       "base": {
         "accession_syntax": {
           "msmu": {
@@ -18,7 +18,7 @@
       "levels": {
         "peptidoform_ion": {
           "modality": "psm",
-          "axis": {"obs_keys": ["filename"], "var_keys": ["precursor"]},
+          "axis": {"obs_key": "filename", "var_key": "precursor"},
           "measurements": {
             "primary_layer": "abundance",
             "layers": [
@@ -30,71 +30,57 @@
               },
               {
                 "name": "q_value",
-                "source": [
-                  {
-                    "catalog": "proteobench_entrapment",
-                    "key": "library_q_value",
-                    "location": "var",
-                    "accept": "nonzero"
-                  },
-                  {
-                    "catalog": "proteobench_entrapment",
-                    "key": "q_value",
-                    "location": "var"
-                  },
-                  {
-                    "catalog": "confidence",
-                    "key": "q_value"
-                  }
+                "source": {
+                  "catalog": "proteobench_entrapment",
+                  "var": "library_q_value",
+                  "accept": "nonzero"
+                },
+                "fallback": [
+                  {"catalog": "proteobench_entrapment", "var": "q_value"},
+                  {"catalog": "confidence", "layers": "q_value"}
                 ],
-                "width": 32
+                "width": 32,
+                "required": false
               },
               {
                 "name": "PEP",
-                "source": {
-                  "catalog": "confidence",
-                  "key": "pep"
-                },
-                "width": 32
+                "source": {"catalog": "confidence", "layers": "pep"},
+                "width": 32,
+                "required": false
               }
             ]
           },
           "columns": {
-            "obs": [
-              {"name": "filename", "source": {"axis": "obs_keys"}}
-            ],
+            "obs": [{"name": "filename", "source": {"axis": "obs_key"}}],
             "var": [
-              {"name": "precursor", "source": {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}},
+              {"name": "precursor", "source": {"catalog": "apb", "var": "peptidoform_ion"}},
               {
                 "name": "proteins",
                 "how": "accessions",
-                "inputs": [{"catalog": "apb", "key": "fasta_accessions", "location": "var"}],
+                "source": {"catalog": "apb", "var": "fasta_accessions"},
                 "syntax": "msmu",
                 "drop_missing": true
               },
-              {"name": "peptide", "source": {"catalog": "apb", "key": "peptidoform", "location": "var"}},
-              {"name": "stripped_peptide", "source": {"catalog": "apb", "key": "peptide", "location": "var"}},
+              {"name": "peptide", "source": {"catalog": "apb", "var": "peptidoform"}},
+              {"name": "stripped_peptide", "source": {"catalog": "apb", "var": "peptide"}},
               {
                 "name": "charge",
                 "how": "proforma_charge",
-                "inputs": [{"catalog": "apb", "key": "peptidoform_ion", "location": "var"}],
+                "source": {"catalog": "apb", "var": "peptidoform_ion"},
                 "type": "integer"
               },
               {
                 "name": "peptide_length",
                 "how": "sequence_length",
-                "inputs": [{"catalog": "apb", "key": "peptide", "location": "var"}],
+                "source": {"catalog": "apb", "var": "peptide"},
                 "type": "integer"
               },
-              {"name": "decoy", "source": {"catalog": "apb", "key": "decoy", "location": "var"}, "type": "integer"},
+              {"name": "decoy", "source": {"catalog": "apb", "var": "decoy"}, "type": "integer"},
               {"name": "contaminant", "how": "contaminant", "type": "integer"},
               {
                 "name": "PEP",
                 "how": "layer_minimum",
-                "source": {
-                  "catalog": "confidence",
-                  "key": "pep"
-                },
+                "layer": "PEP",
                 "type": "number",
                 "required": false,
                 "fill_value": "NaN"
@@ -102,23 +88,7 @@
               {
                 "name": "q_value",
                 "how": "layer_minimum",
-                "source": [
-                  {
-                    "catalog": "proteobench_entrapment",
-                    "key": "library_q_value",
-                    "location": "var",
-                    "accept": "nonzero"
-                  },
-                  {
-                    "catalog": "proteobench_entrapment",
-                    "key": "q_value",
-                    "location": "var"
-                  },
-                  {
-                    "catalog": "confidence",
-                    "key": "q_value"
-                  }
-                ],
+                "layer": "q_value",
                 "type": "number",
                 "required": false
               }
@@ -129,14 +99,14 @@
             {
               "name": "search_engine",
               "how": "lowercase",
-              "inputs": [{"rule": "software_name"}],
+              "source": {"rule": "software_name"},
               "required": false,
               "fill_value": "unknown"
             },
             {
               "name": "quantification",
               "how": "lowercase",
-              "inputs": [{"rule": "software_name"}],
+              "source": {"rule": "software_name"},
               "required": false,
               "fill_value": "unknown"
             },

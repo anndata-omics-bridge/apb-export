@@ -1,49 +1,54 @@
 {
-  "schema_version": "0.4",
-  "file_version": "1",
+  "schema_version": "0.5",
+  "file_version": "2",
   "target_name": "MSstats",
   "target_version_pattern": "^4\\.20\\.",
   "tables": [
     {
-      "output": {"extensions": [".csv"]},
+      "output": ".csv",
       "levels": {
         "peptidoform_ion": {
-          "axis": {"obs_keys": ["Run"], "var_keys": ["PrecursorId"]},
+          "axis": {"obs_key": "Run", "var_key": "PrecursorId"},
           "measurements": {
             "primary_layer": "Intensity",
             "layers": [
               {
                 "name": "Intensity",
-                "source": [
-                  {"catalog": "abundance", "key": "intensity"},
-                  {"measurements": "primary_layer"}
-                ],
+                "source": {"catalog": "abundance", "layers": "intensity"},
+                "fallback": [{"measurements": "primary_layer"}],
                 "missing_values": [0]
               },
-              {"name": "DetectionQValue", "source": {"catalog": "confidence", "key": "q_value"}},
+              {
+                "name": "DetectionQValue",
+                "source": {"catalog": "confidence", "layers": "q_value"},
+                "required": false
+              },
               {
                 "name": "PEP",
-                "source": [
-                  {"catalog": "confidence", "key": "pep"},
-                  {"catalog": "confidence", "key": "pep", "location": "var"}
-                ]
+                "source": {"catalog": "confidence", "layers": "pep"},
+                "fallback": [{"catalog": "confidence", "var": "pep"}],
+                "required": false
               }
             ]
           },
           "columns": {
             "obs": [
-              {"name": "Run", "source": {"axis": "obs_keys"}},
-              {"name": "Condition", "source": {"catalog": "apb", "key": "group", "location": "obs"}},
-              {"name": "BioReplicate", "source": {"catalog": "apb", "key": "subject", "location": "obs"}}
+              {"name": "Run", "source": {"axis": "obs_key"}},
+              {"name": "Condition", "source": {"catalog": "apb", "obs": "group"}},
+              {"name": "BioReplicate", "source": {"catalog": "apb", "obs": "subject"}}
             ],
             "var": [
-              {"name": "PrecursorId", "source": {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}},
-              {"name": "ProteinName", "source": {"catalog": "apb", "key": "protein_assignment", "location": "var"}, "drop_missing": true},
-              {"name": "PeptideSequence", "source": {"catalog": "apb", "key": "peptidoform", "location": "var"}},
+              {"name": "PrecursorId", "source": {"catalog": "apb", "var": "peptidoform_ion"}},
+              {
+                "name": "ProteinName",
+                "source": {"catalog": "apb", "var": "protein_assignment"},
+                "drop_missing": true
+              },
+              {"name": "PeptideSequence", "source": {"catalog": "apb", "var": "peptidoform"}},
               {
                 "name": "PrecursorCharge",
                 "how": "proforma_charge",
-                "inputs": [{"catalog": "apb", "key": "peptidoform_ion", "location": "var"}],
+                "source": {"catalog": "apb", "var": "peptidoform_ion"},
                 "type": "integer"
               },
               {"name": "FragmentIon", "how": "constant", "value": null},

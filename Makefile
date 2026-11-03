@@ -10,8 +10,9 @@ help:  ## Show developer commands
 sync:  ## Synchronize the locked development environment
 	uv sync --group dev --group docs
 
-format:  ## Format and autofix source and tests
+format:  ## Format and autofix source and tests; lay out the packaged export rules
 	$(VENV_BIN)/ruff format src tests
+	$(VENV_BIN)/python -m apb_export.export_rules.layout
 	$(VENV_BIN)/ruff check --fix src tests
 
 format-check:  ## Check formatting without changing files

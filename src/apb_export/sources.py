@@ -8,24 +8,27 @@ no vendor column name appears in a rule.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import Literal
 
 import numpy as np
 import polars as pl
 from apb2.api import FinalLayerTable, ParsedLevel, ParsedLevels
 from apb_catalog.api import DataCatalog, UnresolvedField
+from loguru import logger
 
 from apb_export.export_rules.schema import (
     AxisSource,
+    CatalogueLayer,
+    CatalogueObs,
     CatalogueSource,
+    CatalogueVar,
     FastaSource,
     MeasurementSource,
     ObsSource,
     Reference,
     RuleSource,
     Scalar,
-    Source,
 )
 
 type Provenance = dict[str, str]
@@ -80,6 +83,19 @@ def _has_values(layer: FinalLayerTable) -> bool:
     return bool(total)
 
 
+def _catalogued_layer(
+    catalog: DataCatalog, level: ParsedLevel, name: str, key: str, qualifiers: Mapping[str, str]
+) -> FinalLayerTable | None:
+    """The apb2 layer a key names on level ``name``, read by its catalogued name so a categorical
+    layer keeps its labels; ``None`` when the level has no such layer."""
+    layers = catalog.levels[name].layers
+    try:
+        found = layers.name(key, **qualifiers)
+    except KeyError:
+        return None
+    return level.layers[found]
+
+
 def _column_has_values(column: pl.Series) -> bool:
     """Say whether a var column holds any finite, nonzero value."""
     return bool(column.cast(pl.Float64).fill_nan(0).fill_null(0).sum())
@@ -108,7 +124,7 @@ class LevelSources:
         self._name = level
         self._level = parsed.levels[level]
         self._abundance = abundance
-        self._catalogues: dict[tuple[str, str | None], DataCatalog] = {}
+        self._catalogues: dict[str, DataCatalog] = {}
 
     def annotations(self) -> list[str]:
         """The level's observation columns other than its keys, such as ``apb2 annotate`` adds."""
@@ -127,7 +143,7 @@ class LevelSources:
     def abundance_key(self, layer: str) -> str | None:
         """What the level's layer measures, as the ``abundance`` catalogue's key; ``None`` for a
         layer the catalogue does not describe."""
-        fields = self._catalog("abundance", None).fields()
+        fields = self._catalog("abundance").fields()
         keys = fields.filter(
             (pl.col("level") == self._name)
             & (pl.col("location") == "layers")
@@ -136,12 +152,15 @@ class LevelSources:
         ).get_column("key")
         return keys.item(0) if keys.len() else None
 
-    def resolve(self, source: Source) -> Resolved | None:
-        """The first candidate the result carries, or ``None`` when it carries none.
+    def resolve(
+        self, entry: str, source: Reference, fallback: Sequence[Reference] = ()
+    ) -> Resolved | None:
+        """The source, else the first fallback the result carries, or ``None`` when it carries
+        none; a fallback that answers is logged as a warning naming ``entry``.
 
         A catalogue candidate the catalogue reviewed but cannot answer with one field, because
         several match or the entries leave a requested qualifier unknown, passes to the next
-        candidate of a list; the answer used records it under ``passed``.
+        fallback; the answer used records it under ``passed``.
 
         Raises:
             ValueError: A reference cannot be answered, such as a composite axis key or an
@@ -149,7 +168,7 @@ class LevelSources:
             UnresolvedField: apb-catalog cannot answer the last candidate with one field, or
                 finds the rule unreviewed.
         """
-        candidates: list[Reference] = source if isinstance(source, list) else [source]
+        candidates = [source, *fallback]
         passed: list[str] = []
         for reference in candidates:
             try:
@@ -157,7 +176,7 @@ class LevelSources:
             except UnresolvedField as error:
                 reviewed = bool(error.resolution.candidates)
                 if (
-                    not isinstance(reference, CatalogueSource)
+                    not isinstance(reference, CatalogueLayer | CatalogueVar | CatalogueObs)
                     or not reviewed
                     or reference is candidates[-1]
                 ):
@@ -165,6 +184,10 @@ class LevelSources:
                 passed.append(f"{reference.catalog} {reference.key} {error.resolution.status}")
                 continue
             if resolved is not None:
+                if reference is not source:
+                    lacked = source.model_dump_json(exclude_defaults=True)
+                    read = reference.model_dump_json(exclude_defaults=True)
+                    logger.warning(f"level {self._name}: {entry} lacks {lacked}; read {read}")
                 if not passed:
                     return resolved
                 return replace(
@@ -180,7 +203,7 @@ class LevelSources:
         Raises:
             ValueError: The level lacks the marking.
         """
-        marked = self._catalog("apb", None).var(self._name, key="contaminant")
+        marked = self._catalog("apb").levels[self._name].var.get("contaminant")
         if marked is None:
             raise ValueError(f"export needs apb2's contaminant marking on level {self._name!r}")
         provenance: Provenance = {"location": "var", "name": marked.name, "catalog": "apb"}
@@ -198,7 +221,7 @@ class LevelSources:
                 return self._measurement()
             case RuleSource():
                 return self._rule_field(reference)
-            case CatalogueSource():
+            case CatalogueLayer() | CatalogueVar() | CatalogueObs():
                 return self._catalogue(reference)
             case FastaSource():
                 return self._fasta(reference)
@@ -220,7 +243,7 @@ class LevelSources:
         return None
 
     def _axis(self, reference: AxisSource) -> ObsValues | VarValues:
-        if reference.axis == "obs_keys":
+        if reference.axis == "obs_key":
             keys = self._level.obs.key_columns
             if len(keys) != 1:
                 raise ValueError(
@@ -247,36 +270,39 @@ class LevelSources:
             return None
         return ScalarValue(_scalar(value), {"location": "rule", "name": reference.rule})
 
-    def _catalog(self, name: str, enforce: Literal["MUST", "SHOULD"] | None) -> DataCatalog:
-        catalog = self._catalogues.get((name, enforce))
+    def _catalog(self, name: str) -> DataCatalog:
+        catalog = self._catalogues.get(name)
         if catalog is None:
-            catalog = DataCatalog(self._parsed, name, enforce=enforce)
-            self._catalogues[(name, enforce)] = catalog
+            catalog = DataCatalog(self._parsed, name)
+            self._catalogues[name] = catalog
         return catalog
 
     def _catalogue(self, reference: CatalogueSource) -> Resolved | None:
-        if reference.level is not None:
-            return self._through_protein_group(reference, reference.level)
-        catalog = self._catalog(reference.catalog, reference.enforce)
+        if not isinstance(reference, CatalogueObs) and reference.from_level is not None:
+            return self._through_protein_group(reference, reference.from_level)
+        catalog = self._catalog(reference.catalog)
         qualifiers = reference.qualifiers
         found: Provenance = {"catalog": reference.catalog, "key": reference.key, **qualifiers}
-        if reference.location == "obs":
-            values = catalog.obs(self._name, key=reference.key, **qualifiers)
+        level = catalog.levels[self._name]
+        if isinstance(reference, CatalogueObs):
+            values = level.obs.get(reference.key, **qualifiers)
             if values is None:
                 return None
             return ObsValues(values, {"location": "obs", "name": values.name, **found})
-        if reference.location == "var":
-            column = catalog.var(self._name, key=reference.key, **qualifiers)
+        if isinstance(reference, CatalogueVar):
+            column = level.var.get(reference.key, **qualifiers)
             if column is None or (reference.accept == "nonzero" and not _column_has_values(column)):
                 return None
             return VarValues(column, {"location": "var", "name": column.name, **found})
-        layer = catalog.layer(self._name, key=reference.key, **qualifiers)
+        layer = _catalogued_layer(catalog, self._level, self._name, reference.key, qualifiers)
         if layer is None or (reference.accept == "nonzero" and not _has_values(layer)):
             return None
         provenance = {"location": "layers", "name": layer.layer_name, **found}
         return LayerValues(layer.decoded_values(), provenance)
 
-    def _through_protein_group(self, reference: CatalogueSource, level: str) -> LayerValues | None:
+    def _through_protein_group(
+        self, reference: CatalogueLayer | CatalogueVar, level: str
+    ) -> LayerValues | None:
         """A catalogued field of ``level``, seen from this level's cells through protein groups.
 
         Each variable takes the group its ``protein_assignment`` names; each observation the
@@ -287,16 +313,16 @@ class LevelSources:
         if level not in self._parsed.levels or assignment is None:
             return None
         coarse = self._parsed.levels[level]
-        catalog = self._catalog(reference.catalog, reference.enforce)
-        if reference.location != "layers":
-            column = catalog.var(level, key=reference.key)
+        catalog = self._catalog(reference.catalog)
+        if isinstance(reference, CatalogueVar):
+            column = catalog.levels[level].var.get(reference.key)
             if column is None or (reference.accept == "nonzero" and not _column_has_values(column)):
                 return None
             table = column.cast(pl.Float64).to_numpy()[:, np.newaxis]
             runs = np.zeros(self._level.obs.frame.height, dtype=np.int64)
             name = column.name
         else:
-            layer = catalog.layer(level, key=reference.key)
+            layer = _catalogued_layer(catalog, coarse, level, reference.key, {})
             if layer is None or (reference.accept == "nonzero" and not _has_values(layer)):
                 return None
             table = layer.decoded_values().select(pl.all().cast(pl.Float64)).to_numpy()

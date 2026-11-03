@@ -71,19 +71,22 @@
           "title": "Drop Missing",
           "type": "boolean"
         },
+        "source": {
+          "$ref": "#/$defs/Reference",
+          "description": "The APB field; apb2's rules name a vendor column here."
+        },
+        "fallback": {
+          "description": "Tried in order when the result lacks the source; one that answers is logged.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "title": "Fallback",
+          "type": "array"
+        },
         "how": {
           "const": "accessions",
           "title": "How",
           "type": "string"
-        },
-        "inputs": {
-          "items": {
-            "$ref": "#/$defs/Reference"
-          },
-          "maxItems": 1,
-          "minItems": 1,
-          "title": "Inputs",
-          "type": "array"
         },
         "syntax": {
           "minLength": 1,
@@ -93,8 +96,8 @@
       },
       "required": [
         "name",
+        "source",
         "how",
-        "inputs",
         "syntax"
       ],
       "title": "Accessions",
@@ -190,28 +193,20 @@
       "additionalProperties": false,
       "description": "The entries that become the target's observation and variable index.",
       "properties": {
-        "obs_keys": {
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 1,
-          "minItems": 1,
-          "title": "Obs Keys",
-          "type": "array"
+        "obs_key": {
+          "minLength": 1,
+          "title": "Obs Key",
+          "type": "string"
         },
-        "var_keys": {
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 1,
-          "minItems": 1,
-          "title": "Var Keys",
-          "type": "array"
+        "var_key": {
+          "minLength": 1,
+          "title": "Var Key",
+          "type": "string"
         }
       },
       "required": [
-        "obs_keys",
-        "var_keys"
+        "obs_key",
+        "var_key"
       ],
       "title": "Axis",
       "type": "object"
@@ -222,8 +217,8 @@
       "properties": {
         "axis": {
           "enum": [
-            "obs_keys",
-            "var_keys"
+            "obs_key",
+            "var_key"
           ],
           "title": "Axis",
           "type": "string"
@@ -235,48 +230,24 @@
       "title": "AxisSource",
       "type": "object"
     },
-    "CatalogueSource": {
+    "CatalogueLayer": {
       "additionalProperties": false,
-      "description": "A field found by meaning through apb-catalog, asked by one of the set's keys; the set\n``apb`` holds APB's own fields, such as ``ProForma_ion`` (key ``peptidoform_ion``) or the\ncolumn a rule marks with a role.",
+      "description": "A catalogued layer: ``{\"catalog\": \"confidence\", \"layers\": \"q_value\"}``.",
       "properties": {
         "catalog": {
           "minLength": 1,
           "title": "Catalog",
           "type": "string"
         },
-        "key": {
-          "minLength": 1,
-          "title": "Key",
-          "type": "string"
+        "qualifiers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Further qualifiers of the request, besides those its key fixes, such as an origin when the vendor and apb-fasta both answer one key.",
+          "title": "Qualifiers",
+          "type": "object"
         },
-        "location": {
-          "default": "layers",
-          "enum": [
-            "layers",
-            "var",
-            "obs"
-          ],
-          "title": "Location",
-          "type": "string"
-        },
-        "enforce": {
-          "anyOf": [
-            {
-              "enum": [
-                "MUST",
-                "SHOULD"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "How binding the set's requirements are for this lookup: MUST raises for a missing MUST field and logs a warning for a missing SHOULD field; SHOULD raises for both.",
-          "title": "Enforce"
-        },
-        "level": {
+        "from_level": {
           "anyOf": [
             {
               "const": "protein",
@@ -288,7 +259,7 @@
           ],
           "default": null,
           "description": "Read the field from this level through each variable's protein_assignment, as a layer: a cell takes its protein group's value in its run; a var column's value repeats in every run. The assignment names its group whole, or else the group it leads, as MaxQuant's razor protein does. A group the level lacks reads as missing.",
-          "title": "Level"
+          "title": "From Level"
         },
         "accept": {
           "default": "present",
@@ -300,6 +271,29 @@
           "title": "Accept",
           "type": "string"
         },
+        "layers": {
+          "description": "The set's key.",
+          "minLength": 1,
+          "title": "Layers",
+          "type": "string"
+        }
+      },
+      "required": [
+        "catalog",
+        "layers"
+      ],
+      "title": "CatalogueLayer",
+      "type": "object"
+    },
+    "CatalogueObs": {
+      "additionalProperties": false,
+      "description": "A catalogued obs column: ``{\"catalog\": \"prolfqua\", \"obs\": \"group\"}``.",
+      "properties": {
+        "catalog": {
+          "minLength": 1,
+          "title": "Catalog",
+          "type": "string"
+        },
         "qualifiers": {
           "additionalProperties": {
             "type": "string"
@@ -307,13 +301,74 @@
           "description": "Further qualifiers of the request, besides those its key fixes, such as an origin when the vendor and apb-fasta both answer one key.",
           "title": "Qualifiers",
           "type": "object"
+        },
+        "obs": {
+          "description": "The set's key.",
+          "minLength": 1,
+          "title": "Obs",
+          "type": "string"
         }
       },
       "required": [
         "catalog",
-        "key"
+        "obs"
       ],
-      "title": "CatalogueSource",
+      "title": "CatalogueObs",
+      "type": "object"
+    },
+    "CatalogueVar": {
+      "additionalProperties": false,
+      "description": "A catalogued var column: ``{\"catalog\": \"apb\", \"var\": \"protein_assignment\"}``.",
+      "properties": {
+        "catalog": {
+          "minLength": 1,
+          "title": "Catalog",
+          "type": "string"
+        },
+        "qualifiers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Further qualifiers of the request, besides those its key fixes, such as an origin when the vendor and apb-fasta both answer one key.",
+          "title": "Qualifiers",
+          "type": "object"
+        },
+        "from_level": {
+          "anyOf": [
+            {
+              "const": "protein",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Read the field from this level through each variable's protein_assignment, as a layer: a cell takes its protein group's value in its run; a var column's value repeats in every run. The assignment names its group whole, or else the group it leads, as MaxQuant's razor protein does. A group the level lacks reads as missing.",
+          "title": "From Level"
+        },
+        "accept": {
+          "default": "present",
+          "description": "nonzero rejects a layer or var column holding no finite nonzero value, such as DIA-NN's library q-value without match-between-runs.",
+          "enum": [
+            "present",
+            "nonzero"
+          ],
+          "title": "Accept",
+          "type": "string"
+        },
+        "var": {
+          "description": "The set's key.",
+          "minLength": 1,
+          "title": "Var",
+          "type": "string"
+        }
+      },
+      "required": [
+        "catalog",
+        "var"
+      ],
+      "title": "CatalogueVar",
       "type": "object"
     },
     "ColumnEntry": {
@@ -661,15 +716,24 @@
           "type": "string"
         },
         "source": {
-          "$ref": "#/$defs/Source",
+          "$ref": "#/$defs/Reference",
           "description": "An APB layer: the primary layer or a catalogued one."
+        },
+        "fallback": {
+          "description": "Tried in order when the result lacks the source; one that answers is logged.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "title": "Fallback",
+          "type": "array"
         },
         "width": {
           "$ref": "#/$defs/FloatWidth",
           "default": 64
         },
         "required": {
-          "default": false,
+          "default": true,
+          "description": "An absent source is an error; when false, the layer is left out.",
           "title": "Required",
           "type": "boolean"
         },
@@ -713,7 +777,7 @@
     },
     "LayerMinimum": {
       "additionalProperties": false,
-      "description": "A layer's smallest value per variable across observations, missing values left out,\nas one q-value per ion from a per-run layer; a variable value is taken as it is.",
+      "description": "An exported layer's smallest value per variable across observations, missing values left\nout, as one q-value per ion from a per-run layer.",
       "properties": {
         "name": {
           "description": "The target field; apb2's rules name APB fields.",
@@ -759,15 +823,17 @@
           "title": "How",
           "type": "string"
         },
-        "source": {
-          "$ref": "#/$defs/Source",
-          "description": "An APB layer, or candidates in order."
+        "layer": {
+          "description": "A measurement layer of the same level.",
+          "minLength": 1,
+          "title": "Layer",
+          "type": "string"
         }
       },
       "required": [
         "name",
         "how",
-        "source"
+        "layer"
       ],
       "title": "LayerMinimum",
       "type": "object"
@@ -815,25 +881,28 @@
           "title": "Drop Missing",
           "type": "boolean"
         },
+        "source": {
+          "$ref": "#/$defs/Reference",
+          "description": "The APB field; apb2's rules name a vendor column here."
+        },
+        "fallback": {
+          "description": "Tried in order when the result lacks the source; one that answers is logged.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "title": "Fallback",
+          "type": "array"
+        },
         "how": {
           "const": "lowercase",
           "title": "How",
           "type": "string"
-        },
-        "inputs": {
-          "items": {
-            "$ref": "#/$defs/Reference"
-          },
-          "maxItems": 1,
-          "minItems": 1,
-          "title": "Inputs",
-          "type": "array"
         }
       },
       "required": [
         "name",
-        "how",
-        "inputs"
+        "source",
+        "how"
       ],
       "title": "Lowercase",
       "type": "object"
@@ -937,25 +1006,28 @@
           "title": "Drop Missing",
           "type": "boolean"
         },
+        "source": {
+          "$ref": "#/$defs/Reference",
+          "description": "The APB field; apb2's rules name a vendor column here."
+        },
+        "fallback": {
+          "description": "Tried in order when the result lacks the source; one that answers is logged.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "title": "Fallback",
+          "type": "array"
+        },
         "how": {
           "const": "proforma_charge",
           "title": "How",
           "type": "string"
-        },
-        "inputs": {
-          "items": {
-            "$ref": "#/$defs/Reference"
-          },
-          "maxItems": 1,
-          "minItems": 1,
-          "title": "Inputs",
-          "type": "array"
         }
       },
       "required": [
         "name",
-        "how",
-        "inputs"
+        "source",
+        "how"
       ],
       "title": "ProformaCharge",
       "type": "object"
@@ -972,7 +1044,13 @@
           "$ref": "#/$defs/RuleSource"
         },
         {
-          "$ref": "#/$defs/CatalogueSource"
+          "$ref": "#/$defs/CatalogueLayer"
+        },
+        {
+          "$ref": "#/$defs/CatalogueVar"
+        },
+        {
+          "$ref": "#/$defs/CatalogueObs"
         },
         {
           "$ref": "#/$defs/FastaSource"
@@ -1089,25 +1167,28 @@
           "title": "Drop Missing",
           "type": "boolean"
         },
+        "source": {
+          "$ref": "#/$defs/Reference",
+          "description": "The APB field; apb2's rules name a vendor column here."
+        },
+        "fallback": {
+          "description": "Tried in order when the result lacks the source; one that answers is logged.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "title": "Fallback",
+          "type": "array"
+        },
         "how": {
           "const": "sequence_length",
           "title": "How",
           "type": "string"
-        },
-        "inputs": {
-          "items": {
-            "$ref": "#/$defs/Reference"
-          },
-          "maxItems": 1,
-          "minItems": 1,
-          "title": "Inputs",
-          "type": "array"
         }
       },
       "required": [
         "name",
-        "how",
-        "inputs"
+        "source",
+        "how"
       ],
       "title": "SequenceLength",
       "type": "object"
@@ -1196,19 +1277,6 @@
       "title": "ShortName",
       "type": "object"
     },
-    "Source": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/Reference"
-        },
-        {
-          "items": {
-            "$ref": "#/$defs/Reference"
-          },
-          "type": "array"
-        }
-      ]
-    },
     "SourcedEntry": {
       "additionalProperties": false,
       "description": "A target field read from one APB source.",
@@ -1253,8 +1321,16 @@
           "type": "boolean"
         },
         "source": {
-          "$ref": "#/$defs/Source",
+          "$ref": "#/$defs/Reference",
           "description": "The APB field; apb2's rules name a vendor column here."
+        },
+        "fallback": {
+          "description": "Tried in order when the result lacks the source; one that answers is logged.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "title": "Fallback",
+          "type": "array"
         }
       },
       "required": [

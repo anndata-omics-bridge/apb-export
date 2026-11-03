@@ -10,8 +10,9 @@ from typing import Any
 import pytest
 
 from apb_export.engine import CompiledExport
+from apb_export.export_rules.layout import format_rule, packaged_rule_files
 from apb_export.export_rules.loader import effective_rules, packaged_documents, packaged_rules
-from apb_export.export_rules.schema import ExportRuleDocument
+from apb_export.export_rules.schema import ExportRuleDocument, JoinNonempty
 from apb_export.export_rules.schema_artifact import SCHEMA_DIRECTORY, json_schemas
 
 type Change = Callable[[dict[str, Any]], None]
@@ -77,6 +78,31 @@ def test_base_blocks_reach_every_level() -> None:
     }
 
 
+def test_a_level_entry_replaces_the_bases_of_its_name() -> None:
+    """prolfqua's ion level replaces the base's feature_id where it stands and adds its own
+    precursor_Id; the peptide level keeps the base's."""
+    peptides, ions = packaged_rules("prolfqua")
+    peptide_id, ion_id = peptides.rule.columns.var[0], ions.rule.columns.var[0]
+
+    assert isinstance(peptide_id, JoinNonempty) and isinstance(ion_id, JoinNonempty)
+    assert (peptide_id.name, len(peptide_id.inputs)) == ("feature_id", 2)
+    assert (ion_id.name, len(ion_id.inputs)) == ("feature_id", 3)
+    assert [entry.name for entry in ions.rule.columns.var][-1] == "precursor_Id"
+    assert "precursor_Id" not in [entry.name for entry in peptides.rule.columns.var]
+
+
+def test_every_packaged_rule_keeps_its_layout() -> None:
+    """``make format`` lays the rules out: an object on one line where it fits, else one item
+    per line."""
+    unformatted = [
+        str(path.relative_to(path.parents[2]))
+        for path in packaged_rule_files()
+        if format_rule(json.loads(path.read_text(encoding="utf-8")))
+        != path.read_text(encoding="utf-8")
+    ]
+    assert unformatted == [], "run make format"
+
+
 def test_an_unknown_target_is_refused() -> None:
     with pytest.raises(ValueError, match="expected one export rule for 'nope'"):
         packaged_rules("nope")
@@ -91,7 +117,7 @@ def _undeclared_primary(document: dict[str, Any]) -> None:
 
 
 def _undeclared_axis(document: dict[str, Any]) -> None:
-    _ion(document)["axis"]["var_keys"] = ["nope"]
+    _ion(document)["axis"]["var_key"] = "nope"
 
 
 def _undeclared_syntax(document: dict[str, Any]) -> None:
@@ -100,6 +126,10 @@ def _undeclared_syntax(document: dict[str, Any]) -> None:
 
 def _width_on_text(document: dict[str, Any]) -> None:
     _var(document, "peptide")["width"] = 32
+
+
+def _unknown_minimum_layer(document: dict[str, Any]) -> None:
+    _var(document, "q_value")["layer"] = "nope"
 
 
 def _no_modality(document: dict[str, Any]) -> None:
@@ -124,7 +154,7 @@ def _two_tables(document: dict[str, Any]) -> None:
 
 def _h5ad_with_two_levels(document: dict[str, Any]) -> None:
     table = document["tables"][0]
-    table["output"]["extensions"] = [".h5ad"]
+    table["output"] = ".h5ad"
     table["levels"]["protein"] = json.loads(json.dumps(_ion(document)))
 
 
@@ -133,7 +163,8 @@ def _h5ad_with_two_levels(document: dict[str, Any]) -> None:
     [
         (_unknown_key, "Extra inputs are not permitted"),
         (_undeclared_primary, "primary_layer='missing' matches no layer"),
-        (_undeclared_axis, r"axis.var_keys=\['nope'\] matches no columns.var entry"),
+        (_undeclared_axis, "axis.var_key='nope' matches no columns.var entry"),
+        (_unknown_minimum_layer, "entry 'q_value' names no measurement layer 'nope'"),
         (_undeclared_syntax, "names no accession_syntax 'msmu'"),
         (_width_on_text, "width applies only to type number"),
         (_no_modality, "writes .h5mu but names no modality"),

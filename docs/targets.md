@@ -7,18 +7,22 @@ Each target's layout is declared in its export rule, not coded. One engine check
 Rules follow APB2's rule schema read in reverse:
 
 - `name`: the target's field
-- `source`: an APB field every vendor shares: the run key, the primary layer, or a catalogued meaning `{"catalog": <set>, "key": ..., "location": ...}`, by one of the set's keys. APB's own columns come from apb-catalog's `apb` set, such as `{"catalog": "apb", "key": "peptidoform_ion", "location": "var"}` for `ProForma_ion` or key `protein_assignment` for the column a rule marks with that role, so no rule names an APB column. `"enforce": "MUST"` makes the set's MUST fields binding and logs a warning for a missing SHOULD field; prolfqua's intensity sets it
-- `"level": "protein"` on a catalogued source: read through each variable's protein group, named whole or by its leading protein; a cell takes its group's value in its run; a var column's value, the group's, repeats in every run
+- `source`: an APB field every vendor shares: the run key (`{"axis": "obs_key"}`), the primary layer, or a catalogued meaning named by its slot and one of the set's keys, `{"catalog": <set>, "layers" | "var" | "obs": <key>}`. APB's own columns come from apb-catalog's `apb` set, such as `{"catalog": "apb", "var": "peptidoform_ion"}` for `ProForma_ion` or key `protein_assignment` for the column a rule marks with that role, so no rule names an APB column
+- `fallback`: what to read, in order, where the result lacks the `source`; the export logs a warning naming the source it read. prolfqua's intensity falls back to the primary layer where the abundance set names no intensity without normalization
+- `"from_level": "protein"` on a catalogued layer or var source: read through each variable's protein group, named whole or by its leading protein; a cell takes its group's value in its run; a var column's value, the group's, repeats in every run
+- `base` in a table: what every level shares; a level adds its own entries to `columns.obs`, `columns.var`, `measurements.layers` and `uns`, and an entry with a base entry's name replaces it where it stands
+- `required`: an entry or layer the result must hold; `"required": false` leaves it out, or writes `fill_value`
 - `software` on a level block: the vendor that block is for
 - `.h5ad` rules: list their levels in order and write the first one the result's software and levels allow
 - `.csv` rules: choose their level as `.h5ad` rules do and write it as a long table: one row per run and feature that some layer holds, obs columns, var columns and one column per layer, category codes written as the labels the parsing rule declares, missing as `NA`, no sidecar
 - `.txt` rules: choose their level as `.h5ad` rules do and write it as a Perseus table, described [below](#perseus)
 - `transform` on a layer: `log2`, applied after `missing_values`; a value that is not positive becomes missing
+- `how: "layer_minimum"` with `layer`: an exported layer's lowest value per feature across runs
 - `how: "short_name"`: per row, the first input holding a value, cut to its first group member and, for `db|ACC|NAME`, to `NAME`; inputs the result lacks, such as FASTA columns without `--fasta`, are passed over; `append` follows after `_`
 - `rename` on an `all_values` entry: annotation columns whose name matches a `pattern` are written as text, categories sorted, under `re.sub(pattern, replacement, name)`, the first matching rename winning; `identifier` lower-cases that name and turns every character outside `a-z0-9_` into `_`
 - `name_by_key` on a layer: the layer's name per `abundance` key of the layer it resolved to, such as `{"maxlfq": "LFQ intensity"}`; any other key keeps `name`
 
-The published [JSON Schemas](https://github.com/anndata-omics-bridge/apb-export/tree/main/src/apb_export/export_rules/documents/_schema) describe the documents.
+The published [JSON Schemas](https://github.com/anndata-omics-bridge/apb-export/tree/main/src/apb_export/export_rules/documents/_schema) describe the documents. `make format` lays the rules out: an object on one line where it fits in 100 columns, else one item per line.
 
 HDF5 target files are written by APB2's `write_parsed_levels`, `.apb.json` sidecar included:
 
@@ -65,7 +69,7 @@ msmu's `psm` modality, written wide. Experimental: msmu's own readers write one 
 - One `psm` modality; runs are observations, precursors are features, id `<ProForma precursor>`; the keys `filename` and `precursor` stay columns and name the indices
 - `X`: dense float32, the chosen abundance layer; APB2's primary layer by default; a precursor absent from a run is NaN
 - `layers`: `q_value`, the library or experiment-wide q-value repeated in every run where the vendor reports one, else each run's; each run's `PEP`, where the vendor reports it
-- `var`: `proteins`, `peptide`, `stripped_peptide`, `charge`, `peptide_length`, `decoy`, `contaminant`, and `PEP` and `q_value` where reported, each the precursor's lowest value across runs (`how: "layer_minimum"`)
+- `var`: `proteins`, `peptide`, `stripped_peptide`, `charge`, `peptide_length`, `decoy`, `contaminant`, and `PEP` and `q_value` where reported, each the precursor's lowest value across runs in the layer of that name (`how: "layer_minimum"`)
 - `uns`: `apb_export_status: "experimental"`, msmu's reader settings plus APB metadata; `uns["apb"]` holds the result's root records and the `export` record
 - Features without a protein: left out and counted in the export record, since msmu's protein inference would group them as one unnamed protein
 

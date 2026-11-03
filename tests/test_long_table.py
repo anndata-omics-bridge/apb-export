@@ -22,48 +22,38 @@ COLUMNS = ["Run", "precursor", "proteins", "Intensity", "q_value"]
 def _document(var: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """A one-level ``.csv`` rule: the run key, two var columns, the primary layer and a q-value."""
     return {
-        "schema_version": "0.4",
+        "schema_version": "0.5",
         "file_version": "1",
         "target_name": "Table",
         "target_version_pattern": "^1\\.",
         "tables": [
             {
-                "output": {"extensions": [".csv"]},
+                "output": ".csv",
                 "levels": {
                     "peptidoform_ion": {
-                        "axis": {"obs_keys": ["Run"], "var_keys": ["precursor"]},
+                        "axis": {"obs_key": "Run", "var_key": "precursor"},
                         "measurements": {
                             "primary_layer": "Intensity",
                             "layers": [
                                 {"name": "Intensity", "source": {"measurements": "primary_layer"}},
                                 {
                                     "name": "q_value",
-                                    "source": {
-                                        "catalog": "confidence",
-                                        "key": "q_value",
-                                    },
+                                    "source": {"catalog": "confidence", "layers": "q_value"},
+                                    "required": False,
                                 },
                             ],
                         },
                         "columns": {
-                            "obs": [{"name": "Run", "source": {"axis": "obs_keys"}}],
+                            "obs": [{"name": "Run", "source": {"axis": "obs_key"}}],
                             "var": var
                             or [
                                 {
                                     "name": "precursor",
-                                    "source": {
-                                        "catalog": "apb",
-                                        "key": "peptidoform_ion",
-                                        "location": "var",
-                                    },
+                                    "source": {"catalog": "apb", "var": "peptidoform_ion"},
                                 },
                                 {
                                     "name": "proteins",
-                                    "source": {
-                                        "catalog": "apb",
-                                        "key": "protein_assignment",
-                                        "location": "var",
-                                    },
+                                    "source": {"catalog": "apb", "var": "protein_assignment"},
                                 },
                             ],
                         },
@@ -140,7 +130,7 @@ def test_the_csv_reads_back_with_na_for_missing(diann: DiannInput, tmp_path: Pat
 
 
 def test_a_name_used_twice_is_refused(diann: DiannInput) -> None:
-    precursor = {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}
+    precursor = {"catalog": "apb", "var": "peptidoform_ion"}
     clash = [{"name": "precursor", "source": precursor}, {"name": "Run", "source": precursor}]
     level = _exported(diann, _document(var=clash))
 

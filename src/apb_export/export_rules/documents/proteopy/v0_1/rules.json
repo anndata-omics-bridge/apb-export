@@ -1,25 +1,25 @@
 {
-  "schema_version": "0.4",
-  "file_version": "1",
+  "schema_version": "0.5",
+  "file_version": "2",
   "target_name": "ProteoPy",
   "target_version_pattern": "^0\\.1\\.",
   "tables": [
     {
-      "output": {"extensions": [".h5ad"]},
+      "output": ".h5ad",
       "levels": {
         "protein": {
-          "axis": {"obs_keys": ["sample_id"], "var_keys": ["protein_id"]},
+          "axis": {"obs_key": "sample_id", "var_key": "protein_id"},
           "measurements": {
             "primary_layer": "abundance",
             "layers": [{"name": "abundance", "source": {"measurements": "primary_layer"}}]
           },
           "columns": {
             "obs": [
-              {"name": "sample_id", "source": {"axis": "obs_keys"}},
+              {"name": "sample_id", "source": {"axis": "obs_key"}},
               {"name": "annotations", "how": "all_values"}
             ],
             "var": [
-              {"name": "protein_id", "source": {"catalog": "apb", "key": "protein_assignment", "location": "var"}},
+              {"name": "protein_id", "source": {"catalog": "apb", "var": "protein_assignment"}},
               {
                 "name": "in_fasta",
                 "source": {"fasta": "any_member_in_fasta"},
@@ -28,7 +28,11 @@
               },
               {"name": "gene_id", "source": {"fasta": "fasta_gene_names"}, "required": false},
               {"name": "description", "source": {"fasta": "fasta_descriptions"}, "required": false},
-              {"name": "fasta_organisms", "source": {"fasta": "fasta_organism_names"}, "required": false}
+              {
+                "name": "fasta_organisms",
+                "source": {"fasta": "fasta_organism_names"},
+                "required": false
+              }
             ]
           }
         }

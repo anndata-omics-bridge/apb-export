@@ -11,7 +11,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
-type SchemaVersion = Literal["0.4"]
+type SchemaVersion = Literal["0.5"]
 type ColumnType = Literal["string", "integer", "number", "boolean"]
 type FloatWidth = Literal[32, 64]
 type Scalar = str | int | float | bool | None
@@ -26,7 +26,7 @@ class ModelBase(BaseModel):
 class AxisSource(ModelBase):
     """The level's observation or variable key column; a composite key is refused."""
 
-    axis: Literal["obs_keys", "var_keys"]
+    axis: Literal["obs_key", "var_key"]
 
 
 class MeasurementSource(ModelBase):
@@ -69,21 +69,24 @@ class FastaSource(ModelBase):
     ]
 
 
-class CatalogueSource(ModelBase):
-    """A field found by meaning through apb-catalog, asked by one of the set's keys; the set
-    ``apb`` holds APB's own fields, such as ``ProForma_ion`` (key ``peptidoform_ion``) or the
-    column a rule marks with a role."""
+class CatalogueReference(ModelBase):
+    """A field found by meaning through apb-catalog, asked by one of the set's keys in one slot
+    of the level, as ``levels[level].var["protein_assignment"]`` asks it; the set ``apb`` holds
+    APB's own fields, such as ``ProForma_ion`` (key ``peptidoform_ion``) or the column a rule
+    marks with a role."""
 
     catalog: str = Field(min_length=1)
-    key: str = Field(min_length=1)
-    location: Literal["layers", "var", "obs"] = "layers"
-    enforce: Literal["MUST", "SHOULD"] | None = Field(
-        default=None,
-        description="How binding the set's requirements are for this lookup: MUST raises for a "
-        "missing MUST field and logs a warning for a missing SHOULD field; SHOULD raises for "
-        "both.",
+    qualifiers: dict[str, str] = Field(
+        default_factory=dict,
+        description="Further qualifiers of the request, besides those its key fixes, such as an "
+        "origin when the vendor and apb-fasta both answer one key.",
     )
-    level: Literal["protein"] | None = Field(
+
+
+class CatalogueField(CatalogueReference):
+    """A catalogued layer or var column, which may be read from a coarser level."""
+
+    from_level: Literal["protein"] | None = Field(
         default=None,
         description="Read the field from this level through each variable's protein_assignment, "
         "as a layer: a cell takes its protein group's value in its run; a var column's value "
@@ -95,11 +98,51 @@ class CatalogueSource(ModelBase):
         description="nonzero rejects a layer or var column holding no finite nonzero value, "
         "such as DIA-NN's library q-value without match-between-runs.",
     )
-    qualifiers: dict[str, str] = Field(
-        default_factory=dict,
-        description="Further qualifiers of the request, besides those its key fixes, such as an "
-        "origin when the vendor and apb-fasta both answer one key.",
-    )
+
+
+class CatalogueLayer(CatalogueField):
+    """A catalogued layer: ``{"catalog": "confidence", "layers": "q_value"}``."""
+
+    layers: str = Field(min_length=1, description="The set's key.")
+
+    @property
+    def key(self) -> str:
+        return self.layers
+
+    @property
+    def location(self) -> Literal["layers"]:
+        return "layers"
+
+
+class CatalogueVar(CatalogueField):
+    """A catalogued var column: ``{"catalog": "apb", "var": "protein_assignment"}``."""
+
+    var: str = Field(min_length=1, description="The set's key.")
+
+    @property
+    def key(self) -> str:
+        return self.var
+
+    @property
+    def location(self) -> Literal["var"]:
+        return "var"
+
+
+class CatalogueObs(CatalogueReference):
+    """A catalogued obs column: ``{"catalog": "prolfqua", "obs": "group"}``."""
+
+    obs: str = Field(min_length=1, description="The set's key.")
+
+    @property
+    def key(self) -> str:
+        return self.obs
+
+    @property
+    def location(self) -> Literal["obs"]:
+        return "obs"
+
+
+type CatalogueSource = CatalogueLayer | CatalogueVar | CatalogueObs
 
 
 class ObsSource(ModelBase):
@@ -110,10 +153,15 @@ class ObsSource(ModelBase):
 
 
 type Reference = (
-    AxisSource | MeasurementSource | RuleSource | CatalogueSource | FastaSource | ObsSource
+    AxisSource
+    | MeasurementSource
+    | RuleSource
+    | CatalogueLayer
+    | CatalogueVar
+    | CatalogueObs
+    | FastaSource
+    | ObsSource
 )
-type Source = Reference | list[Reference]
-"""One APB reference, or candidates in order: the first one that resolves is used."""
 
 
 class EntryBase(ModelBase):
@@ -145,10 +193,18 @@ class EntryBase(ModelBase):
         return self
 
 
-class SourcedEntry(EntryBase):
-    """A target field read from one APB source."""
+class SourcedBase(EntryBase):
+    """An entry read from one APB source, or the first fallback the result carries."""
 
-    source: Source = Field(description="The APB field; apb2's rules name a vendor column here.")
+    source: Reference = Field(description="The APB field; apb2's rules name a vendor column here.")
+    fallback: list[Reference] = Field(
+        default_factory=list,
+        description="Tried in order when the result lacks the source; one that answers is logged.",
+    )
+
+
+class SourcedEntry(SourcedBase):
+    """A target field read from one APB source."""
 
 
 class Constant(EntryBase):
@@ -166,25 +222,22 @@ class JoinNonempty(EntryBase):
     separator: str = Field(min_length=1)
 
 
-class ProformaCharge(EntryBase):
+class ProformaCharge(SourcedBase):
     """The charge of a ProForma ion, ``SEQ/2`` giving 2."""
 
     how: Literal["proforma_charge"]
-    inputs: list[Reference] = Field(min_length=1, max_length=1)
 
 
-class SequenceLength(EntryBase):
+class SequenceLength(SourcedBase):
     """The number of characters of a sequence."""
 
     how: Literal["sequence_length"]
-    inputs: list[Reference] = Field(min_length=1, max_length=1)
 
 
-class Accessions(EntryBase):
+class Accessions(SourcedBase):
     """Protein-group members rewritten by a named ``accession_syntax``."""
 
     how: Literal["accessions"]
-    inputs: list[Reference] = Field(min_length=1, max_length=1)
     syntax: str = Field(min_length=1)
 
 
@@ -196,11 +249,10 @@ class Contaminant(EntryBase):
     how: Literal["contaminant"]
 
 
-class Lowercase(EntryBase):
+class Lowercase(SourcedBase):
     """The input text in lower case."""
 
     how: Literal["lowercase"]
-    inputs: list[Reference] = Field(min_length=1, max_length=1)
 
 
 class ShortName(EntryBase):
@@ -224,11 +276,11 @@ class AnnotationMap(EntryBase):
 
 
 class LayerMinimum(EntryBase):
-    """A layer's smallest value per variable across observations, missing values left out,
-    as one q-value per ion from a per-run layer; a variable value is taken as it is."""
+    """An exported layer's smallest value per variable across observations, missing values left
+    out, as one q-value per ion from a per-run layer."""
 
     how: Literal["layer_minimum"]
-    source: Source = Field(description="An APB layer, or candidates in order.")
+    layer: str = Field(min_length=1, description="A measurement layer of the same level.")
 
 
 type ComputedEntry = Annotated[
@@ -281,9 +333,16 @@ class LayerEntry(ModelBase):
     """A target matrix read from one APB layer."""
 
     name: str = Field(min_length=1)
-    source: Source = Field(description="An APB layer: the primary layer or a catalogued one.")
+    source: Reference = Field(description="An APB layer: the primary layer or a catalogued one.")
+    fallback: list[Reference] = Field(
+        default_factory=list,
+        description="Tried in order when the result lacks the source; one that answers is logged.",
+    )
     width: FloatWidth = 64
-    required: bool = False
+    required: bool = Field(
+        default=True,
+        description="An absent source is an error; when false, the layer is left out.",
+    )
     missing_values: list[float] = Field(
         default_factory=list,
         description="APB values treated as absent; apb2 lists vendor values here.",
@@ -322,8 +381,8 @@ class Measurements(ModelBase):
 class Axis(ModelBase):
     """The entries that become the target's observation and variable index."""
 
-    obs_keys: list[str] = Field(min_length=1, max_length=1)
-    var_keys: list[str] = Field(min_length=1, max_length=1)
+    obs_key: str = Field(min_length=1)
+    var_key: str = Field(min_length=1)
 
 
 class Columns(ModelBase):
@@ -381,10 +440,14 @@ class LevelRule(ModelBase):
         obs = _unique("columns.obs", self.columns.obs)
         var = _unique("columns.var", self.columns.var)
         _unique("uns", self.uns)
-        if self.axis.obs_keys[0] not in obs:
-            raise ValueError(f"axis.obs_keys={self.axis.obs_keys} matches no columns.obs entry")
-        if self.axis.var_keys[0] not in var:
-            raise ValueError(f"axis.var_keys={self.axis.var_keys} matches no columns.var entry")
+        if self.axis.obs_key not in obs:
+            raise ValueError(f"axis.obs_key={self.axis.obs_key!r} matches no columns.obs entry")
+        if self.axis.var_key not in var:
+            raise ValueError(f"axis.var_key={self.axis.var_key!r} matches no columns.var entry")
+        layers = {layer.name for layer in self.measurements.layers}
+        for entry in (*self.columns.obs, *self.columns.var, *self.uns):
+            if isinstance(entry, LayerMinimum) and entry.layer not in layers:
+                raise ValueError(f"entry {entry.name!r} names no measurement layer {entry.layer!r}")
         _check_uns_only("columns.obs", self.columns.obs)
         _check_uns_only("columns.var", self.columns.var)
         for entry in (*self.columns.obs, *self.columns.var, *self.uns):
@@ -394,18 +457,14 @@ class LevelRule(ModelBase):
         return self
 
 
-class Output(ModelBase):
-    """What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.
+type Output = Literal[".h5mu", ".h5ad", ".h5ads", ".csv", ".txt", ".qpx"]
+"""What one table writes, like apb2's ``input``: APB2's samples-by-features matrices.
 
-    ``.h5ad`` holds one level: the first listed that the result's software and levels allow.
-    ``.h5mu`` holds one modality per level; ``.h5ads`` is a directory of one ``.h5ad`` per level,
-    named by its modality. ``.csv`` holds one level as a long table and
-    ``.txt`` one as a Perseus table, each chosen as for ``.h5ad``.
-    """
-
-    extensions: list[Literal[".h5mu", ".h5ad", ".h5ads", ".csv", ".txt", ".qpx"]] = Field(
-        min_length=1, max_length=1
-    )
+``.h5ad`` holds one level: the first listed that the result's software and levels allow.
+``.h5mu`` holds one modality per level; ``.h5ads`` is a directory of one ``.h5ad`` per level,
+named by its modality. ``.csv`` holds one level as a long table and ``.txt`` one as a Perseus
+table, each chosen as for ``.h5ad``.
+"""
 
 
 class FeatureLink(ModelBase):
@@ -421,7 +480,8 @@ class FeatureLink(ModelBase):
 
 
 class Table(ModelBase):
-    """One output and the levels it reads; each level's block overrides ``base``."""
+    """One output and the levels it reads; each level's block merges into ``base``: its entries
+    replace the base's of the same name, and the others are added."""
 
     output: Output
     base: dict[str, JsonValue] = Field(default_factory=dict)
@@ -436,7 +496,7 @@ class Table(ModelBase):
     @model_validator(mode="after")
     def _dataset_entries(self) -> Self:
         _unique("uns", self.uns)
-        if self.feature_links and ".h5mu" not in self.output.extensions:
+        if self.feature_links and self.output != ".h5mu":
             raise ValueError("feature_links relate the modalities of an .h5mu output")
         names = [link.name for link in self.feature_links]
         if len(names) != len(set(names)):

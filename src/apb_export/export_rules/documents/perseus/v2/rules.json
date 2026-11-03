@@ -1,14 +1,14 @@
 {
-  "schema_version": "0.4",
-  "file_version": "1",
+  "schema_version": "0.5",
+  "file_version": "2",
   "target_name": "Perseus",
   "target_version_pattern": "^2\\.",
   "tables": [
     {
-      "output": {"extensions": [".txt"]},
+      "output": ".txt",
       "levels": {
         "protein": {
-          "axis": {"obs_keys": ["Sample"], "var_keys": ["Protein IDs"]},
+          "axis": {"obs_key": "Sample", "var_key": "Protein IDs"},
           "measurements": {
             "primary_layer": "Intensity",
             "layers": [
@@ -22,22 +22,22 @@
           },
           "columns": {
             "obs": [
-              {"name": "Sample", "source": {"axis": "obs_keys"}},
+              {"name": "Sample", "source": {"axis": "obs_key"}},
               {"name": "annotations", "how": "all_values"}
             ],
             "var": [
-              {"name": "Protein IDs", "source": {"catalog": "apb", "key": "protein_assignment", "location": "var"}},
+              {"name": "Protein IDs", "source": {"catalog": "apb", "var": "protein_assignment"}},
               {"name": "Gene names", "source": {"fasta": "fasta_gene_names"}, "required": false},
               {
                 "name": "Q-value",
-                "source": [
-                  {"catalog": "confidence", "key": "q_value", "location": "var"},
-                  {"catalog": "confidence", "key": "library_q_value", "location": "var", "accept": "nonzero"}
+                "source": {"catalog": "confidence", "var": "q_value"},
+                "fallback": [
+                  {"catalog": "confidence", "var": "library_q_value", "accept": "nonzero"}
                 ],
                 "type": "number",
                 "required": false
               },
-              {"name": "Reverse", "source": {"catalog": "apb", "key": "decoy", "location": "var"}, "type": "boolean"},
+              {"name": "Reverse", "source": {"catalog": "apb", "var": "decoy"}, "type": "boolean"},
               {"name": "Potential contaminant", "how": "contaminant", "type": "boolean"}
             ]
           }

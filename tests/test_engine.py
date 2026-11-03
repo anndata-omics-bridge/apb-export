@@ -1,4 +1,4 @@
-"""The rule engine: q-value candidates, absent sources, layer minima and misplaced sources."""
+"""The rule engine: fallbacks, absent sources, layer minima and misplaced sources."""
 
 from __future__ import annotations
 
@@ -22,8 +22,8 @@ from apb_export.export_rules.schema import ExportRuleDocument
 from conftest import RUNS, DiannInput, export_sources, read_back, write_diann
 
 # The confidence set catalogues no per-precursor PEP for DIA-NN, so this candidate never resolves.
-UNOFFERED = {"catalog": "confidence", "key": "pep", "location": "var"}
-RUN_Q_VALUE = {"catalog": "confidence", "key": "q_value"}
+UNOFFERED = {"catalog": "confidence", "var": "pep"}
+RUN_Q_VALUE = {"catalog": "confidence", "layers": "q_value"}
 
 
 def _parsed(diann: DiannInput) -> ParsedLevels:
@@ -48,6 +48,17 @@ def _with_var(replacements: dict[str, dict[str, Any]]) -> CompiledExport:
     document = _msmu_document()
     columns = _ion(document)["columns"]
     columns["var"] = [replacements.get(entry["name"], entry) for entry in columns["var"]]
+    return _compiled(document)
+
+
+def _with_layer(
+    name: str, source: dict[str, Any], fallback: list[dict[str, Any]]
+) -> CompiledExport:
+    """msmu's rule with one measurement layer read from ``source``, else ``fallback``."""
+    document = _msmu_document()
+    for layer in _ion(document)["measurements"]["layers"]:
+        if layer["name"] == name:
+            layer["source"], layer["fallback"] = source, fallback
     return _compiled(document)
 
 
@@ -82,16 +93,8 @@ def test_an_all_zero_global_q_value_leaves_the_run_q_value_to_stand_in(tmp_path:
     assert (source["key"], source["location"]) == ("q_value", "layers"), "the run's q-value"
 
 
-def test_a_candidate_the_catalogue_does_not_offer_falls_through(diann: DiannInput) -> None:
-    q_value = {
-        "name": "q_value",
-        "how": "layer_minimum",
-        "source": [UNOFFERED, RUN_Q_VALUE],
-        "type": "number",
-        "width": 32,
-        "required": False,
-    }
-    psm = _psm(_with_var({"q_value": q_value}), diann)
+def test_a_source_the_catalogue_does_not_offer_falls_back(diann: DiannInput) -> None:
+    psm = _psm(_with_layer("q_value", UNOFFERED, [RUN_Q_VALUE]), diann)
 
     source = export_sources(psm)["var.q_value"]
     assert (source["key"], source["location"]) == ("q_value", "layers"), "the run's q-value"
@@ -99,13 +102,16 @@ def test_a_candidate_the_catalogue_does_not_offer_falls_through(diann: DiannInpu
 
 
 # A prolfquapp table with both a group and a bait column: apb-catalog's condition is ambiguous.
-CONDITION = {"catalog": "apb", "key": "group", "location": "obs"}
+CONDITION = {"catalog": "apb", "obs": "group"}
 
 
-def _with_condition(source: object) -> CompiledExport:
-    """msmu's rule with a ``condition`` obs entry read from ``source``."""
+def _with_condition(
+    source: dict[str, Any], fallback: list[dict[str, Any]] | None = None
+) -> CompiledExport:
+    """msmu's rule with a ``condition`` obs entry read from ``source``, else ``fallback``."""
     document = _msmu_document()
-    _ion(document)["columns"]["obs"].append({"name": "condition", "source": source})
+    entry = {"name": "condition", "source": source, "fallback": fallback or []}
+    _ion(document)["columns"]["obs"].append(entry)
     return _compiled(document)
 
 
@@ -117,14 +123,16 @@ def _two_conditions(diann: DiannInput) -> ParsedLevels:
     return AnnotationCompiler().compile(design).parse(_parsed(diann)).annotate().parsed
 
 
-def test_a_candidate_the_catalogue_cannot_pick_passes_to_the_next(diann: DiannInput) -> None:
-    compiled = _with_condition([CONDITION, {"axis": "obs_keys"}])
+def test_a_source_the_catalogue_cannot_pick_passes_to_the_fallback(diann: DiannInput) -> None:
+    compiled = _with_condition(CONDITION, [{"axis": "obs_key"}])
     psm = _modality(compiled.export(_two_conditions(diann)), diann.report.with_name("psm.h5mu"))
 
     assert export_sources(psm)["obs.condition"]["passed"] == "apb group ambiguous"
 
 
-def test_the_last_candidate_the_catalogue_cannot_pick_is_an_error(diann: DiannInput) -> None:
+def test_a_source_the_catalogue_cannot_pick_without_fallback_is_an_error(
+    diann: DiannInput,
+) -> None:
     with pytest.raises(UnresolvedField, match="ambiguous"):
         _with_condition(CONDITION).export(_two_conditions(diann))
 
@@ -173,7 +181,7 @@ def test_a_layer_minimum_leaves_out_missing_cells(diann: DiannInput) -> None:
     lowest = {
         "name": "lowest",
         "how": "layer_minimum",
-        "source": {"measurements": "primary_layer"},
+        "layer": "abundance",
         "type": "number",
     }
     document = _msmu_document()

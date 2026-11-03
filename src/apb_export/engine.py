@@ -26,7 +26,8 @@ from apb_export.export_rules.schema import (
     AccessionSyntax,
     AllValues,
     AnnotationMap,
-    CatalogueSource,
+    CatalogueLayer,
+    CatalogueVar,
     ColumnEntry,
     Constant,
     Contaminant,
@@ -37,6 +38,7 @@ from apb_export.export_rules.schema import (
     MeasurementSource,
     Rename,
     ShortName,
+    SourcedBase,
     SourcedEntry,
 )
 from apb_export.outputs import output_for
@@ -104,16 +106,24 @@ def _check_takes(
 
 
 def _bind(
-    entry: ColumnEntry, sources: LevelSources, group: str, takes: tuple[type[object], ...]
+    entry: ColumnEntry,
+    sources: LevelSources,
+    group: str,
+    takes: tuple[type[object], ...],
+    layers: Mapping[str, LayerValues | None],
 ) -> _Bound | None:
-    """Resolve an entry's sources; ``None`` skips an optional entry with nothing to fill."""
+    """Resolve an entry's sources; ``None`` skips an optional entry with nothing to fill.
+
+    ``layers`` are the level's resolved measurement layers, by name, which ``layer_minimum``
+    reduces."""
+    label = f"{group}.{entry.name}"
     if isinstance(entry, Constant | AnnotationMap):
         return _Bound(entry, (), {"how": entry.how})
     if isinstance(entry, Contaminant):
         merged = sources.contaminants()
         return _Bound(entry, (merged,), {"how": entry.how, "inputs": _describe(merged.provenance)})
     if isinstance(entry, LayerMinimum):
-        found_layer = sources.resolve(entry.source)
+        found_layer = layers.get(entry.layer)
         if found_layer is None:
             return _absent(entry, group)
         reduced = _minimum(found_layer)
@@ -125,9 +135,9 @@ def _bind(
     if isinstance(entry, ShortName):
         return _bind_short_name(entry, sources, group, takes)
     found = (
-        [sources.resolve(entry.source)]
-        if isinstance(entry, SourcedEntry)
-        else [sources.resolve(reference) for reference in entry.inputs]
+        [sources.resolve(label, entry.source, entry.fallback)]
+        if isinstance(entry, SourcedBase)
+        else [sources.resolve(label, reference) for reference in entry.inputs]
     )
     resolved = [item for item in found if item is not None]
     if len(resolved) < len(found):
@@ -143,8 +153,9 @@ def _bind_short_name(
     entry: ShortName, sources: LevelSources, group: str, takes: tuple[type[object], ...]
 ) -> _Bound | None:
     """The inputs the result carries, then ``append``; absent inputs are passed over."""
-    found = [item for item in map(sources.resolve, entry.inputs) if item is not None]
-    appended = None if entry.append is None else sources.resolve(entry.append)
+    label = f"{group}.{entry.name}"
+    found = [item for ref in entry.inputs if (item := sources.resolve(label, ref)) is not None]
+    appended = None if entry.append is None else sources.resolve(label, entry.append)
     if not found or (entry.append is not None and appended is None):
         return _absent(entry, group)
     resolved = [*found, *([] if appended is None else [appended])]
@@ -247,10 +258,11 @@ class _LevelExport:
 
     def has_index(self) -> bool:
         """Whether the result carries the source of the level's variable index."""
-        key = self._rule.rule.axis.var_keys[0]
+        key = self._rule.rule.axis.var_key
         (entry,) = [entry for entry in self._rule.rule.columns.var if entry.name == key]
         return (
-            not isinstance(entry, SourcedEntry) or self._sources.resolve(entry.source) is not None
+            not isinstance(entry, SourcedEntry)
+            or self._sources.resolve(f"var.{key}", entry.source, entry.fallback) is not None
         )
 
     def parsed_level(self) -> ParsedLevel:
@@ -261,14 +273,15 @@ class _LevelExport:
             (entry, self._layer(entry, primary=entry.name == primary))
             for entry in rule.measurements.layers
         ]
-        bound = self._bind_columns()
-        uns = self._bind_group("uns", rule.uns, _UNS_TAKES)
+        resolved = {entry.name: values for entry, values in found}
+        bound = self._bind_columns(resolved)
+        uns = self._bind_group("uns", rule.uns, _UNS_TAKES, resolved)
         obs = self._columns(bound["obs"], ObservationRows(self._level.obs.frame.height))
         rows = FeatureRows(self._level.var.frame.height)
         var = self._columns(bound["var"], rows)
         kept = self._kept(var, rule.columns.var, rows.count())
         var = [column.filter(kept) for column in var]
-        obs_key, var_key = rule.axis.obs_keys[0], rule.axis.var_keys[0]
+        obs_key, var_key = rule.axis.obs_key, rule.axis.var_key
         self._key(obs, obs_key, "obs")
         self._key(var, var_key, "var")
         layers = {
@@ -295,8 +308,12 @@ class _LevelExport:
         """Resolve a layer; ``None`` for an absent optional one. A caller's abundance layer
         replaces the rule's source of the primary layer."""
         chosen = primary and self._sources.abundance_chosen
-        resolved = self._sources.resolve(_CALLERS_LAYER if chosen else entry.source)
         key = f"layers.{entry.name}"
+        resolved = (
+            self._sources.resolve(key, _CALLERS_LAYER)
+            if chosen
+            else self._sources.resolve(key, entry.source, entry.fallback)
+        )
         if resolved is None:
             if primary or entry.required:
                 raise ValueError(f"layer {entry.name!r}: the result carries no layer for it")
@@ -321,15 +338,21 @@ class _LevelExport:
         self._written_names[entry.name] = written
         return written
 
-    def _bind_columns(self) -> dict[str, list[_Bound | AllValues]]:
+    def _bind_columns(
+        self, layers: Mapping[str, LayerValues | None]
+    ) -> dict[str, list[_Bound | AllValues]]:
         rule = self._rule.rule
         return {
-            "obs": self._bind_group("obs", rule.columns.obs, _OBS_TAKES),
-            "var": self._bind_group("var", rule.columns.var, _VAR_TAKES),
+            "obs": self._bind_group("obs", rule.columns.obs, _OBS_TAKES, layers),
+            "var": self._bind_group("var", rule.columns.var, _VAR_TAKES, layers),
         }
 
     def _bind_group(
-        self, group: str, entries: Entries, takes: tuple[type[object], ...]
+        self,
+        group: str,
+        entries: Entries,
+        takes: tuple[type[object], ...],
+        layers: Mapping[str, LayerValues | None],
     ) -> list[_Bound | AllValues]:
         bound: list[_Bound | AllValues] = []
         for entry in entries:
@@ -338,7 +361,7 @@ class _LevelExport:
                 self._provenance[key] = {"how": entry.how}
                 bound.append(entry)
                 continue
-            item = _bind(entry, self._sources, group, takes)
+            item = _bind(entry, self._sources, group, takes, layers)
             self._provenance[key] = {"location": "absent"} if item is None else item.provenance
             if item is not None:
                 bound.append(item)
@@ -503,11 +526,12 @@ class CompiledExport:
     def levels(self) -> tuple[str, ...]:
         """The APB2 levels the rule reads: those it writes, then those its layers reach into."""
         reached = [
-            reference.level
+            reference.from_level
             for rule in self.rules
             for entry in rule.rule.measurements.layers
-            for reference in (entry.source if isinstance(entry.source, list) else [entry.source])
-            if isinstance(reference, CatalogueSource) and reference.level is not None
+            for reference in (entry.source, *entry.fallback)
+            if isinstance(reference, CatalogueLayer | CatalogueVar)
+            and reference.from_level is not None
         ]
         return tuple(dict.fromkeys([*self.written, *reached]))
 
@@ -524,7 +548,7 @@ class CompiledExport:
     @property
     def extension(self) -> str:
         """The target's file suffix: ``.h5ad``, ``.h5mu``, ``.csv``, ``.txt``, or ``.qpx``."""
-        return self.output.extensions[0]
+        return self.output
 
     def export(
         self, parsed: ParsedLevels, abundance: Mapping[str, str] | None = None
@@ -622,7 +646,7 @@ class CompiledExport:
         values: list[tuple[str, object]] = []
         provenance: dict[str, Provenance] = {}
         for entry in self.rules[0].dataset_uns:
-            bound = _bind(entry, sources, "uns", _UNS_TAKES)
+            bound = _bind(entry, sources, "uns", _UNS_TAKES, {})
             provenance[f"uns.{entry.name}"] = (
                 {"location": "absent"} if bound is None else bound.provenance
             )

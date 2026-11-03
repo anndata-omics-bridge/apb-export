@@ -7,7 +7,7 @@ The closest `AGENTS.md` wins. Explicit user instructions override this file.
 | Task | Command |
 | --- | --- |
 | Synchronize | `uv sync --group dev` |
-| Format | `.venv/bin/ruff format src tests && .venv/bin/ruff check --fix src tests` |
+| Format | `make format`: Ruff, then the export-rule layout (`python -m apb_export.export_rules.layout`) |
 | Lint | `.venv/bin/ruff check src tests` |
 | Typecheck | `.venv/bin/pyright` |
 | Dependencies | `.venv/bin/deptry .` |
@@ -37,8 +37,8 @@ Rules for this package:
 
 - **APB2 owns conversion and canonical APB persistence.** Use `ParseRuleCompiler`, `read_parsed_levels` and `write_parsed_levels`. HDF5 exports use APB2's writer settings; keys stay columns. QPX is a target-specific Parquet serialization of existing quantities, with its own export manifest, `.csv` a long-table and `.txt` a Perseus serialization, both without a sidecar; no aggregation, required grouping or report execution.
 
-- **Export rules read apb2's rule schema in reverse.** Keep apb2's key names; an entry's `name` is the target field and its `source` an APB reference every vendor shares.
-- **Meanings come from apb-catalog, never vendor column names.** A vendor without a catalogued field, or a field apb2 left out, gets no column (q-value) or NaN (PEP); an unreviewed rule is an error, not a guess. Library and global q-values are var sources only; do not add layer candidates for them. In a candidate list, a catalogue candidate the catalogue reviewed but cannot pick (ambiguous, or a requested qualifier unknown) passes to the next candidate and is recorded as `passed`; the last candidate still raises.
+- **Export rules read apb2's rule schema in reverse.** Keep apb2's key names where the meaning is apb2's (`source`, `how`, `inputs`, `base` and `levels`); an entry's `name` is the target field and its `source` an APB reference every vendor shares. A catalogued source names its slot and key, `{"catalog": "apb", "var": "protein_assignment"}`; what to read instead is a `fallback` list, never a list of sources. `make format` lays out the rules; a test checks the layout.
+- **Meanings come from apb-catalog, never vendor column names.** A vendor without a catalogued field, or a field apb2 left out, gets no column (q-value) or NaN (PEP); an unreviewed rule is an error, not a guess. Library and global q-values are var sources only; do not add layer sources for them. A catalogue source or fallback the catalogue reviewed but cannot pick (ambiguous, or a requested qualifier unknown) passes to the next fallback and is recorded as `passed`; the last one still raises.
 - **A software name only chooses a level.** A level block's `software` picks the level a target reads for that vendor, as prolfqua reads MaxQuant's peptides.txt; its fields still come from roles and the catalogue.
 - **msmu: its names, our layout.** Column names, q-value precedence and protein canonicalisation follow `msmu.read_diann`; the layout is APB2's wide ion level, marked experimental (`uns["apb_export_status"]`), and msmu's developers are asked to read it. The consumer image's msmu check compares msmu's results with `read_diann`'s.
 - **No real vendor data** in tests, docs or examples; tests synthesise vendor files.

@@ -27,3 +27,4 @@ Modules compose downward only:
 - A software name only chooses a level: a level block's `software` picks the level a target reads, as prolfquapp reads MaxQuant's peptides.txt
 - Names follow each tool's own readers: msmu's `read_diann` sets column names, q-value precedence and protein canonicalisation; the layout is APB2's wide level, for msmu marked experimental
 - `make schema` rewrites the JSON Schemas in `documents/_schema` from the models
+- `make format` lays out the packaged rules (`export_rules/layout.py`); a test checks every rule keeps that layout
