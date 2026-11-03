@@ -99,7 +99,7 @@ def test_a_candidate_the_catalogue_does_not_offer_falls_through(diann: DiannInpu
 
 
 # A prolfquapp table with both a group and a bait column: apb-catalog's condition is ambiguous.
-CONDITION = {"catalog": "apb", "key": "condition", "location": "obs"}
+CONDITION = {"catalog": "apb", "key": "group", "location": "obs"}
 
 
 def _with_condition(source: object) -> CompiledExport:
@@ -121,7 +121,7 @@ def test_a_candidate_the_catalogue_cannot_pick_passes_to_the_next(diann: DiannIn
     compiled = _with_condition([CONDITION, {"axis": "obs_keys"}])
     psm = _modality(compiled.export(_two_conditions(diann)), diann.report.with_name("psm.h5mu"))
 
-    assert export_sources(psm)["obs.condition"]["passed"] == "apb condition ambiguous"
+    assert export_sources(psm)["obs.condition"]["passed"] == "apb group ambiguous"
 
 
 def test_the_last_candidate_the_catalogue_cannot_pick_is_an_error(diann: DiannInput) -> None:

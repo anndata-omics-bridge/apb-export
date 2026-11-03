@@ -33,8 +33,8 @@
           "columns": {
             "obs": [
               {"name": "Run", "source": {"axis": "obs_keys"}},
-              {"name": "Condition", "source": {"catalog": "apb", "key": "condition", "location": "obs"}},
-              {"name": "BioReplicate", "source": {"catalog": "apb", "key": "bioreplicate", "location": "obs"}}
+              {"name": "Condition", "source": {"catalog": "apb", "key": "group", "location": "obs"}},
+              {"name": "BioReplicate", "source": {"catalog": "apb", "key": "subject", "location": "obs"}}
             ],
             "var": [
               {"name": "PrecursorId", "source": {"catalog": "apb", "key": "peptidoform_ion", "location": "var"}},
