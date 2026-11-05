@@ -46,7 +46,7 @@ def test_maxquant_proteins_get_proteingroups_names_and_types(tmp_path: Path) -> 
 
 
 def test_the_sample_columns_are_named_by_the_abundance_key(tmp_path: Path) -> None:
-    lines = _write(_maxquant(tmp_path), tmp_path / "perseus.txt", abundance="LFQ_Intensity")
+    lines = _write(_maxquant(tmp_path), tmp_path / "perseus.txt", abundance="LFQ_intensity")
 
     assert lines[0][4:] == [f"LFQ intensity {name}" for name in EXPERIMENTS]
     assert lines[2][4:] == ["2500.0", "5000.0", "7500.0", "10000.0"]
@@ -55,7 +55,7 @@ def test_the_sample_columns_are_named_by_the_abundance_key(tmp_path: Path) -> No
 def test_a_maxlfq_layer_is_named_lfq_intensity_and_missing_values_are_nan(
     diann: DiannInput, tmp_path: Path
 ) -> None:
-    """DIA-NN 1.8.1's PG_MaxLFQ is catalogued as maxlfq, as MaxQuant's LFQ_Intensity is."""
+    """DIA-NN 1.8.1's PG_MaxLFQ is catalogued as maxlfq, as MaxQuant's LFQ_intensity is."""
     lines = _write(_diann(diann), tmp_path / "perseus.txt")
 
     assert lines[0][4:] == [f"LFQ intensity {run}" for run in RUNS]

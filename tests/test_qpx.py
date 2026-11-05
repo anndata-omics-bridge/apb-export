@@ -167,7 +167,9 @@ def test_rt_uses_catalogue_units_without_vendor_names_in_the_serializer(
     level.uns["provenance"] = {
         "rule_json": packaged_rule_declarations()[("alphadia/v2/rules.json", "peptidoform_ion")][0]
     }
-    level.layers["RT_Observed"] = replace(level.layers.pop("RT"), layer_name="RT_Observed")
+    level.layers["precursor_rt_observed"] = replace(
+        level.layers.pop("RT"), layer_name="precursor_rt_observed"
+    )
     exporter = Exporter("qpx")
     exported = exporter.export(replace(parsed, levels={"peptidoform_ion": level}))
     source = exported.levels["feature"].metadata["export"]
@@ -178,7 +180,7 @@ def test_rt_uses_catalogue_units_without_vendor_names_in_the_serializer(
     assert isinstance(sources, dict)
     assert sources["layers.rt_second"] == {
         "location": "layers",
-        "name": "RT_Observed",
+        "name": "precursor_rt_observed",
         "catalog": "chromatography",
         "key": "retention_time",
         "unit": "second",
