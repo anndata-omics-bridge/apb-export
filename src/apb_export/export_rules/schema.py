@@ -71,7 +71,7 @@ class FastaSource(ModelBase):
 
 class CatalogueReference(ModelBase):
     """A field found by meaning through apb-catalog, asked by one of the set's keys in one slot
-    of the level, as ``levels[level].var["protein_assignment"]`` asks it; the set ``apb`` holds
+    of the level, as ``levels[level].var["protein_assignment"]`` asks it; the set ``apb_alpha`` holds
     APB's own fields, such as ``ProForma_ion`` (key ``peptidoform_ion``) or the column a rule
     marks with a role."""
 
@@ -101,7 +101,7 @@ class CatalogueField(CatalogueReference):
 
 
 class CatalogueLayer(CatalogueField):
-    """A catalogued layer: ``{"catalog": "confidence", "layers": "q_value"}``."""
+    """A catalogued layer: ``{"catalog": "confidence_alpha", "layers": "q_value"}``."""
 
     layers: str = Field(min_length=1, description="The set's key.")
 
@@ -115,7 +115,7 @@ class CatalogueLayer(CatalogueField):
 
 
 class CatalogueVar(CatalogueField):
-    """A catalogued var column: ``{"catalog": "apb", "var": "protein_assignment"}``."""
+    """A catalogued var column: ``{"catalog": "apb_alpha", "var": "protein_assignment"}``."""
 
     var: str = Field(min_length=1, description="The set's key.")
 
@@ -129,7 +129,7 @@ class CatalogueVar(CatalogueField):
 
 
 class CatalogueObs(CatalogueReference):
-    """A catalogued obs column: ``{"catalog": "prolfqua", "obs": "group"}``."""
+    """A catalogued obs column: ``{"catalog": "obs_annotation_alpha", "obs": "group"}``."""
 
     obs: str = Field(min_length=1, description="The set's key.")
 
@@ -349,8 +349,9 @@ class LayerEntry(ModelBase):
     )
     name_by_key: dict[str, str] = Field(
         default_factory=dict,
-        description="The written name per abundance key of the resolved layer, as Perseus "
-        "names MaxLFQ values LFQ intensity; any other key keeps name.",
+        description="The written name per abundance key, or per qualifier=value pair, of the "
+        "resolved layer, as Perseus names MaxLFQ values (aggregation=maxlfq) LFQ intensity; "
+        "the first label the layer matches wins, and a layer matching none keeps name.",
     )
     transform: Literal["log2"] | None = Field(
         default=None,

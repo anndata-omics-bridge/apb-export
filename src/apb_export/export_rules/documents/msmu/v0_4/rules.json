@@ -31,20 +31,20 @@
               {
                 "name": "q_value",
                 "source": {
-                  "catalog": "proteobench_entrapment",
+                  "catalog": "proteobench_entrapment_alpha",
                   "var": "library_q_value",
                   "accept": "nonzero"
                 },
                 "fallback": [
-                  {"catalog": "proteobench_entrapment", "var": "q_value"},
-                  {"catalog": "confidence", "layers": "q_value"}
+                  {"catalog": "proteobench_entrapment_alpha", "var": "q_value"},
+                  {"catalog": "confidence_alpha", "layers": "q_value"}
                 ],
                 "width": 32,
                 "required": false
               },
               {
                 "name": "PEP",
-                "source": {"catalog": "confidence", "layers": "pep"},
+                "source": {"catalog": "confidence_alpha", "layers": "pep"},
                 "width": 32,
                 "required": false
               }
@@ -53,29 +53,33 @@
           "columns": {
             "obs": [{"name": "filename", "source": {"axis": "obs_key"}}],
             "var": [
-              {"name": "precursor", "source": {"catalog": "apb", "var": "peptidoform_ion"}},
+              {"name": "precursor", "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"}},
               {
                 "name": "proteins",
                 "how": "accessions",
-                "source": {"catalog": "apb", "var": "fasta_accessions"},
+                "source": {"catalog": "apb_alpha", "var": "fasta_accessions"},
                 "syntax": "msmu",
                 "drop_missing": true
               },
-              {"name": "peptide", "source": {"catalog": "apb", "var": "peptidoform"}},
-              {"name": "stripped_peptide", "source": {"catalog": "apb", "var": "peptide"}},
+              {"name": "peptide", "source": {"catalog": "apb_alpha", "var": "peptidoform"}},
+              {"name": "stripped_peptide", "source": {"catalog": "apb_alpha", "var": "peptide"}},
               {
                 "name": "charge",
                 "how": "proforma_charge",
-                "source": {"catalog": "apb", "var": "peptidoform_ion"},
+                "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"},
                 "type": "integer"
               },
               {
                 "name": "peptide_length",
                 "how": "sequence_length",
-                "source": {"catalog": "apb", "var": "peptide"},
+                "source": {"catalog": "apb_alpha", "var": "peptide"},
                 "type": "integer"
               },
-              {"name": "decoy", "source": {"catalog": "apb", "var": "decoy"}, "type": "integer"},
+              {
+                "name": "decoy",
+                "source": {"catalog": "apb_alpha", "var": "decoy"},
+                "type": "integer"
+              },
               {"name": "contaminant", "how": "contaminant", "type": "integer"},
               {
                 "name": "PEP",

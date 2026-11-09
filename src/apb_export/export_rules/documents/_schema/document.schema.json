@@ -152,7 +152,7 @@
     },
     "CatalogueLayer": {
       "additionalProperties": false,
-      "description": "A catalogued layer: ``{\"catalog\": \"confidence\", \"layers\": \"q_value\"}``.",
+      "description": "A catalogued layer: ``{\"catalog\": \"confidence_alpha\", \"layers\": \"q_value\"}``.",
       "properties": {
         "catalog": {
           "minLength": 1,
@@ -207,7 +207,7 @@
     },
     "CatalogueObs": {
       "additionalProperties": false,
-      "description": "A catalogued obs column: ``{\"catalog\": \"prolfqua\", \"obs\": \"group\"}``.",
+      "description": "A catalogued obs column: ``{\"catalog\": \"obs_annotation_alpha\", \"obs\": \"group\"}``.",
       "properties": {
         "catalog": {
           "minLength": 1,
@@ -238,7 +238,7 @@
     },
     "CatalogueVar": {
       "additionalProperties": false,
-      "description": "A catalogued var column: ``{\"catalog\": \"apb\", \"var\": \"protein_assignment\"}``.",
+      "description": "A catalogued var column: ``{\"catalog\": \"apb_alpha\", \"var\": \"protein_assignment\"}``.",
       "properties": {
         "catalog": {
           "minLength": 1,

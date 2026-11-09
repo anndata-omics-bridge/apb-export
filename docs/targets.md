@@ -7,7 +7,7 @@ Each target's layout is declared in its export rule, not coded. One engine check
 Rules follow APB2's rule schema read in reverse:
 
 - `name`: the target's field
-- `source`: an APB field every vendor shares: the run key (`{"axis": "obs_key"}`), the primary layer, or a catalogued meaning named by its slot and one of the set's keys, `{"catalog": <set>, "layers" | "var" | "obs": <key>}`. APB's own columns come from apb-catalog's `apb` set, such as `{"catalog": "apb", "var": "peptidoform_ion"}` for `ProForma_ion` or key `protein_assignment` for the column a rule marks with that role, so no rule names an APB column
+- `source`: an APB field every vendor shares: the run key (`{"axis": "obs_key"}`), the primary layer, or a catalogued meaning named by its slot and one of the set's keys, `{"catalog": <set>, "layers" | "var" | "obs": <key>}`. APB's own columns come from apb-catalog's `apb` set, such as `{"catalog": "apb_alpha", "var": "peptidoform_ion"}` for `ProForma_ion` or key `protein_assignment` for the column a rule marks with that role, so no rule names an APB column
 - `fallback`: what to read, in order, where the result lacks the `source`; the export logs a warning naming the source it read. prolfqua's intensity falls back to the primary layer where the abundance set names no intensity without normalization
 - `"from_level": "protein"` on a catalogued layer or var source: read through each variable's protein group, named whole or by its leading protein; a cell takes its group's value in its run; a var column's value, the group's, repeats in every run
 - `base` in a table: what every level shares; a level adds its own entries to `columns.obs`, `columns.var`, `measurements.layers` and `uns`, and an entry with a base entry's name replaces it where it stands
@@ -20,7 +20,7 @@ Rules follow APB2's rule schema read in reverse:
 - `how: "layer_minimum"` with `layer`: an exported layer's lowest value per feature across runs
 - `how: "short_name"`: per row, the first input holding a value, cut to its first group member and, for `db|ACC|NAME`, to `NAME`; inputs the result lacks, such as FASTA columns without `--fasta`, are passed over; `append` follows after `_`
 - `rename` on an `all_values` entry: annotation columns whose name matches a `pattern` are written as text, categories sorted, under `re.sub(pattern, replacement, name)`, the first matching rename winning; `identifier` lower-cases that name and turns every character outside `a-z0-9_` into `_`
-- `name_by_key` on a layer: the layer's name per `abundance` key of the layer it resolved to, such as `{"maxlfq": "LFQ intensity"}`; any other key keeps `name`
+- `name_by_key` on a layer: the layer's name per `abundance_alpha` key of the layer it resolved to, or per `qualifier=value` pair of its entry, such as `{"aggregation=maxlfq": "LFQ intensity", "ibaq": "iBAQ"}`; the first label the layer matches wins, and a layer matching none keeps `name`
 
 The published [JSON Schemas](https://github.com/anndata-omics-bridge/apb-export/tree/main/src/apb_export/export_rules/documents/_schema) describe the documents. `make format` lays the rules out: an object on one line where it fits in 100 columns, else one item per line.
 

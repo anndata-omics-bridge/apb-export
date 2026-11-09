@@ -237,7 +237,7 @@ def test_prolfquapp_reads_the_intensity_without_normalization(diann: DiannInput)
     assert export_sources(adata)["layers.intensity"] == {
         "location": "layers",
         "name": "Precursor_Quantity",
-        "catalog": "abundance",
+        "catalog": "abundance_alpha",
         "key": "intensity",
     }, "prolfquapp normalizes intensities itself"
 
@@ -275,7 +275,7 @@ def test_prolfquapp_warns_and_takes_the_primary_layer_without_an_un_normalized_o
     adata = _anndata(_written("prolfqua", without, diann.report.parent))
 
     assert [message for message in warned if "layers.intensity lacks" in message] == [
-        'level peptidoform_ion: layers.intensity lacks {"catalog":"abundance","layers":"intensity"}; '
+        'level peptidoform_ion: layers.intensity lacks {"catalog":"abundance_alpha","layers":"intensity"}; '
         'read {"measurements":"primary_layer"}'
     ]
     assert export_sources(adata)["layers.intensity"] == {
@@ -640,7 +640,7 @@ def test_explorede_names_precursors_by_protein_and_ion(diann: DiannInput, tmp_pa
 
 
 def test_msstats_needs_the_condition_from_an_annotation(diann: DiannInput) -> None:
-    with pytest.raises(ValueError, match="Condition"):
+    with pytest.raises(ValueError, match="run apb2 annotate"):
         Exporter("msstats").export(_parsed(diann))
 
 

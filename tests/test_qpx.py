@@ -181,7 +181,7 @@ def test_rt_uses_catalogue_units_without_vendor_names_in_the_serializer(
     assert sources["layers.rt_second"] == {
         "location": "layers",
         "name": "precursor_rt_observed",
-        "catalog": "chromatography",
+        "catalog": "chromatography_alpha",
         "key": "retention_time",
         "unit": "second",
     }

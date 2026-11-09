@@ -19,7 +19,10 @@
               {"name": "annotations", "how": "all_values"}
             ],
             "var": [
-              {"name": "protein_id", "source": {"catalog": "apb", "var": "protein_assignment"}},
+              {
+                "name": "protein_id",
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"}
+              },
               {
                 "name": "in_fasta",
                 "source": {"fasta": "any_member_in_fasta"},

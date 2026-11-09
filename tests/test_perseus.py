@@ -55,11 +55,26 @@ def test_the_sample_columns_are_named_by_the_abundance_key(tmp_path: Path) -> No
 def test_a_maxlfq_layer_is_named_lfq_intensity_and_missing_values_are_nan(
     diann: DiannInput, tmp_path: Path
 ) -> None:
-    """DIA-NN 1.8.1's PG_MaxLFQ is catalogued as maxlfq, as MaxQuant's LFQ_intensity is."""
+    """DIA-NN 1.8.1's PG_MaxLFQ is catalogued with aggregation maxlfq, as MaxQuant's LFQ_intensity is."""
     lines = _write(_diann(diann), tmp_path / "perseus.txt")
 
     assert lines[0][4:] == [f"LFQ intensity {run}" for run in RUNS]
     assert "NaN" in {value for line in lines[2:] for value in line[4:]}
+
+
+def test_the_renamed_layer_records_the_qualifier_it_matched(diann: DiannInput) -> None:
+    (level,) = Exporter("perseus").export(_diann(diann)).levels.values()
+    export = level.metadata["export"]
+    assert isinstance(export, dict)
+    provenance = export["provenance"]
+    assert isinstance(provenance, dict)
+    sources = provenance["sources"]
+    assert isinstance(sources, dict)
+    source = sources["layers.LFQ intensity"]
+    assert isinstance(source, dict)
+
+    assert (source["key"], source["aggregation"]) == ("intensity_norm_settings", "maxlfq")
+    assert "layers.Intensity" not in sources
 
 
 def test_annotation_columns_become_categorical_rows(diann: DiannInput, tmp_path: Path) -> None:

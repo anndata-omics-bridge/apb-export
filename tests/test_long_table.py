@@ -38,7 +38,7 @@ def _document(var: list[dict[str, Any]] | None = None) -> dict[str, Any]:
                                 {"name": "Intensity", "source": {"measurements": "primary_layer"}},
                                 {
                                     "name": "q_value",
-                                    "source": {"catalog": "confidence", "layers": "q_value"},
+                                    "source": {"catalog": "confidence_alpha", "layers": "q_value"},
                                     "required": False,
                                 },
                             ],
@@ -49,11 +49,11 @@ def _document(var: list[dict[str, Any]] | None = None) -> dict[str, Any]:
                             or [
                                 {
                                     "name": "precursor",
-                                    "source": {"catalog": "apb", "var": "peptidoform_ion"},
+                                    "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"},
                                 },
                                 {
                                     "name": "proteins",
-                                    "source": {"catalog": "apb", "var": "protein_assignment"},
+                                    "source": {"catalog": "apb_alpha", "var": "protein_assignment"},
                                 },
                             ],
                         },
@@ -130,7 +130,7 @@ def test_the_csv_reads_back_with_na_for_missing(diann: DiannInput, tmp_path: Pat
 
 
 def test_a_name_used_twice_is_refused(diann: DiannInput) -> None:
-    precursor = {"catalog": "apb", "var": "peptidoform_ion"}
+    precursor = {"catalog": "apb_alpha", "var": "peptidoform_ion"}
     clash = [{"name": "precursor", "source": precursor}, {"name": "Run", "source": precursor}]
     level = _exported(diann, _document(var=clash))
 

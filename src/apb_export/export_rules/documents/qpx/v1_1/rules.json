@@ -27,29 +27,29 @@
               {"name": "feature_key", "source": {"axis": "var_key"}},
               {
                 "name": "sequence",
-                "source": {"catalog": "apb", "var": "peptide"},
+                "source": {"catalog": "apb_alpha", "var": "peptide"},
                 "required": true
               },
               {
                 "name": "peptidoform",
-                "source": {"catalog": "apb", "var": "peptidoform"},
+                "source": {"catalog": "apb_alpha", "var": "peptidoform"},
                 "required": true
               },
               {
                 "name": "charge",
                 "type": "integer",
                 "how": "proforma_charge",
-                "source": {"catalog": "apb", "var": "peptidoform_ion"}
+                "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"}
               },
               {
                 "name": "is_decoy",
-                "source": {"catalog": "apb", "var": "decoy"},
+                "source": {"catalog": "apb_alpha", "var": "decoy"},
                 "required": true,
                 "type": "boolean"
               },
               {
                 "name": "proteins",
-                "source": {"catalog": "apb", "var": "protein_assignment"},
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"},
                 "required": false
               }
             ]
@@ -62,7 +62,7 @@
               {
                 "name": "rt_second",
                 "source": {
-                  "catalog": "chromatography",
+                  "catalog": "chromatography_alpha",
                   "layers": "retention_time",
                   "qualifiers": {"unit": "second"}
                 },
@@ -71,7 +71,7 @@
               {
                 "name": "rt_minute",
                 "source": {
-                  "catalog": "chromatography",
+                  "catalog": "chromatography_alpha",
                   "layers": "retention_time",
                   "qualifiers": {"unit": "minute"}
                 },
@@ -90,12 +90,12 @@
             "var": [
               {
                 "name": "proteins",
-                "source": {"catalog": "apb", "var": "protein_assignment"},
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"},
                 "required": true
               },
               {
                 "name": "is_decoy",
-                "source": {"catalog": "apb", "var": "decoy"},
+                "source": {"catalog": "apb_alpha", "var": "decoy"},
                 "required": true,
                 "type": "boolean"
               },

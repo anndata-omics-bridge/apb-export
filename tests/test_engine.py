@@ -22,8 +22,8 @@ from apb_export.export_rules.schema import ExportRuleDocument
 from conftest import RUNS, DiannInput, export_sources, read_back, write_diann
 
 # The confidence set catalogues no per-precursor PEP for DIA-NN, so this candidate never resolves.
-UNOFFERED = {"catalog": "confidence", "var": "pep"}
-RUN_Q_VALUE = {"catalog": "confidence", "layers": "q_value"}
+UNOFFERED = {"catalog": "confidence_alpha", "var": "pep"}
+RUN_Q_VALUE = {"catalog": "confidence_alpha", "layers": "q_value"}
 
 
 def _parsed(diann: DiannInput) -> ParsedLevels:
@@ -102,7 +102,7 @@ def test_a_source_the_catalogue_does_not_offer_falls_back(diann: DiannInput) -> 
 
 
 # A prolfquapp table with both a group and a bait column: apb-catalog's condition is ambiguous.
-CONDITION = {"catalog": "apb", "obs": "group"}
+CONDITION = {"catalog": "obs_annotation_alpha", "obs": "group"}
 
 
 def _with_condition(
@@ -127,7 +127,7 @@ def test_a_source_the_catalogue_cannot_pick_passes_to_the_fallback(diann: DiannI
     compiled = _with_condition(CONDITION, [{"axis": "obs_key"}])
     psm = _modality(compiled.export(_two_conditions(diann)), diann.report.with_name("psm.h5mu"))
 
-    assert export_sources(psm)["obs.condition"]["passed"] == "apb group ambiguous"
+    assert export_sources(psm)["obs.condition"]["passed"] == "obs_annotation_alpha group ambiguous"
 
 
 def test_a_source_the_catalogue_cannot_pick_without_fallback_is_an_error(

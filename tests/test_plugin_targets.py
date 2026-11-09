@@ -221,7 +221,7 @@ def test_keys_choose_the_catalogue_answer(toy: str, diann: DiannInput, tmp_path:
     assert "q_value" in ion.layers
     assert "ms1_q_value" not in ion.layers
     source = export_sources(ion)["layers.q_value"]
-    assert (source["catalog"], source["key"]) == ("confidence", "q_value")
+    assert (source["catalog"], source["key"]) == ("confidence_alpha", "q_value")
 
 
 def test_apb_fasta_supplies_group_specificity(toy: str, diann: DiannInput, tmp_path: Path) -> None:
@@ -261,7 +261,7 @@ def test_an_optional_level_without_its_index_is_left_out(diann: DiannInput, tmp_
     """A protein level whose index the result cannot supply is skipped and recorded."""
     document = _document()
     document["tables"][0]["levels"]["protein"]["columns"]["var"][0]["source"] = {
-        "catalog": "apb",
+        "catalog": "apb_alpha",
         "var": "peptidoform_fragment",
     }
     compiled = _compiled(document)

@@ -24,9 +24,12 @@
           "axis": {"obs_key": "raw_name", "var_key": "precursor_id"},
           "columns": {
             "var": [
-              {"name": "precursor_id", "source": {"catalog": "apb", "var": "peptidoform_ion"}},
-              {"name": "sequence", "source": {"catalog": "apb", "var": "peptide"}},
-              {"name": "proteins", "source": {"catalog": "apb", "var": "protein_assignment"}},
+              {
+                "name": "precursor_id",
+                "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"}
+              },
+              {"name": "sequence", "source": {"catalog": "apb_alpha", "var": "peptide"}},
+              {"name": "proteins", "source": {"catalog": "apb_alpha", "var": "protein_assignment"}},
               {"name": "contaminant", "how": "contaminant", "type": "boolean"},
               {
                 "name": "in_fasta",
@@ -53,10 +56,10 @@
           "axis": {"obs_key": "raw_name", "var_key": "sequence"},
           "columns": {
             "var": [
-              {"name": "sequence", "source": {"catalog": "apb", "var": "peptide"}},
+              {"name": "sequence", "source": {"catalog": "apb_alpha", "var": "peptide"}},
               {
                 "name": "proteins",
-                "source": {"catalog": "apb", "var": "protein_assignment"},
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"},
                 "required": false
               },
               {"name": "contaminant", "how": "contaminant", "type": "boolean"},
@@ -85,7 +88,7 @@
           "axis": {"obs_key": "raw_name", "var_key": "proteins"},
           "columns": {
             "var": [
-              {"name": "proteins", "source": {"catalog": "apb", "var": "protein_assignment"}}
+              {"name": "proteins", "source": {"catalog": "apb_alpha", "var": "protein_assignment"}}
             ]
           }
         }

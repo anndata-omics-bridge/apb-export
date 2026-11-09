@@ -57,17 +57,20 @@
           "modality": "protein",
           "columns": {
             "var": [
-              {"name": "feature_id", "source": {"catalog": "apb", "var": "protein_assignment"}},
+              {
+                "name": "feature_id",
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"}
+              },
               {
                 "name": "label_protein_id",
-                "source": {"catalog": "apb", "var": "protein_assignment"}
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"}
               },
               {
                 "name": "label_gene_symbol",
                 "how": "short_name",
                 "inputs": [
                   {"fasta": "fasta_gene_names"},
-                  {"catalog": "apb", "var": "protein_assignment"}
+                  {"catalog": "apb_alpha", "var": "protein_assignment"}
                 ]
               },
               {"name": "description", "source": {"fasta": "fasta_descriptions"}, "required": false}
@@ -90,14 +93,14 @@
                 "name": "feature_id",
                 "how": "join_nonempty",
                 "inputs": [
-                  {"catalog": "apb", "var": "protein_assignment"},
-                  {"catalog": "apb", "var": "peptide"}
+                  {"catalog": "apb_alpha", "var": "protein_assignment"},
+                  {"catalog": "apb_alpha", "var": "peptide"}
                 ],
                 "separator": "_"
               },
               {
                 "name": "label_protein_id",
-                "source": {"catalog": "apb", "var": "protein_assignment"},
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"},
                 "drop_missing": true
               },
               {
@@ -106,9 +109,9 @@
                 "inputs": [
                   {"fasta": "reported_leading_gene_name"},
                   {"fasta": "reported_leading_id"},
-                  {"catalog": "apb", "var": "protein_assignment"}
+                  {"catalog": "apb_alpha", "var": "protein_assignment"}
                 ],
-                "append": {"catalog": "apb", "var": "peptide"}
+                "append": {"catalog": "apb_alpha", "var": "peptide"}
               },
               {
                 "name": "description",
@@ -134,14 +137,14 @@
                 "name": "feature_id",
                 "how": "join_nonempty",
                 "inputs": [
-                  {"catalog": "apb", "var": "protein_assignment"},
-                  {"catalog": "apb", "var": "peptidoform_ion"}
+                  {"catalog": "apb_alpha", "var": "protein_assignment"},
+                  {"catalog": "apb_alpha", "var": "peptidoform_ion"}
                 ],
                 "separator": "_"
               },
               {
                 "name": "label_protein_id",
-                "source": {"catalog": "apb", "var": "protein_assignment"},
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"},
                 "drop_missing": true
               },
               {
@@ -150,9 +153,9 @@
                 "inputs": [
                   {"fasta": "reported_leading_gene_name"},
                   {"fasta": "reported_leading_id"},
-                  {"catalog": "apb", "var": "protein_assignment"}
+                  {"catalog": "apb_alpha", "var": "protein_assignment"}
                 ],
-                "append": {"catalog": "apb", "var": "peptidoform_ion"}
+                "append": {"catalog": "apb_alpha", "var": "peptidoform_ion"}
               },
               {
                 "name": "description",

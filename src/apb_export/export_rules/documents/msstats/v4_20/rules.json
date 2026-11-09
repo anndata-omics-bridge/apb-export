@@ -14,19 +14,19 @@
             "layers": [
               {
                 "name": "Intensity",
-                "source": {"catalog": "abundance", "layers": "intensity"},
+                "source": {"catalog": "abundance_alpha", "layers": "intensity"},
                 "fallback": [{"measurements": "primary_layer"}],
                 "missing_values": [0]
               },
               {
                 "name": "DetectionQValue",
-                "source": {"catalog": "confidence", "layers": "q_value"},
+                "source": {"catalog": "confidence_alpha", "layers": "q_value"},
                 "required": false
               },
               {
                 "name": "PEP",
-                "source": {"catalog": "confidence", "layers": "pep"},
-                "fallback": [{"catalog": "confidence", "var": "pep"}],
+                "source": {"catalog": "confidence_alpha", "layers": "pep"},
+                "fallback": [{"catalog": "confidence_alpha", "var": "pep"}],
                 "required": false
               }
             ]
@@ -34,21 +34,24 @@
           "columns": {
             "obs": [
               {"name": "Run", "source": {"axis": "obs_key"}},
-              {"name": "Condition", "source": {"catalog": "apb", "obs": "group"}},
-              {"name": "BioReplicate", "source": {"catalog": "apb", "obs": "subject"}}
+              {"name": "Condition", "source": {"catalog": "obs_annotation_alpha", "obs": "group"}},
+              {
+                "name": "BioReplicate",
+                "source": {"catalog": "obs_annotation_alpha", "obs": "subject"}
+              }
             ],
             "var": [
-              {"name": "PrecursorId", "source": {"catalog": "apb", "var": "peptidoform_ion"}},
+              {"name": "PrecursorId", "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"}},
               {
                 "name": "ProteinName",
-                "source": {"catalog": "apb", "var": "protein_assignment"},
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"},
                 "drop_missing": true
               },
-              {"name": "PeptideSequence", "source": {"catalog": "apb", "var": "peptidoform"}},
+              {"name": "PeptideSequence", "source": {"catalog": "apb_alpha", "var": "peptidoform"}},
               {
                 "name": "PrecursorCharge",
                 "how": "proforma_charge",
-                "source": {"catalog": "apb", "var": "peptidoform_ion"},
+                "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"},
                 "type": "integer"
               },
               {"name": "FragmentIon", "how": "constant", "value": null},

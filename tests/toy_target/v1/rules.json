@@ -47,7 +47,7 @@
               {"name": "label", "source": {"obs": "comment_label"}, "required": false}
             ],
             "var": [
-              {"name": "protein_group", "source": {"catalog": "apb", "var": "protein_assignment"}}
+              {"name": "protein_group", "source": {"catalog": "apb_alpha", "var": "protein_assignment"}}
             ]
           }
         },
@@ -76,7 +76,7 @@
               },
               {"name": "label", "source": {"obs": "comment_label"}, "required": false}
             ],
-            "var": [{"name": "peptidoform", "source": {"catalog": "apb", "var": "peptidoform"}}]
+            "var": [{"name": "peptidoform", "source": {"catalog": "apb_alpha", "var": "peptidoform"}}]
           }
         },
         "peptidoform_ion": {
@@ -87,12 +87,12 @@
             "layers": [
               {
                 "name": "q_value",
-                "source": {"catalog": "confidence", "layers": "q_value"},
+                "source": {"catalog": "confidence_alpha", "layers": "q_value"},
                 "required": true
               },
               {
                 "name": "ms1_q_value",
-                "source": {"catalog": "confidence", "layers": "quantification_q_value"},
+                "source": {"catalog": "confidence_alpha", "layers": "quantification_q_value"},
                 "required": false
               }
             ]
@@ -119,10 +119,10 @@
               {"name": "label", "source": {"obs": "comment_label"}, "required": false}
             ],
             "var": [
-              {"name": "precursor", "source": {"catalog": "apb", "var": "peptidoform_ion"}},
+              {"name": "precursor", "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"}},
               {
                 "name": "protein_group",
-                "source": {"catalog": "apb", "var": "protein_assignment"},
+                "source": {"catalog": "apb_alpha", "var": "protein_assignment"},
                 "required": false
               },
               {

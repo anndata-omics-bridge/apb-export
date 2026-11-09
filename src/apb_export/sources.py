@@ -140,17 +140,26 @@ class LevelSources:
         """Whether the caller named the abundance layer, which then becomes the target's X."""
         return self._abundance is not None
 
-    def abundance_key(self, layer: str) -> str | None:
-        """What the level's layer measures, as the ``abundance`` catalogue's key; ``None`` for a
-        layer the catalogue does not describe."""
-        fields = self._catalog("abundance").fields()
-        keys = fields.filter(
+    def abundance_key(self, layer: str) -> tuple[str, dict[str, str]] | None:
+        """What the level's layer measures, as the ``abundance_alpha`` catalogue's key and the
+        entry's qualifiers, such as ``aggregation="maxlfq"``; ``None`` for a layer the catalogue
+        does not describe."""
+        fields = self._catalog("abundance_alpha").fields()
+        rows = fields.filter(
             (pl.col("level") == self._name)
             & (pl.col("location") == "layers")
             & (pl.col("name") == layer)
             & pl.col("present")
-        ).get_column("key")
-        return keys.item(0) if keys.len() else None
+        )
+        if not rows.height:
+            return None
+        row = rows.row(0, named=True)
+        qualifiers = {
+            name.removeprefix("qualifier."): str(value)
+            for name, value in row.items()
+            if name.startswith("qualifier.") and value is not None
+        }
+        return str(row["key"]), qualifiers
 
     def resolve(
         self, entry: str, source: Reference, fallback: Sequence[Reference] = ()
@@ -198,15 +207,15 @@ class LevelSources:
     def contaminants(self) -> VarValues:
         """apb2's vendor contaminant marking, merged with apb-fasta's FASTA match if present.
 
-        The marking is the ``apb`` set's key ``contaminant``, which every apb2 rule writes.
+        The marking is the ``apb_alpha`` set's key ``contaminant``, which every apb2 rule writes.
 
         Raises:
             ValueError: The level lacks the marking.
         """
-        marked = self._catalog("apb").levels[self._name].var.get("contaminant")
+        marked = self._catalog("apb_alpha").levels[self._name].var.get("contaminant")
         if marked is None:
             raise ValueError(f"export needs apb2's contaminant marking on level {self._name!r}")
-        provenance: Provenance = {"location": "var", "name": marked.name, "catalog": "apb"}
+        provenance: Provenance = {"location": "var", "name": marked.name, "catalog": "apb_alpha"}
         fasta = self._level.varm.get(_FASTA_TABLE)
         if fasta is not None and _FASTA_CONTAMINANT in fasta.columns:
             marked = marked | fasta.get_column(_FASTA_CONTAMINANT)

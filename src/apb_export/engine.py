@@ -327,14 +327,23 @@ class _LevelExport:
         return resolved
 
     def _written(self, entry: LayerEntry, values: LayerValues) -> str:
-        """The layer's name in the export: the entry's, or the one its resolved layer's
-        abundance key maps to; the provenance follows it."""
+        """The layer's name in the export: the entry's, or the one ``name_by_key`` gives the
+        first of its labels the resolved layer matches, by abundance key or by a
+        ``qualifier=value`` pair; the provenance follows it."""
         written = entry.name
-        key = self._sources.abundance_key(values.provenance["name"]) if entry.name_by_key else None
-        if key is not None and key in entry.name_by_key:
-            written = entry.name_by_key[key]
-            source = self._provenance.pop(f"layers.{entry.name}")
-            self._provenance[f"layers.{written}"] = {**source, "key": key}
+        found = (
+            self._sources.abundance_key(values.provenance["name"]) if entry.name_by_key else None
+        )
+        if found is not None:
+            key, qualifiers = found
+            matches = {key: {}} | {
+                f"{name}={value}": {name: value} for name, value in qualifiers.items()
+            }
+            label = next((label for label in entry.name_by_key if label in matches), None)
+            if label is not None:
+                written = entry.name_by_key[label]
+                source = self._provenance.pop(f"layers.{entry.name}")
+                self._provenance[f"layers.{written}"] = {**source, "key": key, **matches[label]}
         self._written_names[entry.name] = written
         return written
 

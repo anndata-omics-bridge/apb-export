@@ -13,35 +13,41 @@
           "layers": [
             {
               "name": "intensity",
-              "source": {"catalog": "abundance", "layers": "intensity"},
+              "source": {"catalog": "abundance_alpha", "layers": "intensity"},
               "fallback": [{"measurements": "primary_layer"}]
             },
             {
               "name": "qValue",
-              "source": {"catalog": "confidence", "layers": "q_value"},
-              "fallback": [{"catalog": "proteobench_entrapment", "var": "q_value"}],
+              "source": {"catalog": "confidence_alpha", "layers": "q_value"},
+              "fallback": [{"catalog": "proteobench_entrapment_alpha", "var": "q_value"}],
               "required": false
             },
             {
               "name": "pg_qValue",
-              "source": {"catalog": "confidence", "layers": "q_value", "from_level": "protein"},
+              "source": {
+                "catalog": "confidence_alpha",
+                "layers": "q_value",
+                "from_level": "protein"
+              },
               "required": false
             },
             {
               "name": "pg_qValue_experiment",
               "source": {
-                "catalog": "confidence",
+                "catalog": "confidence_alpha",
                 "var": "library_q_value",
                 "from_level": "protein",
                 "accept": "nonzero"
               },
-              "fallback": [{"catalog": "confidence", "var": "q_value", "from_level": "protein"}],
+              "fallback": [
+                {"catalog": "confidence_alpha", "var": "q_value", "from_level": "protein"}
+              ],
               "required": false
             },
             {
               "name": "pep",
-              "source": {"catalog": "confidence", "layers": "pep"},
-              "fallback": [{"catalog": "confidence", "var": "pep"}],
+              "source": {"catalog": "confidence_alpha", "layers": "pep"},
+              "fallback": [{"catalog": "confidence_alpha", "var": "pep"}],
               "required": false
             }
           ]
@@ -57,30 +63,30 @@
               "name": "feature_id",
               "how": "join_nonempty",
               "inputs": [
-                {"catalog": "apb", "var": "protein_assignment"},
-                {"catalog": "apb", "var": "peptide"}
+                {"catalog": "apb_alpha", "var": "protein_assignment"},
+                {"catalog": "apb_alpha", "var": "peptide"}
               ],
               "separator": "~"
             },
             {
               "name": "protein_Id",
-              "source": {"catalog": "apb", "var": "protein_assignment"},
+              "source": {"catalog": "apb_alpha", "var": "protein_assignment"},
               "drop_missing": true
             },
             {
               "name": "IDcolumn",
               "source": {"fasta": "reported_leading_accession"},
-              "fallback": [{"catalog": "apb", "var": "protein_assignment"}]
+              "fallback": [{"catalog": "apb_alpha", "var": "protein_assignment"}]
             },
             {
               "name": "fasta.id",
               "source": {"fasta": "reported_leading_id"},
-              "fallback": [{"catalog": "apb", "var": "protein_assignment"}]
+              "fallback": [{"catalog": "apb_alpha", "var": "protein_assignment"}]
             },
             {
               "name": "description",
               "source": {"fasta": "reported_leading_description"},
-              "fallback": [{"catalog": "apb", "var": "protein_assignment"}]
+              "fallback": [{"catalog": "apb_alpha", "var": "protein_assignment"}]
             },
             {
               "name": "gene_name",
@@ -99,7 +105,7 @@
               "type": "number",
               "required": false
             },
-            {"name": "peptide_Id", "source": {"catalog": "apb", "var": "peptide"}},
+            {"name": "peptide_Id", "source": {"catalog": "apb_alpha", "var": "peptide"}},
             {"name": "nr_children", "how": "constant", "value": 1, "type": "integer"}
           ]
         },
@@ -166,13 +172,16 @@
                 "name": "feature_id",
                 "how": "join_nonempty",
                 "inputs": [
-                  {"catalog": "apb", "var": "protein_assignment"},
-                  {"catalog": "apb", "var": "peptide"},
-                  {"catalog": "apb", "var": "peptidoform_ion"}
+                  {"catalog": "apb_alpha", "var": "protein_assignment"},
+                  {"catalog": "apb_alpha", "var": "peptide"},
+                  {"catalog": "apb_alpha", "var": "peptidoform_ion"}
                 ],
                 "separator": "~"
               },
-              {"name": "precursor_Id", "source": {"catalog": "apb", "var": "peptidoform_ion"}}
+              {
+                "name": "precursor_Id",
+                "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"}
+              }
             ]
           },
           "uns": [
