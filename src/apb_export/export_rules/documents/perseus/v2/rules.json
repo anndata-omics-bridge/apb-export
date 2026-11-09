@@ -30,7 +30,11 @@
                 "name": "Protein IDs",
                 "source": {"catalog": "apb_alpha", "var": "protein_assignment"}
               },
-              {"name": "Gene names", "source": {"fasta": "fasta_gene_names"}, "required": false},
+              {
+                "name": "Gene names",
+                "source": {"catalog": "fasta_proteins_alpha", "var": "fasta_gene_names"},
+                "required": false
+              },
               {
                 "name": "Q-value",
                 "source": {"catalog": "confidence_alpha", "var": "q_value"},

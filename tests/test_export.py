@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import pytest
-from apb2.api import ParsedLevels, ParseRuleCompiler
+from apb2.api import JsonValue, ParsedLevels, ParseRuleCompiler
 
 from apb_export.api import Exporter
 from conftest import (
@@ -150,6 +150,8 @@ def test_contaminants_merge_the_vendor_marking_and_the_fasta_match(diann: DiannI
     level.varm["fasta_validation"] = pl.DataFrame(
         {"fasta_matches_contaminant": (ions == "CONTPEPK/2").to_list()}
     )
+    verified: dict[str, JsonValue] = {"fasta": {"provenance": {"peptide_verification": {}}}}
+    parsed = replace(parsed, metadata={**parsed.metadata, **verified})
 
     var = _var(_psm(Exporter("msmu"), parsed, diann.report.parent))
 

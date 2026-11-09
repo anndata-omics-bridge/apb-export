@@ -75,33 +75,39 @@
             },
             {
               "name": "IDcolumn",
-              "source": {"fasta": "reported_leading_accession"},
+              "source": {"catalog": "fasta_peptides_alpha", "var": "reported_leading_accession"},
               "fallback": [{"catalog": "apb_alpha", "var": "protein_assignment"}]
             },
             {
               "name": "fasta.id",
-              "source": {"fasta": "reported_leading_id"},
+              "source": {"catalog": "fasta_peptides_alpha", "var": "reported_leading_id"},
               "fallback": [{"catalog": "apb_alpha", "var": "protein_assignment"}]
             },
             {
               "name": "description",
-              "source": {"fasta": "reported_leading_description"},
+              "source": {"catalog": "fasta_peptides_alpha", "var": "reported_leading_description"},
               "fallback": [{"catalog": "apb_alpha", "var": "protein_assignment"}]
             },
             {
               "name": "gene_name",
-              "source": {"fasta": "reported_leading_gene_name"},
+              "source": {"catalog": "fasta_peptides_alpha", "var": "reported_leading_gene_name"},
               "required": false
             },
             {
               "name": "protein_length",
-              "source": {"fasta": "reported_leading_protein_length"},
+              "source": {
+                "catalog": "fasta_peptides_alpha",
+                "var": "reported_leading_protein_length"
+              },
               "type": "number",
               "required": false
             },
             {
               "name": "nr_tryptic_peptides",
-              "source": {"fasta": "reported_leading_tryptic_peptides"},
+              "source": {
+                "catalog": "fasta_peptides_alpha",
+                "var": "reported_leading_tryptic_peptides"
+              },
               "type": "number",
               "required": false
             },

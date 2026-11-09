@@ -126,8 +126,8 @@
                 "required": false
               },
               {
-                "name": "group_specific",
-                "source": {"fasta": "is_protein_group_specific"},
+                "name": "in_fasta",
+                "source": {"catalog": "fasta_peptides_alpha", "var": "peptide_in_fasta"},
                 "type": "boolean",
                 "required": false
               }

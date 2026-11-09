@@ -23,7 +23,6 @@ from apb_export.export_rules.schema import (
     CatalogueObs,
     CatalogueSource,
     CatalogueVar,
-    FastaSource,
     MeasurementSource,
     ObsSource,
     Reference,
@@ -33,9 +32,8 @@ from apb_export.export_rules.schema import (
 
 type Provenance = dict[str, str]
 
-_FASTA_TABLE = "fasta_validation"
-_FASTA_PROTEIN_TABLE = "fasta"
-_FASTA_CONTAMINANT = "fasta_matches_contaminant"
+_FASTA_PEPTIDES = "fasta_peptides_alpha"
+"""apb-fasta's peptide verification, whose ``fasta_matches_contaminant`` joins the contaminants."""
 
 _MEMBERS = ";"
 """How APB2 joins a protein group's members, as the vendors write them."""
@@ -125,6 +123,8 @@ class LevelSources:
         self._level = parsed.levels[level]
         self._abundance = abundance
         self._catalogues: dict[str, DataCatalog] = {}
+        self._answering = frozenset(DataCatalog.answering_sets(parsed))
+        self._unanswered: dict[str, list[str]] = {}
 
     def annotations(self) -> list[str]:
         """The level's observation columns other than its keys, such as ``apb2 annotate`` adds."""
@@ -165,7 +165,8 @@ class LevelSources:
         self, entry: str, source: Reference, fallback: Sequence[Reference] = ()
     ) -> Resolved | None:
         """The source, else the first fallback the result carries, or ``None`` when it carries
-        none; a fallback that answers is logged as a warning naming ``entry``.
+        none; a fallback that answers is logged as a warning naming ``entry``. A catalogue set
+        the result cannot open, because its app or ``apb2 annotate`` has not run, carries none.
 
         A catalogue candidate the catalogue reviewed but cannot answer with one field, because
         several match or the entries leave a requested qualifier unknown, passes to the next
@@ -180,6 +181,12 @@ class LevelSources:
         candidates = [source, *fallback]
         passed: list[str] = []
         for reference in candidates:
+            if (
+                isinstance(reference, CatalogueLayer | CatalogueVar | CatalogueObs)
+                and reference.catalog not in self._answering
+            ):
+                self._unanswered.setdefault(entry, []).append(reference.catalog)
+                continue
             try:
                 resolved = self._reference(reference)
             except UnresolvedField as error:
@@ -204,6 +211,16 @@ class LevelSources:
                 )
         return None
 
+    def explain_absent(self, entry: str) -> None:
+        """Open every catalogue set ``entry`` named that the result cannot open, so apb-catalog
+        raises its error saying what to run; nothing when ``entry`` named none.
+
+        Raises:
+            ValueError: A set the entry named can answer nothing on this result.
+        """
+        for name in self._unanswered.get(entry, []):
+            self._catalog(name)
+
     def contaminants(self) -> VarValues:
         """apb2's vendor contaminant marking, merged with apb-fasta's FASTA match if present.
 
@@ -216,10 +233,12 @@ class LevelSources:
         if marked is None:
             raise ValueError(f"export needs apb2's contaminant marking on level {self._name!r}")
         provenance: Provenance = {"location": "var", "name": marked.name, "catalog": "apb_alpha"}
-        fasta = self._level.varm.get(_FASTA_TABLE)
-        if fasta is not None and _FASTA_CONTAMINANT in fasta.columns:
-            marked = marked | fasta.get_column(_FASTA_CONTAMINANT)
-            provenance["fasta"] = f"varm.{_FASTA_TABLE}.{_FASTA_CONTAMINANT}"
+        if _FASTA_PEPTIDES in self._answering:
+            catalog = self._catalog(_FASTA_PEPTIDES)
+            matched = catalog.levels[self._name].var.get("fasta_matches_contaminant")
+            if matched is not None:
+                marked = marked | matched
+                provenance["fasta"] = f"{_FASTA_PEPTIDES} {matched.name}"
         return VarValues(marked, provenance)
 
     def _reference(self, reference: Reference) -> Resolved | None:
@@ -232,8 +251,6 @@ class LevelSources:
                 return self._rule_field(reference)
             case CatalogueLayer() | CatalogueVar() | CatalogueObs():
                 return self._catalogue(reference)
-            case FastaSource():
-                return self._fasta(reference)
             case ObsSource():
                 return self._obs(reference)
 
@@ -242,14 +259,6 @@ class LevelSources:
             return None
         values = self.annotation(reference.obs)
         return ObsValues(values, {"location": "obs", "name": reference.obs})
-
-    def _fasta(self, reference: FastaSource) -> VarValues | None:
-        for table in (_FASTA_TABLE, _FASTA_PROTEIN_TABLE):
-            fasta = self._level.varm.get(table)
-            if fasta is not None and reference.fasta in fasta.columns:
-                provenance: Provenance = {"location": "varm", "name": f"{table}.{reference.fasta}"}
-                return VarValues(fasta.get_column(reference.fasta), provenance)
-        return None
 
     def _axis(self, reference: AxisSource) -> ObsValues | VarValues:
         if reference.axis == "obs_key":

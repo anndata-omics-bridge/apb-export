@@ -33,18 +33,18 @@
               {"name": "contaminant", "how": "contaminant", "type": "boolean"},
               {
                 "name": "in_fasta",
-                "source": {"fasta": "peptide_in_fasta"},
+                "source": {"catalog": "fasta_peptides_alpha", "var": "peptide_in_fasta"},
                 "type": "boolean",
                 "required": false
               },
               {
                 "name": "fasta_proteins",
-                "source": {"fasta": "fasta_matching_protein_ids"},
+                "source": {"catalog": "fasta_peptides_alpha", "var": "fasta_matching_protein_ids"},
                 "required": false
               },
               {
                 "name": "fasta_organisms",
-                "source": {"fasta": "fasta_matching_organisms"},
+                "source": {"catalog": "fasta_peptides_alpha", "var": "fasta_matching_organisms"},
                 "required": false
               }
             ]
@@ -65,18 +65,18 @@
               {"name": "contaminant", "how": "contaminant", "type": "boolean"},
               {
                 "name": "in_fasta",
-                "source": {"fasta": "peptide_in_fasta"},
+                "source": {"catalog": "fasta_peptides_alpha", "var": "peptide_in_fasta"},
                 "type": "boolean",
                 "required": false
               },
               {
                 "name": "fasta_proteins",
-                "source": {"fasta": "fasta_matching_protein_ids"},
+                "source": {"catalog": "fasta_peptides_alpha", "var": "fasta_matching_protein_ids"},
                 "required": false
               },
               {
                 "name": "fasta_organisms",
-                "source": {"fasta": "fasta_matching_organisms"},
+                "source": {"catalog": "fasta_peptides_alpha", "var": "fasta_matching_organisms"},
                 "required": false
               }
             ]

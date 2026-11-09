@@ -49,13 +49,13 @@ FASTA = (
     ">sp|P6|SIX_HUMAN Six\nMSHAREDKW\n"
     ">sp|P8|EIGHT_HUMAN Eight\nMPEPTIDEKW\n"
 )
-GROUP_SPECIFIC = {
-    "PEPTIDEK/2": False,
+IN_FASTA = {
+    "PEPTIDEK/2": True,
     "AAC[UNIMOD:4]LLK/2": True,
     "YEASTPEPK/2": True,
     "CONTPEPK/2": True,
-    "SHAREDK/2": False,
-    "LASTPEPK/2": None,
+    "SHAREDK/2": True,
+    "LASTPEPK/2": False,
 }
 SDRF_COLUMNS = (
     "source name",
@@ -224,13 +224,13 @@ def test_keys_choose_the_catalogue_answer(toy: str, diann: DiannInput, tmp_path:
     assert (source["catalog"], source["key"]) == ("confidence_alpha", "q_value")
 
 
-def test_apb_fasta_supplies_group_specificity(toy: str, diann: DiannInput, tmp_path: Path) -> None:
-    """Specific when the group holds every protein the peptide matches; missing without a match."""
+def test_apb_fasta_supplies_peptide_in_fasta(toy: str, diann: DiannInput, tmp_path: Path) -> None:
+    """A plugin target reads apb-fasta's verification through ``fasta_peptides_alpha``."""
     ion = _modality(_export(diann, tmp_path, "--fasta", str(_fasta(tmp_path))), "peptidoform_ion")
-    flags = _var(ion)["group_specific"].astype(object)
+    flags = _var(ion)["in_fasta"].astype(object)
     found = {str(key): (None if value is pd.NA else bool(value)) for key, value in flags.items()}
 
-    assert found == GROUP_SPECIFIC
+    assert found == IN_FASTA
 
 
 def test_ions_map_to_the_protein_group_they_name(

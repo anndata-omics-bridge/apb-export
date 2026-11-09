@@ -69,11 +69,15 @@
                 "name": "label_gene_symbol",
                 "how": "short_name",
                 "inputs": [
-                  {"fasta": "fasta_gene_names"},
+                  {"catalog": "fasta_proteins_alpha", "var": "fasta_gene_names"},
                   {"catalog": "apb_alpha", "var": "protein_assignment"}
                 ]
               },
-              {"name": "description", "source": {"fasta": "fasta_descriptions"}, "required": false}
+              {
+                "name": "description",
+                "source": {"catalog": "fasta_proteins_alpha", "var": "fasta_descriptions"},
+                "required": false
+              }
             ]
           },
           "uns": [
@@ -107,15 +111,18 @@
                 "name": "label_gene_symbol",
                 "how": "short_name",
                 "inputs": [
-                  {"fasta": "reported_leading_gene_name"},
-                  {"fasta": "reported_leading_id"},
+                  {"catalog": "fasta_peptides_alpha", "var": "reported_leading_gene_name"},
+                  {"catalog": "fasta_peptides_alpha", "var": "reported_leading_id"},
                   {"catalog": "apb_alpha", "var": "protein_assignment"}
                 ],
                 "append": {"catalog": "apb_alpha", "var": "peptide"}
               },
               {
                 "name": "description",
-                "source": {"fasta": "reported_leading_description"},
+                "source": {
+                  "catalog": "fasta_peptides_alpha",
+                  "var": "reported_leading_description"
+                },
                 "required": false
               }
             ]
@@ -151,15 +158,18 @@
                 "name": "label_gene_symbol",
                 "how": "short_name",
                 "inputs": [
-                  {"fasta": "reported_leading_gene_name"},
-                  {"fasta": "reported_leading_id"},
+                  {"catalog": "fasta_peptides_alpha", "var": "reported_leading_gene_name"},
+                  {"catalog": "fasta_peptides_alpha", "var": "reported_leading_id"},
                   {"catalog": "apb_alpha", "var": "protein_assignment"}
                 ],
                 "append": {"catalog": "apb_alpha", "var": "peptidoform_ion"}
               },
               {
                 "name": "description",
-                "source": {"fasta": "reported_leading_description"},
+                "source": {
+                  "catalog": "fasta_peptides_alpha",
+                  "var": "reported_leading_description"
+                },
                 "required": false
               }
             ]

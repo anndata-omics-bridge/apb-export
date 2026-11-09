@@ -87,8 +87,9 @@ def _describe(provenance: Provenance) -> str:
     return " ".join(provenance[key] for key in ("location", "name") if key in provenance)
 
 
-def _absent(entry: ColumnEntry, group: str) -> _Bound | None:
+def _absent(entry: ColumnEntry, group: str, sources: LevelSources) -> _Bound | None:
     if entry.required:
+        sources.explain_absent(f"{group}.{entry.name}")
         raise ValueError(f"{group} entry {entry.name!r}: the result carries no source for it")
     if entry.fill_value is None:
         return None
@@ -125,7 +126,7 @@ def _bind(
     if isinstance(entry, LayerMinimum):
         found_layer = layers.get(entry.layer)
         if found_layer is None:
-            return _absent(entry, group)
+            return _absent(entry, group, sources)
         reduced = _minimum(found_layer)
         if not isinstance(reduced, takes):
             raise ValueError(
@@ -141,7 +142,7 @@ def _bind(
     )
     resolved = [item for item in found if item is not None]
     if len(resolved) < len(found):
-        return _absent(entry, group)
+        return _absent(entry, group, sources)
     _check_takes(entry, resolved, group, takes)
     if isinstance(entry, SourcedEntry):
         return _Bound(entry, tuple(resolved), resolved[0].provenance)
@@ -157,7 +158,7 @@ def _bind_short_name(
     found = [item for ref in entry.inputs if (item := sources.resolve(label, ref)) is not None]
     appended = None if entry.append is None else sources.resolve(label, entry.append)
     if not found or (entry.append is not None and appended is None):
-        return _absent(entry, group)
+        return _absent(entry, group, sources)
     resolved = [*found, *([] if appended is None else [appended])]
     _check_takes(entry, resolved, group, takes)
     inputs = ", ".join(_describe(item.provenance) for item in resolved)
@@ -316,6 +317,7 @@ class _LevelExport:
         )
         if resolved is None:
             if primary or entry.required:
+                self._sources.explain_absent(key)
                 raise ValueError(f"layer {entry.name!r}: the result carries no layer for it")
             self._provenance[key] = {"location": "absent"}
             return None

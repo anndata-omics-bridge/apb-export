@@ -41,45 +41,19 @@ class RuleSource(ModelBase):
     rule: str = Field(min_length=1)
 
 
-class FastaSource(ModelBase):
-    """A column of apb-fasta's FASTA check: per feature on a peptide-derived level, per protein
-    group on the protein level; absent unless the result was checked."""
-
-    fasta: Literal[
-        "peptide_in_fasta",
-        "fasta_match_site_count",
-        "fasta_matching_protein_count",
-        "fasta_matching_protein_ids",
-        "fasta_matching_organisms",
-        "fasta_matches_contaminant",
-        "peptide_in_reported_protein",
-        "is_protein_group_specific",
-        "is_proteotypic",
-        "reported_leading_id",
-        "reported_leading_accession",
-        "reported_leading_description",
-        "reported_leading_gene_name",
-        "reported_leading_protein_length",
-        "reported_leading_tryptic_peptides",
-        "any_member_in_fasta",
-        "all_members_in_fasta",
-        "fasta_descriptions",
-        "fasta_gene_names",
-        "fasta_organism_names",
-    ]
-
-
 class CatalogueReference(ModelBase):
     """A field found by meaning through apb-catalog, asked by one of the set's keys in one slot
     of the level, as ``levels[level].var["protein_assignment"]`` asks it; the set ``apb_alpha`` holds
     APB's own fields, such as ``ProForma_ion`` (key ``peptidoform_ion``) or the column a rule
-    marks with a role."""
+    marks with a role, and ``fasta_peptides_alpha`` and ``fasta_proteins_alpha`` apb-fasta's. A
+    set the result cannot open, because its app or ``apb2 annotate`` has not run, answers
+    nothing."""
 
     catalog: str = Field(min_length=1)
     qualifiers: dict[str, str] = Field(
         default_factory=dict,
-        description="Further qualifiers of the request, besides those its key fixes, such as an "
-        "origin when the vendor and apb-fasta both answer one key.",
+        description="Further qualifiers of the request, besides those its key fixes, such as "
+        "a retention time's unit.",
     )
 
 
@@ -159,7 +133,6 @@ type Reference = (
     | CatalogueLayer
     | CatalogueVar
     | CatalogueObs
-    | FastaSource
     | ObsSource
 )
 
