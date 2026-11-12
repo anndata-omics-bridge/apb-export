@@ -147,7 +147,7 @@ class LevelSources:
         fields = self._catalog("abundance_alpha").fields()
         rows = fields.filter(
             (pl.col("level") == self._name)
-            & (pl.col("location") == "layers")
+            & (pl.col("slot") == "layers")
             & (pl.col("name") == layer)
             & pl.col("present")
         )
