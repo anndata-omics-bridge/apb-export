@@ -2,7 +2,12 @@
 
 **[Online documentation](https://anndata-omics-bridge.github.io/apb-export/)** or its [source index](docs/index.md).
 
-**Web app: <https://apps-dev.bfabric.org/apb-export/>**: upload a vendor result, check its QC and download the export, without installing anything.
+Try it online:
+
+- [Rules viewer](https://fgcz-ms.uzh.ch/public/apb-rules/): every vendor table's parse rules, as apb2 packages them
+- [Catalog viewer](https://fgcz-ms.uzh.ch/public/apb-catalog/): every catalog set with its entries and coverage
+- [APB Studio](https://fgcz-ms.uzh.ch/public/apb-studio/): APB's corpus runs over the test vendor files
+- [APB Export](https://apps-dev.bfabric.org/apb-export/): convert a vendor table for a downstream tool in the browser
 
 APB2 results exported as downstream AnnData, MuData, CSV long tables, Perseus tables and QPX Parquet: one export rule per target, one subcommand per target. HDF5 files get APB2's `<file>.apb.json` sidecar, which APB Studio's viewer reads; exploreDE's `.h5ad` files, one per level, live in a new `.h5ads` directory. QPX tables and their export manifest live in a new `.qpx` directory; the `.csv` and `.txt` tables have no sidecar. Each target fixes the APB2 levels it reads; `--abundance` picks which layer of a single-level target becomes X, and `--annotation` attaches an SDRF or prolfquapp-style sample table, as `apb2 annotate` does.
 

@@ -4,6 +4,13 @@
 
 APB2 converts the vendor output; apb-export applies the target's packaged export rule and writes the format that tool reads. HDF5 files get APB2's `<file>.apb.json` sidecar; QPX Parquet tables have an export manifest. Field meanings come from [apb-catalog](https://anndata-omics-bridge.github.io/apb-catalog/), never from vendor column names.
 
+Try it online:
+
+- [Rules viewer](https://fgcz-ms.uzh.ch/public/apb-rules/): every vendor table's parse rules, as apb2 packages them
+- [Catalog viewer](https://fgcz-ms.uzh.ch/public/apb-catalog/): every catalog set with its entries and coverage
+- [APB Studio](https://fgcz-ms.uzh.ch/public/apb-studio/): APB's corpus runs over the test vendor files
+- [APB Export](https://apps-dev.bfabric.org/apb-export/): convert a vendor table for a downstream tool in the browser
+
 ## Targets
 
 | Target | File | APB2 levels | Opened with |
