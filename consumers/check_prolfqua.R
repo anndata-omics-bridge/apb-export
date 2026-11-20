@@ -31,3 +31,30 @@ if (!identical(xd$lfqdata$hierarchy_keys(), c("protein_Id", "peptide_Id")) || co
   stop("APB reader returned ", paste(xd$lfqdata$hierarchy_keys(), collapse = ", "), " and ", counts$protein_Id, " proteins")
 }
 cat("prolfquapp APB reader:", counts$protein_Id, "proteins,", counts$peptide_Id, "peptides\n")
+
+# The APB reader gives the same peptide values, and medpolish the same protein values, as
+# prolfquapp's own DIA-NN reader on report.tsv.
+reference <- prolfquapp::preprocess_DIANN(file.path(args[[1]], "report.tsv"), character(), annotation)
+values <- function(lfq) {
+  keys <- c(lfq$sample_name(), lfq$hierarchy_keys())
+  data <- lfq$data_long()
+  data <- data[do.call(order, data[keys]), c(keys, lfq$response())]
+  names(data)[ncol(data)] <- "value"
+  as.data.frame(data)
+}
+protein <- function(lfq) {
+  lfq$get_Transformer()$log2()$lfq$get_Aggregator("medpolish")$aggregate()
+}
+for (level in c("peptide", "protein")) {
+  ours <- xd$lfqdata
+  theirs <- reference$lfqdata
+  if (level == "protein") {
+    ours <- protein(ours)
+    theirs <- protein(theirs)
+  }
+  same <- all.equal(values(ours), values(theirs), check.attributes = FALSE, tolerance = 1e-12)
+  if (!isTRUE(same)) {
+    stop(level, " values differ from preprocess_DIANN: ", paste(same, collapse = "; "))
+  }
+  cat("prolfquapp", level, "values:", nrow(values(theirs)), "rows, equal to preprocess_DIANN\n")
+}
