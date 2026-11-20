@@ -131,6 +131,34 @@ def test_proteopy_is_written_by_apb2_and_reads_back(diann: DiannInput, tmp_path:
     assert "export" in back.metadata
 
 
+def test_proteopy_ion_gets_ions_naming_one_protein(diann: DiannInput, tmp_path: Path) -> None:
+    """ProteoPy's peptide data keyed on the ion; an ion naming two proteins is left out."""
+    adata = _anndata(_written("proteopy_ion", _annotated(_parsed(diann)), tmp_path))
+    obs, var = _frame(adata.obs), _frame(adata.var)
+
+    assert list(obs["sample_id"]) == list(adata.obs_names) == list(RUNS)
+    ions = list(var["peptide_id"])
+    assert ions == list(adata.var_names)
+    assert len(ions) == len(set(ions)), "peptide ids must be unique"
+    assert "PEPTIDEK/2" in ions, "an ion is keyed by its ProForma"
+    proteins = list(var["protein_id"])
+    assert all(isinstance(protein, str) and protein and ";" not in protein for protein in proteins)
+    assert len(ions) == len(PRECURSORS) - 1, "SHAREDK names P5 and CON__P6"
+    assert "SHAREDK/2" not in ions
+    assert not np.isinf(np.asarray(adata.X)).any()
+
+
+def test_proteopy_ion_counts_the_ions_it_leaves_out(diann: DiannInput) -> None:
+    exported = Exporter("proteopy_ion").export(_annotated(_parsed(diann)))
+
+    record = exported.levels["peptidoform_ion"].metadata["export"]
+    assert isinstance(record, dict) and isinstance(record["provenance"], dict)
+    sources = record["provenance"]["sources"]
+    assert isinstance(sources, dict)
+    protein_id = sources["var.protein_id"]
+    assert isinstance(protein_id, dict) and protein_id["dropped"] == "1"
+
+
 def test_prolfquapp_finds_its_configuration_and_columns(diann: DiannInput, tmp_path: Path) -> None:
     adata = _anndata(_written("prolfqua", _annotated(_parsed(diann)), tmp_path))
     obs, var = _frame(adata.obs), _frame(adata.var)
@@ -658,6 +686,7 @@ def test_the_api_names_each_targets_levels_and_file() -> None:
         "perseus": (("protein",), ".txt"),
         "prolfqua": (("peptide", "peptidoform_ion", "protein"), ".h5ad"),
         "proteopy": (("protein",), ".h5ad"),
+        "proteopy_ion": (("peptidoform_ion",), ".h5ad"),
         "qfeatures": (("peptidoform_ion", "peptide", "protein"), ".h5mu"),
         "qpx": (("peptidoform_ion", "protein"), ".qpx"),
     }

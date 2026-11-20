@@ -47,6 +47,7 @@ def test_every_packaged_rule_validates_and_compiles() -> None:
         "perseus/v2/rules.json",
         "prolfqua/v2_11/rules.json",
         "proteopy/v0_1/rules.json",
+        "proteopy_ion/v0_1/rules.json",
         "qfeatures/v1_22/rules.json",
         "qpx/v1_1/rules.json",
     )
@@ -63,6 +64,7 @@ def test_every_packaged_rule_validates_and_compiles() -> None:
         "perseus": ".txt",
         "prolfqua": ".h5ad",
         "proteopy": ".h5ad",
+        "proteopy_ion": ".h5ad",
         "qfeatures": ".h5mu",
         "qpx": ".qpx",
     }

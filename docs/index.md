@@ -20,6 +20,7 @@ Try it online:
 | Perseus | `.txt` | protein | Perseus, or `perseuspy.pd.read_perseus` |
 | prolfqua | `.h5ad` | peptidoform_ion, or peptide for MaxQuant | prolfquapp's `LFQData_from_anndata` |
 | ProteoPy | `.h5ad` | protein | ProteoPy |
+| ProteoPy, ions | `.h5ad` | peptidoform_ion | ProteoPy |
 | [exploreDE](https://github.com/fgcz/exploreDE) | `.h5ads` directory, one `.h5ad` per level | protein, peptide, peptidoform_ion, those present | `exploreDE::exploreDE()` on each file |
 | AlphaPeptTools | `.h5mu` | peptidoform_ion, peptide, protein | `mulink_from_anndatas` |
 | QFeatures | `.h5mu` | peptidoform_ion, peptide, protein | `MuData::readH5MU`, then `QFeatures` |
@@ -91,4 +92,4 @@ make check
 
 ## Testing
 
-Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples, validates the QPX ones with qpx and the released pMultiQC, and checks that msmu, ProteoPy, AlphaPeptTools, QFeatures, MSstats and perseuspy read them, msmu against its own `read_diann`. prolfquapp's check is disabled for now.
+Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples, validates the QPX ones with qpx and the released pMultiQC, and checks that msmu, ProteoPy, AlphaPeptTools, QFeatures, MSstats and perseuspy read them, msmu against its own `read_diann` and ProteoPy's ion file against its own DIA-NN reader. prolfquapp's check is disabled for now.

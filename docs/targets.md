@@ -39,6 +39,7 @@ HDF5 target files are written by APB2's `write_parsed_levels`, `.apb.json` sidec
 | Perseus | [v2](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/perseus/v2/rules.json) | `.txt` | protein | wide, proteinGroups.txt's names, `#!{Type}` and `#!{C:…}` header rows |
 | prolfquapp | [v2_11](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/prolfqua/v2_11/rules.json) | `.h5ad` | peptidoform_ion, or peptide for MaxQuant; reads protein | wide; `uns["prolfquapp"]` for `LFQData_from_anndata` |
 | ProteoPy | [v0_1](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/proteopy/v0_1/rules.json) | `.h5ad` | protein | wide; `sample_id` and `protein_id` beside their indexes |
+| ProteoPy, ions | [v0_1](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/proteopy_ion/v0_1/rules.json) | `.h5ad` | peptidoform_ion | wide; `sample_id`, `peptide_id` (the ion's ProForma) and `protein_id` |
 | exploreDE | [v1_0](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/explorede/v1_0/rules.json) | `.h5ads` directory | protein, peptide, peptidoform_ion, those present | `exploreDE/1.0` without differential expression, one file per level the result holds: `protein.h5ad`, `peptide.h5ad`, `precursor.h5ad`; log2 `intensities` with vendor zeros missing, linear `intensities_raw`, X a copy of `intensities`; SDRF `factor value[…]` and prolfquapp `group`/`bait` columns become `factor_<name>` with sorted categories, other annotation columns pass unprefixed; `feature_id` is the protein group, or `<protein>_<peptide>` and `<protein>_<ProForma ion>`; `label_gene_symbol` is the leading protein's FASTA gene name, else its entry name or accession, with the peptide or precursor appended; `uns` holds exploreDE's identity keys and empty `de`, `enrichment` and `enrichment_support` |
 | AlphaPeptTools | [v0_4](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/alphapepttools/v0_4/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | one wide modality per level, linked by id columns |
 | QFeatures | [v1_22](https://github.com/anndata-omics-bridge/apb-export/blob/main/src/apb_export/export_rules/documents/qfeatures/v1_22/rules.json) | `.h5mu` | peptidoform_ion, peptide, protein | AlphaPeptTools' layout; assays linked by `addAssayLink` on id columns |
@@ -123,6 +124,7 @@ Perseus: Generic matrix upload, or read with `perseuspy.pd.read_perseus("perseus
 
 - ProteoPy: `sample_id` and `protein_id` name the indices and stay columns
 - ProteoPy with `--fasta`: apb-fasta annotates the protein groups and adds `in_fasta`, `gene_id`, `description` and `fasta_organisms`
+- ProteoPy ions (`proteopy-ion`): ProteoPy's peptide data, keyed on the ion as ProteoPy's own DIA-NN reader is at `aggr_level="Precursor.Id"`; `protein_id` is the one accession of the ion's `fasta_accessions` column, and an ion naming several proteins is left out and counted in the export's provenance, as that reader leaves it out. apb-export rolls nothing up; ProteoPy's own functions roll ions up to peptides or proteins. With `--fasta`, apb-fasta annotates the ion level by the same column and adds the same four columns
 - AlphaPeptTools: peptidoform_ion and peptide modalities carry `contaminant`; with `--fasta` also `in_fasta`, `fasta_proteins` and `fasta_organisms`
 - AlphaPeptTools on MaxQuant: runs named by raw file; with fractions, several raw files per experiment, only precursors are written and the export record lists the other levels as skipped
 - Neither tool reads these FASTA columns; they are kept for inspection
@@ -189,7 +191,7 @@ Written as msmu's readers write them:
 
 ## Limits
 
-- A result without the level a target reads is refused: msmu needs an `peptidoform_ion` level (Sage's `lfq.tsv` is peptide-level), ProteoPy a `protein` level
+- A result without the level a target reads is refused: msmu needs an `peptidoform_ion` level (Sage's `lfq.tsv` is peptide-level), ProteoPy a `protein` level, ProteoPy ions a `peptidoform_ion` level
 - Label-free only: a result keyed by more than one observation column, as multiplexed designs are, is refused
 - `decoy` is apb2's `apb_Decoy`; most exports carry no decoys, so use msmu's `calculate_q=False` unless the vendor kept them
 - Group separators other than `;` pass through unchanged

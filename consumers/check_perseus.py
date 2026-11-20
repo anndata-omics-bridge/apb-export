@@ -17,4 +17,6 @@ if __name__ == "__main__":
     assert samples, f"no sample columns in {list(names)}"
     assert all(table[name].dtypes.iloc[0].kind == "f" for name in samples), table.dtypes
     assert "condition" in table.columns.names, table.columns.names
-    print(f"perseuspy reads {len(table)} proteins x {len(samples)} samples, by {table.columns.names}")
+    print(
+        f"perseuspy reads {len(table)} proteins x {len(samples)} samples, by {table.columns.names}"
+    )

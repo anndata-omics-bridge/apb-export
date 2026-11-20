@@ -18,6 +18,7 @@ from apb_export.export_rules.schema import (
     ProformaCharge,
     SequenceLength,
     ShortName,
+    SingleAccession,
 )
 
 type Computed = (
@@ -25,6 +26,7 @@ type Computed = (
     | ProformaCharge
     | SequenceLength
     | Accessions
+    | SingleAccession
     | Contaminant
     | Lowercase
     | ShortName
@@ -81,6 +83,16 @@ def _accessions(series: pl.Series, syntax: AccessionSyntax) -> pl.Series:
     return frame.select(rewritten).to_series()
 
 
+def _single_accession(series: pl.Series, separator: str) -> pl.Series:
+    """The stripped value where it names one accession; null where it names none or several."""
+    frame = pl.DataFrame({"members": series.cast(pl.Utf8).str.strip_chars()})
+    members = pl.col("members")
+    several = members.str.contains(separator, literal=True)
+    return frame.select(
+        pl.when(several.not_() & (members != "")).then(members).otherwise(None)
+    ).to_series()
+
+
 def _short_name(entry: ShortName, inputs: Sequence[pl.Series]) -> pl.Series:
     names = inputs[:-1] if entry.append is not None else inputs
     frame = pl.DataFrame(
@@ -111,6 +123,8 @@ def compute(
             return inputs[0].cast(pl.Utf8).str.len_chars().cast(pl.Int64)
         case Accessions():
             return _accessions(inputs[0], syntax[entry.syntax])
+        case SingleAccession():
+            return _single_accession(inputs[0], entry.separator)
         case Contaminant():
             return inputs[0]
         case Lowercase():

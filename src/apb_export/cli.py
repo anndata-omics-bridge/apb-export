@@ -137,8 +137,8 @@ def _exported(
 
 
 def _fasta_checked(parsed: ParsedLevels, fasta: tuple[Path, ...]) -> ParsedLevels:
-    """Verify the peptides and annotate the protein groups the result holds against the FASTA,
-    and log the coverage; protein groups need apb2's ``fasta_accessions`` role."""
+    """Verify the peptides and annotate the protein lists the result's levels hold against the
+    FASTA, and log the coverage; a level's protein list is apb2's ``fasta_accessions`` role."""
     annotator = FastaAnnotator.read(fasta)
     if set(parsed.levels) - {"protein"}:
         verified = annotator.verify_peptides(parsed)
@@ -150,13 +150,11 @@ def _fasta_checked(parsed: ParsedLevels, fasta: tuple[Path, ...]) -> ParsedLevel
                 f"decoys={coverage.decoy_feature_count}"
             )
         parsed = verified.parsed
-    protein = parsed.levels.get("protein")
-    if protein is not None and "fasta_accessions" in protein.var.roles:
+    if any("fasta_accessions" in level.var.roles for level in parsed.levels.values()):
         annotated = annotator.merge_annotations(parsed)
-        groups = annotated.reports.protein_groups
-        if groups is not None:
+        for level, groups in annotated.reports.protein_groups.items():
             logger.info(
-                f"fasta level=protein members_in_fasta={groups.matched_member_count}/"
+                f"fasta level={level} members_in_fasta={groups.matched_member_count}/"
                 f"{groups.member_count} unmatched={groups.unmatched_member_count} "
                 f"ambiguous={groups.ambiguous_member_count}"
             )
@@ -340,6 +338,39 @@ def proteopy(
         "proteopy",
         _exported(
             "proteopy",
+            data,
+            output,
+            params=params,
+            software=software,
+            abundance=abundance,
+            annotation=annotation,
+            strict=strict,
+            fasta=fasta,
+        ),
+        output,
+    )
+
+
+@app.command
+def proteopy_ion(
+    data: Data,
+    output: Annotated[Path, Parameter(help="New .h5ad file for ProteoPy")],
+    /,
+    *,
+    params: Params = None,
+    software: Software = None,
+    abundance: Abundance = None,
+    annotation: SampleAnnotation = None,
+    strict: Strict = False,
+    fasta: Fasta = (),
+) -> int:
+    """APB2's peptidoform_ion level for ProteoPy, one ion per peptide_id, with sample_id and
+    protein_id; ions naming several proteins are left out, as ProteoPy's DIA-NN reader does, and
+    ProteoPy rolls the ions up itself."""
+    return _write(
+        "proteopy_ion",
+        _exported(
+            "proteopy_ion",
             data,
             output,
             params=params,

@@ -17,8 +17,8 @@ from apb_export.api import Exporter
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
 from conftest import RUNS, write_design, write_diann, write_maxquant  # the tests' synthetic inputs
 
-# msmu's own reader quantifies DIA-NN by Precursor.Quantity; compare like with like.
-ABUNDANCE = {"msmu": "Precursor_Quantity"}
+# msmu's and ProteoPy's own readers quantify DIA-NN by Precursor.Quantity; compare like with like.
+ABUNDANCE = {"msmu": "Precursor_Quantity", "proteopy_ion": "Precursor_Quantity"}
 
 
 def main(folder: Path) -> None:

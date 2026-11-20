@@ -1,0 +1,62 @@
+{
+  "schema_version": "0.5",
+  "file_version": "1",
+  "target_name": "ProteoPy",
+  "target_version_pattern": "^0\\.1\\.",
+  "tables": [
+    {
+      "output": ".h5ad",
+      "levels": {
+        "peptidoform_ion": {
+          "axis": {"obs_key": "sample_id", "var_key": "peptide_id"},
+          "measurements": {
+            "primary_layer": "abundance",
+            "layers": [{"name": "abundance", "source": {"measurements": "primary_layer"}}]
+          },
+          "columns": {
+            "obs": [
+              {"name": "sample_id", "source": {"axis": "obs_key"}},
+              {"name": "annotations", "how": "all_values"}
+            ],
+            "var": [
+              {"name": "peptide_id", "source": {"catalog": "apb_alpha", "var": "peptidoform_ion"}},
+              {
+                "name": "protein_id",
+                "how": "single_accession",
+                "source": {"catalog": "apb_alpha", "var": "fasta_accessions"},
+                "drop_missing": true
+              },
+              {
+                "name": "decoy",
+                "source": {"catalog": "apb_alpha", "var": "decoy"},
+                "type": "boolean",
+                "required": false
+              },
+              {
+                "name": "in_fasta",
+                "source": {"catalog": "fasta_proteins_alpha", "var": "any_member_in_fasta"},
+                "type": "boolean",
+                "required": false
+              },
+              {
+                "name": "gene_id",
+                "source": {"catalog": "fasta_proteins_alpha", "var": "fasta_gene_names"},
+                "required": false
+              },
+              {
+                "name": "description",
+                "source": {"catalog": "fasta_proteins_alpha", "var": "fasta_descriptions"},
+                "required": false
+              },
+              {
+                "name": "fasta_organisms",
+                "source": {"catalog": "fasta_proteins_alpha", "var": "fasta_organism_names"},
+                "required": false
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

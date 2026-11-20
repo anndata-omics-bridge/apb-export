@@ -214,6 +214,17 @@ class Accessions(SourcedBase):
     syntax: str = Field(min_length=1)
 
 
+class SingleAccession(SourcedBase):
+    """The accession a feature names when its protein list holds exactly one; otherwise missing.
+
+    ProteoPy's peptide-level data takes one protein per feature; with ``drop_missing`` the
+    features naming several proteins are left out, as ProteoPy's own DIA-NN reader does.
+    """
+
+    how: Literal["single_accession"]
+    separator: str = Field(default=";", min_length=1, description="The list's separator.")
+
+
 class Contaminant(EntryBase):
     """Whether the row is a contaminant: apb2's ``apb_Contaminant``, the contaminants the
     software flags or adds itself, or apb-fasta's FASTA contaminant match where the result
@@ -262,6 +273,7 @@ type ComputedEntry = Annotated[
     | ProformaCharge
     | SequenceLength
     | Accessions
+    | SingleAccession
     | Contaminant
     | Lowercase
     | ShortName

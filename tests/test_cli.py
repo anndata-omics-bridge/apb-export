@@ -209,6 +209,26 @@ def test_proteopy_annotates_its_protein_groups_from_the_fasta(
     assert (bool(absent["in_fasta"]), absent["gene_id"]) == (False, "")
 
 
+def test_proteopy_ion_annotates_its_ions_from_the_fasta(diann: DiannInput, tmp_path: Path) -> None:
+    """apb-fasta annotates the ion level by its Protein.Ids; no protein level is needed."""
+    fasta = tmp_path / "proteins.fasta"
+    fasta.write_text(
+        ">sp|P1|ONE_HUMAN One OS=Homo sapiens OX=9606 GN=ONE PE=1 SV=1\nMPEPTIDEKAACLLKR\n"
+    )
+    output = tmp_path / "ions.h5ad"
+    common = ("--params", str(diann.log), "--fasta", str(fasta))
+
+    assert _run("proteopy-ion", str(diann.report), str(output), *common) == 0
+
+    var = ad.read_h5ad(output).var
+    assert isinstance(var, pd.DataFrame)
+    one = var[var["protein_id"] == "P1"].iloc[0]
+    assert (bool(one["in_fasta"]), one["gene_id"]) == (True, "ONE")
+    assert one["description"] == "One OS=Homo sapiens OX=9606 GN=ONE PE=1 SV=1"
+    absent = var[var["protein_id"] == "P7"].iloc[0]
+    assert (bool(absent["in_fasta"]), absent["gene_id"]) == (False, "")
+
+
 def test_explorede_labels_features_by_the_fasta_gene_name(
     diann: DiannInput, tmp_path: Path
 ) -> None:

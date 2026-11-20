@@ -435,7 +435,8 @@
           "lowercase": "#/$defs/Lowercase",
           "proforma_charge": "#/$defs/ProformaCharge",
           "sequence_length": "#/$defs/SequenceLength",
-          "short_name": "#/$defs/ShortName"
+          "short_name": "#/$defs/ShortName",
+          "single_accession": "#/$defs/SingleAccession"
         },
         "propertyName": "how"
       },
@@ -454,6 +455,9 @@
         },
         {
           "$ref": "#/$defs/Accessions"
+        },
+        {
+          "$ref": "#/$defs/SingleAccession"
         },
         {
           "$ref": "#/$defs/Contaminant"
@@ -1235,6 +1239,82 @@
         "inputs"
       ],
       "title": "ShortName",
+      "type": "object"
+    },
+    "SingleAccession": {
+      "additionalProperties": false,
+      "description": "The accession a feature names when its protein list holds exactly one; otherwise missing.\n\nProteoPy's peptide-level data takes one protein per feature; with ``drop_missing`` the\nfeatures naming several proteins are left out, as ProteoPy's own DIA-NN reader does.",
+      "properties": {
+        "name": {
+          "description": "The target field; apb2's rules name APB fields.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ColumnType",
+          "default": "string"
+        },
+        "width": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatWidth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Float width of a number entry; 64 when omitted."
+        },
+        "required": {
+          "default": true,
+          "description": "An absent source is an error; when false, the entry is skipped or filled.",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "fill_value": {
+          "$ref": "#/$defs/Scalar",
+          "default": null,
+          "description": "Written when an optional source is absent; \"NaN\" for numbers."
+        },
+        "drop_missing": {
+          "default": false,
+          "description": "A var entry: features whose value is missing or empty are left out and counted, as prolfquapp and msmu need a protein for every feature.",
+          "title": "Drop Missing",
+          "type": "boolean"
+        },
+        "source": {
+          "$ref": "#/$defs/Reference",
+          "description": "The APB field; apb2's rules name a vendor column here."
+        },
+        "fallback": {
+          "description": "Tried in order when the result lacks the source; one that answers is logged.",
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "title": "Fallback",
+          "type": "array"
+        },
+        "how": {
+          "const": "single_accession",
+          "title": "How",
+          "type": "string"
+        },
+        "separator": {
+          "default": ";",
+          "description": "The list's separator.",
+          "minLength": 1,
+          "title": "Separator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "source",
+        "how"
+      ],
+      "title": "SingleAccession",
       "type": "object"
     },
     "SourcedEntry": {
