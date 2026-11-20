@@ -124,7 +124,7 @@ Perseus: Generic matrix upload, or read with `perseuspy.pd.read_perseus("perseus
 
 - ProteoPy: `sample_id` and `protein_id` name the indices and stay columns
 - ProteoPy with `--fasta`: apb-fasta annotates the protein groups and adds `in_fasta`, `gene_id`, `description` and `fasta_organisms`
-- ProteoPy ions (`proteopy-ion`): ProteoPy's peptide data, keyed on the ion as ProteoPy's own DIA-NN reader is at `aggr_level="Precursor.Id"`; `protein_id` is the one accession of the ion's `fasta_accessions` column, and an ion naming several proteins is left out and counted in the export's provenance, as that reader leaves it out. apb-export rolls nothing up; ProteoPy's own functions roll ions up to peptides or proteins. With `--fasta`, apb-fasta annotates the ion level by the same column and adds the same four columns
+- ProteoPy ions (`proteopy_ion`): ProteoPy's peptide data, keyed on the ion as ProteoPy's own DIA-NN reader is at `aggr_level="Precursor.Id"`; `protein_id` is the one accession of the ion's `fasta_accessions` column, and an ion naming several proteins is left out and counted in the export's provenance, as that reader leaves it out. apb-export rolls nothing up; ProteoPy's own functions roll ions up to peptides or proteins. With `--fasta`, apb-fasta annotates the ion level by the same column and adds the same four columns
 - AlphaPeptTools: peptidoform_ion and peptide modalities carry `contaminant`; with `--fasta` also `in_fasta`, `fasta_proteins` and `fasta_organisms`
 - AlphaPeptTools on MaxQuant: runs named by raw file; with fractions, several raw files per experiment, only precursors are written and the export record lists the other levels as skipped
 - Neither tool reads these FASTA columns; they are kept for inspection

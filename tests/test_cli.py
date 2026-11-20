@@ -218,7 +218,7 @@ def test_proteopy_ion_annotates_its_ions_from_the_fasta(diann: DiannInput, tmp_p
     output = tmp_path / "ions.h5ad"
     common = ("--params", str(diann.log), "--fasta", str(fasta))
 
-    assert _run("proteopy-ion", str(diann.report), str(output), *common) == 0
+    assert _run("proteopy_ion", str(diann.report), str(output), *common) == 0
 
     var = ad.read_h5ad(output).var
     assert isinstance(var, pd.DataFrame)

@@ -351,7 +351,7 @@ def proteopy(
     )
 
 
-@app.command
+@app.command(name="proteopy_ion")  # a command is named as its target, which the web app runs
 def proteopy_ion(
     data: Data,
     output: Annotated[Path, Parameter(help="New .h5ad file for ProteoPy")],
