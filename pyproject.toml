@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "apb-export"
-version = "0.2.0"
+version = "0.2.1"
 description = "APB2 results exported for nine downstream targets: msmu, MSstats, Perseus, prolfqua, ProteoPy, exploreDE, AlphaPeptTools, QFeatures and QPX"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -14,7 +14,7 @@ authors = [
     { name = "Witold Wolski", email = "wew@fgcz.ethz.ch" },
 ]
 dependencies = [
-    "apb2>=0.1.2,<0.2",
+    "apb2>=0.1.3,<0.2",
     "apb-catalog>=0.1.5,<0.2",
     "apb-fasta>=0.1.2,<0.2",
     "cyclopts>=4,<5",
