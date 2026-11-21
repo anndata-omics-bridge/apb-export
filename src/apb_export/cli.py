@@ -36,7 +36,12 @@ app = App(
 )
 
 Data = Annotated[Path, Parameter(help="Vendor table or vendor-result directory")]
-Params = Annotated[Path | None, Parameter(help="Vendor parameter file")]
+Params = Annotated[
+    tuple[Path, ...],
+    Parameter(
+        help="Vendor parameter file; repeat for a tool that writes two (MetaMorpheus, quantms)"
+    ),
+]
 Software = Annotated[
     str | None, Parameter(help="Restrict recognition to one vendor, as in apb2 convert")
 ]
@@ -71,7 +76,7 @@ Fasta = Annotated[
 
 def _parse(
     data: Path,
-    params: Path | None,
+    params: tuple[Path, ...],
     levels: tuple[QuantificationLevel, ...],
     *,
     software: str | None,
@@ -85,8 +90,8 @@ def _parse(
     checks = "strict" if strict else "standard"
     compiler = (
         ParseRuleCompiler.from_software(data, software, levels, checks)
-        if params is None and software is not None
-        else ParseRuleCompiler.detect(data, params, levels, checks, software)
+        if not params and software is not None
+        else ParseRuleCompiler.detect(data, params or None, levels, checks, software)
     )
     return compiler.compile().parse()
 
@@ -96,7 +101,7 @@ def _exported(
     data: Path,
     output: Path,
     *,
-    params: Path | None,
+    params: tuple[Path, ...],
     software: str | None,
     abundance: str | None,
     annotation: Path | None,
@@ -201,7 +206,7 @@ def msmu(
     output: Annotated[Path, Parameter(help="New .h5mu file for msmu.read_h5mu")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     abundance: Abundance = None,
     strict: Strict = False,
@@ -231,7 +236,7 @@ def prolfqua(
     output: Annotated[Path, Parameter(help="New .h5ad file for LFQData_from_anndata")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     abundance: Abundance = None,
     annotation: SampleAnnotation = None,
@@ -262,7 +267,7 @@ def msstats(
     output: Annotated[Path, Parameter(help="New .csv file for MSstats::dataProcess")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     abundance: Abundance = None,
     annotation: SampleAnnotation = None,
@@ -294,7 +299,7 @@ def perseus(
     output: Annotated[Path, Parameter(help="New .txt file for Perseus")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     abundance: Abundance = None,
     annotation: SampleAnnotation = None,
@@ -326,7 +331,7 @@ def proteopy(
     output: Annotated[Path, Parameter(help="New .h5ad file for ProteoPy")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     abundance: Abundance = None,
     annotation: SampleAnnotation = None,
@@ -357,7 +362,7 @@ def proteopy_ion(
     output: Annotated[Path, Parameter(help="New .h5ad file for ProteoPy")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     abundance: Abundance = None,
     annotation: SampleAnnotation = None,
@@ -390,7 +395,7 @@ def explorede(
     output: Annotated[Path, Parameter(help="New .h5ads directory for exploreDE")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     annotation: SampleAnnotation = None,
     strict: Strict = False,
@@ -422,7 +427,7 @@ def qpx(
     output: Annotated[Path, Parameter(help="New .qpx directory containing QPX Parquet tables")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     annotation: SampleAnnotation = None,
     strict: Strict = False,
@@ -452,7 +457,7 @@ def alphapepttools(
     output: Annotated[Path, Parameter(help="New .h5mu file for mulink_from_anndatas")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     annotation: SampleAnnotation = None,
     strict: Strict = False,
@@ -482,7 +487,7 @@ def qfeatures(
     output: Annotated[Path, Parameter(help="New .h5mu file for MuData::readH5MU and QFeatures")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     annotation: SampleAnnotation = None,
     strict: Strict = False,
@@ -512,7 +517,7 @@ def _plugin_command(
     output: Annotated[Path, Parameter(help="New file in the plugin target's layout")],
     /,
     *,
-    params: Params = None,
+    params: Params = (),
     software: Software = None,
     fasta: Fasta = (),
     sdrf: Sdrf = None,
