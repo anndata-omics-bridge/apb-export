@@ -92,4 +92,4 @@ make check
 
 ## Testing
 
-Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples, validates the QPX ones with qpx and the released pMultiQC, and checks that msmu, ProteoPy, AlphaPeptTools, QFeatures, MSstats and perseuspy read them, msmu against its own `read_diann` and ProteoPy's ion file against its own DIA-NN reader. prolfquapp's check is disabled for now.
+Tests use synthetic vendor files only and install none of the target tools. The [Consumers workflow](https://github.com/anndata-omics-bridge/apb-export/blob/main/.github/workflows/consumers.yml) exports the synthetic examples, validates the QPX ones with qpx and the released pMultiQC, and checks that msmu, ProteoPy, AlphaPeptTools, QFeatures, MSstats and perseuspy read them, msmu against its own `read_diann` and ProteoPy's ion file against its own DIA-NN reader. prolfquapp's check, in prolfquapp's own image, compares its APB reader with its own `preprocess_DIANN`.
