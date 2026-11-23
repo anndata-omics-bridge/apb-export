@@ -53,6 +53,14 @@ exporter.write(exporter.export(parsed), Path("result.h5mu"))
 
 QPX exports existing precursor and/or protein quantities, with no aggregation or required grouping, FASTA or SDRF. RT is resolved through APB Catalog's `chromatography` set and converted from its reviewed unit to seconds. [QPX layout and pMultiQC](docs/targets.md#qpx) describes the tables, missing metadata and report compatibility.
 
+## Install
+
+```bash
+uv tool install --python 3.13 apb-export
+```
+
+This puts `apb-export` on the PATH in an environment of its own; `--with-executables-from apb2,apb-fasta` adds the `apb2` and `apb-fasta` commands. Python 3.13 is the tested interpreter.
+
 ## What it writes
 
 msmu's `psm` modality, written wide. Experimental: msmu's own readers write one feature per run and precursor, and msmu's tools may expect that.
